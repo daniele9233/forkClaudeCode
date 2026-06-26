@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import type { Part } from "@opencode-ai/sdk/client";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionMessages } from "@/opencode/session";
@@ -11,6 +12,7 @@ interface Props {
 
 export function MessageList({ sessionId, isRunning }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
   const { data: messageRows, isLoading } = useSessionMessages(sessionId);
   const liveParts = useChatStore((s) => s.liveParts);
   const liveMessages = useChatStore((s) => s.liveMessages);
@@ -55,12 +57,14 @@ export function MessageList({ sessionId, isRunning }: Props) {
           isRunning && liveMsgParts !== undefined && message.role === "assistant";
 
         return (
-          <MessageBubble
+          <motion.div
             key={info.id}
-            message={message}
-            parts={parts}
-            isStreaming={msgIsStreaming}
-          />
+            initial={reduce ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <MessageBubble message={message} parts={parts} isStreaming={msgIsStreaming} />
+          </motion.div>
         );
       })}
       <div ref={bottomRef} />

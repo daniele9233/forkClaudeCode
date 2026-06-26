@@ -15,6 +15,77 @@
 
 ---
 
+## 2026-06-26 · Fase 9 — Pass estetico (COMPLETA)
+
+**Fase:** 9.1–9.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/stores/theme.store.ts`** (nuovo)
+- `Theme = "dark" | "light"`; stato Zustand `theme` + `setTheme` + `toggleTheme`
+- `getInitialTheme()`: legge `localStorage["forgia.theme"]`; fallback a dark, ma rispetta
+  `prefers-color-scheme: light` esplicito dell'OS
+- `applyTheme()`: toggla la classe `.light` su `<html>` + setta `document.documentElement.style.colorScheme`
+- Applica il tema in modo sincrono al load del modulo (no flash)
+
+**`src/main.tsx`** — aggiornato
+- `import "./stores/theme.store"` come side-effect PRIMA di `App` → tema applicato prima del primo paint
+
+**`src/features/settings/ThemeToggle.tsx`** (nuovo)
+- Pulsante Sun/Moon (lucide) nell'header di ChatShell; `aria-label` dinamico; chiama `toggleTheme`
+
+**`src/index.css`** — aggiornato
+- Blocco `.light` completato: aggiunti `--destructive(-foreground)`, `--ring`, tutte le var sidebar,
+  ombre più morbide (rgb slate con alpha bassa)
+- Scrollbar light-aware (`.light ::-webkit-scrollbar-thumb` → forge-300/400)
+- Aggiunta var `--theme-transition` (riusabile per transizioni di colore)
+
+**`src/features/onboarding/WelcomeScreen.tsx`** (nuovo) — momento-firma (9.1)
+- Empty state mostrato quando non c'è sessione attiva (sostituisce l'empty state inline di ChatShell)
+- Anvil (`Hammer`) dentro un riquadro con **forge-glow ambra** pulsante (scale+opacity loop, Motion)
+- Stagger reveal (container/item variants) di icona → titolo → sottotitolo → chip → hint
+- 3 **suggestion-chip** ("Plan a feature" plan, "Explain this codebase" plan, "Find a bug" build):
+  click → `onPrompt(prompt, mode)` che inoltra a `handleSend` di ChatShell (auto-crea sessione)
+- Hint "Press Ctrl K for the command palette"
+- Tutti gli effetti disabilitati con `useReducedMotion()`
+
+**`src/features/chat/ChatShell.tsx`** — aggiornato
+- Import `ThemeToggle` + `WelcomeScreen`
+- `ThemeToggle` nell'header (dopo `ModelSwitcher`)
+- Empty state inline rimpiazzato da `<WelcomeScreen onPrompt={isReady ? handleSend : undefined} />`
+
+**`src/features/chat/MessageList.tsx`** — aggiornato (9.3)
+- Ogni bubble wrappato in `motion.div` con entrata fade-up (0.25s, ease custom)
+- `key={info.id}` stabile → l'entrata gira solo al mount, non ad ogni update di streaming
+- `useReducedMotion()` → `initial={false}` quando l'utente preferisce ridurre il motion
+
+**`src/App.tsx`** — aggiornato (9.3)
+- Root convertito in `motion.div` con fade-in d'apertura (0.5s, una-tantum al mount)
+- `useReducedMotion()` → niente fade se reduced-motion
+
+### Perché / decisione
+
+- **D3 — niente Magic UI/Aceternity come dipendenze**: quelle librerie sono copy-paste pensate per
+  landing page e NON gestiscono `prefers-reduced-motion` da sole (§10). Per un'app densa e per
+  rispettare il quality floor, gli effetti-firma sono hand-rolled con **Motion** (già in stack),
+  così ogni animazione è gated da `useReducedMotion()`. Audacia spesa solo sul WelcomeScreen +
+  forge-glow, coerente con "boldness in un punto solo".
+- **Tema: default dark, opt-in light**: l'identità è "officina digitale" dark-first; il light
+  esiste ma non è il default a meno che l'OS lo chieda esplicitamente.
+- **No-FOUC via import side-effect in main.tsx**: applicare la classe prima del render evita il
+  flash di tema sbagliato.
+
+### Gotcha / attenzione
+
+- Il `@media (prefers-reduced-motion)` in CSS NON copre le animazioni JS di Motion (scale/opacity
+  loop, varianti) → serve `useReducedMotion()` a livello di componente. Fatto su tutti e 3 i punti.
+- L'entrata dei bubble usa `key` stabile: se in futuro si cambia la key (es. index) ri-animerebbe
+  ad ogni token di streaming — da non fare.
+- Il bundle è salito a ~1001KB (Motion + Monaco + xterm): warning chunk >500KB atteso, lazy-split
+  rimandato a Fase 10.
+
+---
+
 ## 2026-06-26 · Fase 8 — Differenziatori UX (COMPLETA)
 
 **Fase:** 8.1–8.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

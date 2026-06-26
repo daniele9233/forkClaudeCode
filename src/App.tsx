@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { SessionSidebar } from "@/features/sessions/SessionSidebar";
 import { ChatShell } from "@/features/chat/ChatShell";
@@ -57,6 +58,7 @@ export default function App() {
   } = useUIStore();
   const selectedFilePath = useFileStore((s) => s.selectedFilePath);
   const previewUrl = usePreviewStore((s) => s.previewUrl);
+  const reduce = useReducedMotion();
 
   // If the open file is closed while the diff tab is active, fall back to terminal.
   useEffect(() => {
@@ -86,7 +88,12 @@ export default function App() {
   }, [handleGlobalKey]);
 
   return (
-    <div className="flex h-full overflow-hidden bg-[var(--background)]">
+    <motion.div
+      initial={reduce ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="flex h-full overflow-hidden bg-[var(--background)]"
+    >
       {/* Left sidebar: sessions (top) + file tree (bottom) */}
       <div className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
         <div className="shrink-0 overflow-hidden" style={{ maxHeight: "45%" }}>
@@ -186,6 +193,6 @@ export default function App() {
       {/* Global overlays */}
       {commandPaletteOpen && <CommandPalette onOpenSettings={openSettings} />}
       {settingsOpen && <SettingsModal onClose={closeSettings} />}
-    </div>
+    </motion.div>
   );
 }

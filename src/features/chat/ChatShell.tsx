@@ -8,6 +8,8 @@ import { useUIStore } from "@/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
 import { ModelSwitcher } from "@/features/settings/ModelSwitcher";
+import { ThemeToggle } from "@/features/settings/ThemeToggle";
+import { WelcomeScreen } from "@/features/onboarding/WelcomeScreen";
 import { MessageList } from "./MessageList";
 import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
@@ -67,6 +69,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
             </span>
           )}
           <ModelSwitcher />
+          <ThemeToggle />
           <button
             onClick={toggleTerminal}
             title="Toggle terminal"
@@ -96,15 +99,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       {activeSessionId ? (
         <MessageList sessionId={activeSessionId} isRunning={isRunning} />
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center px-6">
-          <div className="text-5xl select-none">⚒️</div>
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">
-            Welcome to Forgia
-          </h2>
-          <p className="text-sm text-[var(--muted-foreground)] max-w-sm">
-            Send your first message to start an agent session.
-          </p>
-        </div>
+        <WelcomeScreen onPrompt={isReady ? handleSend : undefined} />
       )}
 
       {/* Input area */}

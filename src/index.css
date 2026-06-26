@@ -116,7 +116,7 @@
   --sidebar-ring:        var(--color-accent-400);
 }
 
-/* Tema chiaro (futuro — Fase 9.2) */
+/* Tema chiaro (Fase 9.2) — superfici calde, accento rame più scuro per contrasto */
 .light {
   --background:        var(--color-forge-50);
   --foreground:        var(--color-forge-900);
@@ -132,8 +132,30 @@
   --muted-foreground:  var(--color-forge-500);
   --accent:            var(--color-forge-100);
   --accent-foreground: var(--color-forge-900);
+  --destructive:       var(--color-error);
+  --destructive-foreground: #ffffff;
   --border:            var(--color-forge-200);
   --input:             var(--color-forge-200);
+  --ring:              var(--color-accent-500);
+
+  /* Sidebar (light) */
+  --sidebar-background:  #ffffff;
+  --sidebar-foreground:  var(--color-forge-800);
+  --sidebar-border:      var(--color-forge-200);
+  --sidebar-accent:      var(--color-forge-100);
+  --sidebar-accent-foreground: var(--color-forge-900);
+  --sidebar-ring:        var(--color-accent-500);
+
+  /* Ombre più morbide su sfondo chiaro */
+  --shadow-panel:   0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06);
+  --shadow-popover: 0 4px 6px -1px rgb(15 23 42 / 0.10), 0 2px 4px -2px rgb(15 23 42 / 0.08);
+}
+
+/* Transizione morbida quando si cambia tema (saltata con reduced-motion) */
+:root {
+  --theme-transition: background-color var(--duration-normal) var(--ease-ui),
+    border-color var(--duration-normal) var(--ease-ui),
+    color var(--duration-normal) var(--ease-ui);
 }
 
 /* ---------- Reset base ---------- */
@@ -191,6 +213,12 @@ html, body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-forge-500);
+}
+.light ::-webkit-scrollbar-thumb {
+  background: var(--color-forge-300);
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-forge-400);
 }
 
 /* Utility aggiuntive */
