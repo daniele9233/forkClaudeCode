@@ -7,9 +7,11 @@ import {
   Search,
   Globe,
   Wrench,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ToolPart } from "@opencode-ai/sdk/client";
+import { useFileStore } from "@/stores/file.store";
 
 interface Props {
   part: ToolPart;
@@ -30,8 +32,32 @@ function iconForTool(toolName: string) {
   return <Wrench className="h-3.5 w-3.5" />;
 }
 
+/** Extract a file path and optional line number from the tool input object. */
+function extractFileRef(input: unknown): { path: string; line?: number } | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const obj = input as Record<string, unknown>;
+
+  const path =
+    (typeof obj.path === "string" ? obj.path : null) ??
+    (typeof obj.filePath === "string" ? obj.filePath : null) ??
+    (typeof obj.file_path === "string" ? obj.file_path : null) ??
+    (typeof obj.file === "string" ? obj.file : null);
+
+  if (!path) return null;
+
+  const line =
+    (typeof obj.line === "number" ? obj.line : null) ??
+    (typeof obj.startLine === "number" ? obj.startLine : null) ??
+    (typeof obj.start_line === "number" ? obj.start_line : null) ??
+    (typeof obj.lineNumber === "number" ? obj.lineNumber : null) ??
+    undefined;
+
+  return { path, line };
+}
+
 export function ToolCallCard({ part }: Props) {
   const [open, setOpen] = useState(false);
+  const { openFile } = useFileStore();
   const { tool, state } = part;
   const isRunning = state.status === "pending" || state.status === "running";
   const isError = state.status === "error";
@@ -45,6 +71,8 @@ export function ToolCallCard({ part }: Props) {
     : state.status === "running"
       ? state.title
       : undefined;
+
+  const fileRef = extractFileRef(input);
 
   return (
     <div
@@ -60,26 +88,49 @@ export function ToolCallCard({ part }: Props) {
         onClick={() => setOpen((v) => !v)}
       >
         <span className="text-[var(--muted-foreground)]">{iconForTool(tool)}</span>
-        <span className="flex-1 text-[var(--foreground)] font-semibold truncate">
+        <span className="flex-1 truncate font-semibold text-[var(--foreground)]">
           {title ?? tool}
         </span>
+
+        {/* File:line chip — opens the file in the diff panel */}
+        {fileRef && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openFile(fileRef.path, fileRef.line);
+            }}
+            className={cn(
+              "flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10px]",
+              "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+              "transition-colors",
+            )}
+            title={`Open ${fileRef.path}${fileRef.line ? `:${fileRef.line}` : ""}`}
+          >
+            <ExternalLink className="h-2.5 w-2.5" />
+            <span className="max-w-[120px] truncate">
+              {fileRef.path.split("/").pop()}
+              {fileRef.line ? `:${fileRef.line}` : ""}
+            </span>
+          </button>
+        )}
+
         {isRunning && (
-          <span className="shrink-0 text-[var(--muted-foreground)] italic font-sans animate-pulse">
+          <span className="shrink-0 animate-pulse font-sans italic text-[var(--muted-foreground)]">
             running…
           </span>
         )}
-        {isError && <span className="shrink-0 text-red-400 font-sans">error</span>}
+        {isError && <span className="shrink-0 font-sans text-red-400">error</span>}
         {open ? (
-          <ChevronDown className="shrink-0 h-3 w-3 text-[var(--muted-foreground)]" />
+          <ChevronDown className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]" />
         ) : (
-          <ChevronRight className="shrink-0 h-3 w-3 text-[var(--muted-foreground)]" />
+          <ChevronRight className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]" />
         )}
       </button>
       {open && (
-        <div className="border-t border-[var(--border)] px-3 py-2 space-y-2">
+        <div className="space-y-2 border-t border-[var(--border)] px-3 py-2">
           {input !== undefined && (
             <div>
-              <div className="text-[var(--muted-foreground)] mb-1 font-sans text-[10px] uppercase tracking-wider">
+              <div className="mb-1 font-sans text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
                 Input
               </div>
               <pre className="whitespace-pre-wrap break-all text-[var(--foreground)]">
@@ -89,17 +140,17 @@ export function ToolCallCard({ part }: Props) {
           )}
           {output !== undefined && (
             <div>
-              <div className="text-[var(--muted-foreground)] mb-1 font-sans text-[10px] uppercase tracking-wider">
+              <div className="mb-1 font-sans text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
                 Output
               </div>
-              <pre className="whitespace-pre-wrap break-all text-[var(--foreground)] max-h-48 overflow-y-auto">
+              <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-all text-[var(--foreground)]">
                 {output}
               </pre>
             </div>
           )}
           {errorMsg !== undefined && (
             <div>
-              <div className="text-red-400 mb-1 font-sans text-[10px] uppercase tracking-wider">
+              <div className="mb-1 font-sans text-[10px] uppercase tracking-wider text-red-400">
                 Error
               </div>
               <pre className="whitespace-pre-wrap break-all text-red-300">{errorMsg}</pre>

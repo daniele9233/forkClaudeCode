@@ -1,6 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { X, GitBranch } from "lucide-react";
 import { DiffEditor, Editor } from "@monaco-editor/react";
+import type { Monaco } from "@monaco-editor/react";
+import type { editor as MonacoEditorNS } from "monaco-editor";
 import { cn } from "@/lib/utils";
 import { useFileStore } from "@/stores/file.store";
 import { useFileRead, useFileStatus } from "@/opencode/file";
@@ -108,18 +110,42 @@ const MONACO_OPTIONS = {
   scrollBeyondLastLine: false,
   fontSize: 12,
   lineNumbers: "on" as const,
-  renderLineHighlight: "none" as const,
+  renderLineHighlight: "all" as const,
   folding: false,
   glyphMargin: false,
   overviewRulerLanes: 0,
 };
 
 /* ──────────────────────────────────────────────────
+   Line reveal helpers
+   ────────────────────────────────────────────────── */
+
+function revealLine(
+  editor: MonacoEditorNS.ICodeEditor,
+  monaco: Monaco,
+  line: number,
+  decoRef: React.MutableRefObject<string[]>,
+) {
+  editor.revealLineInCenter(line);
+  editor.setPosition({ lineNumber: line, column: 1 });
+  // Highlight the target line with a subtle amber background
+  decoRef.current = editor.deltaDecorations(decoRef.current, [
+    {
+      range: new monaco.Range(line, 1, line, 1),
+      options: {
+        isWholeLine: true,
+        className: "monaco-target-line",
+      },
+    },
+  ]);
+}
+
+/* ──────────────────────────────────────────────────
    Component
    ────────────────────────────────────────────────── */
 
 export function FileDiffPanel() {
-  const { selectedFilePath, setSelectedFilePath } = useFileStore();
+  const { selectedFilePath, selectedLine, setSelectedFilePath } = useFileStore();
   const enabled = !!selectedFilePath;
   const {
     data: fileContent,
@@ -128,6 +154,23 @@ export function FileDiffPanel() {
   } = useFileRead(selectedFilePath ?? "", enabled);
   const { data: statusList } = useFileStatus();
 
+  // Refs to the mounted Monaco editor instances
+  const editorRef = useRef<MonacoEditorNS.ICodeEditor | null>(null);
+  const diffEditorRef = useRef<MonacoEditorNS.IDiffEditor | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
+  const decoRef = useRef<string[]>([]);
+
+  // Scroll to selectedLine whenever it or the editor changes
+  useEffect(() => {
+    if (!selectedLine || !monacoRef.current) return;
+    if (editorRef.current) {
+      revealLine(editorRef.current, monacoRef.current, selectedLine, decoRef);
+    } else if (diffEditorRef.current) {
+      const mod = diffEditorRef.current.getModifiedEditor();
+      revealLine(mod, monacoRef.current, selectedLine, decoRef);
+    }
+  }, [selectedLine]);
+
   const gitStatus = useMemo(
     () => statusList?.find((f) => f.path === selectedFilePath),
     [statusList, selectedFilePath],
@@ -135,6 +178,9 @@ export function FileDiffPanel() {
 
   const lang = selectedFilePath ? getLang(selectedFilePath) : "plaintext";
   const hasDiff = !!fileContent?.patch;
+
+  // Fallback to first hunk line if no selectedLine was provided
+  const targetLine = selectedLine ?? fileContent?.patch?.hunks?.[0]?.newStart ?? null;
 
   const { original, modified } = useMemo(() => {
     if (!fileContent) return { original: "", modified: "" };
@@ -146,6 +192,25 @@ export function FileDiffPanel() {
     };
   }, [fileContent]);
 
+  const handleEditorMount = (editor: MonacoEditorNS.ICodeEditor, monaco: Monaco) => {
+    editorRef.current = editor;
+    diffEditorRef.current = null;
+    monacoRef.current = monaco;
+    decoRef.current = [];
+    if (targetLine) revealLine(editor, monaco, targetLine, decoRef);
+  };
+
+  const handleDiffMount = (editor: MonacoEditorNS.IDiffEditor, monaco: Monaco) => {
+    diffEditorRef.current = editor;
+    editorRef.current = null;
+    monacoRef.current = monaco;
+    decoRef.current = [];
+    if (targetLine) {
+      const mod = editor.getModifiedEditor();
+      revealLine(mod, monaco, targetLine, decoRef);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col bg-[var(--background)]">
       {/* ── Header ── */}
@@ -154,6 +219,9 @@ export function FileDiffPanel() {
 
         <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--foreground)]">
           {selectedFilePath ?? ""}
+          {targetLine && (
+            <span className="text-[var(--muted-foreground)]">:{targetLine}</span>
+          )}
         </span>
 
         {gitStatus && (
@@ -202,6 +270,7 @@ export function FileDiffPanel() {
             modified={modified}
             language={lang}
             theme="vs-dark"
+            onMount={handleDiffMount}
             options={{
               ...MONACO_OPTIONS,
               renderSideBySide: true,
@@ -215,6 +284,7 @@ export function FileDiffPanel() {
             value={modified}
             language={lang}
             theme="vs-dark"
+            onMount={handleEditorMount}
             options={MONACO_OPTIONS}
           />
         )}

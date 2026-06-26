@@ -15,6 +15,63 @@
 
 ---
 
+## 2026-06-26 · Fase 3.3 — Apertura file alla riga esatta
+
+**Fase:** 3.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/stores/file.store.ts`** — aggiornato
+- Aggiunto `selectedLine: number | null`
+- Aggiunto `openFile(path, line?)`: azione atomica che aggiorna entrambi
+- `setSelectedFilePath` ora resetta anche `selectedLine` a null
+
+**`src/features/filetree/FileDiffPanel.tsx`** — aggiornato
+- `revealLine(editor, monaco, line, decoRef)`: helper che:
+  1. `editor.revealLineInCenter(line)` — scrolla alla riga
+  2. `editor.setPosition({ lineNumber: line, column: 1 })` — posiziona cursore
+  3. `editor.deltaDecorations(prev, [...])` — evidenzia la riga con classe `monaco-target-line`
+- `editorRef`, `diffEditorRef`, `monacoRef`, `decoRef`: ref per mantenere l'istanza Monaco
+- `handleEditorMount(editor, monaco)`: salva ref + rivela riga al mount
+- `handleDiffMount(editor, monaco)`: salva ref diff + rivela su `getModifiedEditor()`
+- `useEffect([selectedLine])`: se `selectedLine` cambia dopo il mount, ri-rivela
+- `targetLine = selectedLine ?? patch?.hunks?.[0]?.newStart ?? null`: fallback automatico
+  alla prima riga modificata dal diff se non specificata esplicitamente
+- Header mostra `path:riga` quando `targetLine != null`
+- Tipi: `import type { editor as MonacoEditorNS } from "monaco-editor"` per `ICodeEditor`
+  e `IDiffEditor` (evita errore "ICodeEditor not assignable to IStandaloneCodeEditor")
+
+**`src/features/chat/ToolCallCard.tsx`** — aggiornato
+- `extractFileRef(input)`: ispeziona `input` (tipicamente `Record<string,unknown>`)
+  cercando chiavi `path | filePath | file_path | file` per il path e
+  `line | startLine | start_line | lineNumber` per il numero di riga
+- Chip `ExternalLink + basename:N` nel header della card (dopo il titolo, prima del badge)
+- Click sul chip: `e.stopPropagation()` + `openFile(path, line)` → apre pannello diff
+- Il chip mostra solo il basename (non il path completo) truncato a `max-w-[120px]`
+
+**`monaco-editor@0.55.1`** installato come `devDependency` per accedere ai tipi
+`ICodeEditor`, `IDiffEditor`, `IStandaloneCodeEditor` senza far partire il bundle.
+
+### Perché / decisione
+
+`getModifiedEditor()` ritorna `ICodeEditor`, non `IStandaloneCodeEditor`. Usare il
+tipo base corretto (`ICodeEditor`) evita errori TypeScript senza richiedere cast.
+Il fallback a `hunks[0].newStart` è utile quando l'agente edita un file senza
+specificare una riga — il pannello si posiziona automaticamente alla prima modifica.
+
+### Gotcha / attenzione
+
+- `editor.setPosition` funziona anche in modalità read-only (non lancia errori)
+  ma non mostra un cursore visibile; `deltaDecorations` con `className` richiede
+  CSS corrispondente (da aggiungere in Fase 9 — `index.css`: `.monaco-target-line`)
+- `monaco-editor` e `@monaco-editor/react` devono essere alla stessa versione major
+  per evitare conflitti di tipi; attualmente CDN carica Monaco 0.52, ma i tipi
+  installati sono 0.55 — non causa problemi a runtime ma da allineare in Fase 10
+- Il chip `ExternalLink` usa `e.stopPropagation()` per evitare che il click
+  espanda/collassi la card contemporaneamente
+
+---
+
 ## 2026-06-26 · Fase 3.2 — Diff inline Monaco
 
 **Fase:** 3.2 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
