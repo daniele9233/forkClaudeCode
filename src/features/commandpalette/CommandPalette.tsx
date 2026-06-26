@@ -221,7 +221,12 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
         if (e.target === e.currentTarget) closeCommandPalette();
       }}
     >
-      <div className="w-[560px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+        className="w-[560px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] shadow-2xl"
+      >
         {/* Search input */}
         <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-3">
           <Search className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />

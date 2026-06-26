@@ -351,12 +351,18 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onMouseDown={(e) => e.target === overlayRef.current && onClose()}
     >
-      <div className="flex h-[70vh] w-[520px] flex-col rounded-xl border border-[var(--border)] bg-[var(--background)] shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings"
+        className="flex h-[70vh] w-[520px] flex-col rounded-xl border border-[var(--border)] bg-[var(--background)] shadow-2xl"
+      >
         {/* Modal header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
           <span className="text-sm font-semibold text-[var(--foreground)]">Settings</span>
           <button
             onClick={onClose}
+            aria-label="Close settings"
             className="rounded p-0.5 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
           >
             <X className="h-4 w-4" />
