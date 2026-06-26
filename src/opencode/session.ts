@@ -120,6 +120,22 @@ export function useAbortSession() {
   });
 }
 
+/** Get child (subagent) sessions for a parent session. */
+export function useSessionChildren(sessionId: string | null) {
+  return useQuery({
+    queryKey: [...sessionKeys.detail(sessionId ?? ""), "children"] as const,
+    queryFn: async () => {
+      const res = await getClient().session.children({
+        path: { id: sessionId! },
+        throwOnError: true,
+      });
+      return res.data ?? [];
+    },
+    enabled: !!sessionId,
+    staleTime: 10_000,
+  });
+}
+
 /** Delete a session and all its data. */
 export function useDeleteSession() {
   const queryClient = useQueryClient();

@@ -15,6 +15,91 @@
 
 ---
 
+## 2026-06-26 · Fase 7 — Funzioni motore nella GUI (COMPLETA)
+
+**Fase:** 7.1–7.4 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/opencode/config.ts`** (nuovo)
+- `configKeys`: `config()`, `agents()`, `mcp()`, `children(sessionId)` — key factory TQ
+- `useConfig()`: `GET /config` → `Config`; `staleTime: 30_000`
+- `useUpdateConfig()`: legge config corrente, merge+write via `PUT /config`; invalida cache
+- `useSetAuth(providerId, key)`: `PUT /auth/{id}` con `{ type: "api", key }` → setta chiave provider
+- `useAgents()`: `GET /agent` → `Array<Agent>`; `staleTime: 60_000`
+- `useMcpStatus()`: `GET /mcp` → `Record<name, { connected, tools?, error? }>`; `staleTime: 10_000`; `retry: false`
+- `useSessionChildren(sessionId)`: `GET /session/{id}/children` → `Array<Session>` (subagenti)
+
+**`src/features/settings/ModelSwitcher.tsx`** (nuovo)
+- Pill compatto nell'header di ChatShell: `providerName` grigio + `modelId` bold + chevron
+- Click → panel a scomparsa (close-on-click-outside tramite `mousedown` listener)
+- Provider raggruppati con header uppercase + indicatore env-var richieste
+- Input inline chiave API (type=password) per provider con `env[]`; salva con `useSetAuth`
+- Riga modello: nome + context limit in K + checkmark se attivo
+- Selezione → `useUpdateConfig({ model: "providerId/modelId" })`
+
+**`src/features/settings/SettingsModal.tsx`** (nuovo)
+- Overlay con ESC + click-outside per chiudere
+- Tab **Agents & Skills** (`SkillsTab`):
+  - Lista da `useAgents()`: badge mode (subagent=amber / primary=blue / all=gray),
+    badge `built-in`, modello assegnato se presente, tool abilitati come chip
+  - Empty state, loading spinner
+- Tab **MCP Servers** (`McpTab`):
+  - Legge `config.mcp` per le definizioni + `useMcpStatus()` per lo stato run-time
+  - Badge `local`/`remote` + badge `connected`/`disconnected`
+  - Tool list (prime 8 + "+N more")
+  - Toggle `enabled` via `config.update` + pulsante rimozione
+  - Form "Add local server" (comando) / "Add remote" (URL) → `config.update`
+
+**`src/features/chat/ChatShell.tsx`** — aggiornato
+- Import: `ModelSwitcher`, `SettingsModal`, `Settings` (lucide)
+- `useState settingsOpen` + `SettingsModal` montato come overlay quando aperto
+- `ModelSwitcher` inserito nel gruppo pulsanti dell'header (prima di TerminalSquare)
+- Gear `Settings` icon a destra → apre `SettingsModal`
+
+**`src/opencode/session.ts`** — aggiornato
+- Aggiunto `useSessionChildren(sessionId)`:
+  `GET /session/{id}/children` → `Array<Session>`; `staleTime: 10_000`
+  Query key: `[...sessionKeys.detail(id), "children"]`
+
+**`src/features/sessions/SessionSidebar.tsx`** — aggiornato
+- Import: `Bot`, `ChevronRight`, `useSessionChildren`
+- Main list filtrata a sole sessioni top-level (`!s.parentID`)
+- Nuovo componente `SubagentList({ parentId })`:
+  - Usa `useSessionChildren` solo per la sessione attiva
+  - Lista indentata con `border-l` + icone `ChevronRight` + `Bot`
+  - Pulsante amber pulsante se il subagente è in running
+  - Cliccabile → `setActiveSession(child.id)` (permette di ispezionare il contesto subagente)
+
+**`src/opencode/useChatEvents.ts`** — aggiornato
+- Import: `EventSessionCreated`
+- Nuovo handler `"session.created"`: invalida `sessionKeys.list()` e children del parent
+  (key: `[...sessionKeys.detail(parentId), "children"]`) se `parentID` presente
+
+### Perché / decisione
+
+- **Config merge-then-write**: l'endpoint `PUT /config` accetta una Config completa — si legge
+  lo stato corrente prima di ogni update per non perdere campi non toccati.
+- **SessionChildren solo per sessione attiva**: i subagenti appaiono solo durante l'esecuzione del
+  parent; mostrare tutti gli alberi di tutte le sessioni storiche appesantirebbe la sidebar e
+  richiederebbe troppi fetch. Si carica il subtree solo on-demand.
+- **`retry: false` per useMcpStatus**: l'endpoint `/mcp` può non essere disponibile se OpenCode
+  non ha MCP configurato; il retry automatico produrrebbe console noise inutile.
+- **No enable/disable agente da GUI**: l'SDK non espone un endpoint per abilitare/disabilitare
+  agenti singoli — sarebbe una modifica diretta al file `AGENTS.md` del progetto utente, fuori scope MVP.
+
+### Gotcha / attenzione
+
+- `McpStatusResponses[200]` è tipato `unknown` nell'SDK → cast a `Record<string, {...}>` lato GUI;
+  il formato reale va verificato a run-time con un'istanza live di OpenCode
+- L'input chiave API è `type="password"` → la chiave non viene mai mostrata in chiaro ma
+  è comunque trasmessa via HTTP locale (localhost only — accettabile)
+- `subagent` nella sidebar si vede solo durante la sessione attiva; sessioni figlie di sessioni
+  inattive non vengono mostrate (scelta MVP)
+- Il warning "chunks > 500KB" viene da Monaco + xterm.js; rimandato a Fase 10 (lazy split)
+
+---
+
 ## 2026-06-26 · Fase 6 — Context Inspector (COMPLETA)
 
 **Fase:** 6.1–6.5 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

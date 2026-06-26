@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { TerminalSquare } from "lucide-react";
+import { useCallback, useState } from "react";
+import { TerminalSquare, Settings } from "lucide-react";
 import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
@@ -7,6 +7,8 @@ import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
+import { ModelSwitcher } from "@/features/settings/ModelSwitcher";
+import { SettingsModal } from "@/features/settings/SettingsModal";
 import { MessageList } from "./MessageList";
 import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
@@ -14,6 +16,7 @@ import { PermissionBanner } from "./PermissionBanner";
 export function ChatShell() {
   const { isRunning } = useChatEvents();
   useTerminalEvents();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { activeSessionId, sidecarStatus, setActiveSession } = useSessionStore();
   const { bottomOpen, bottomTab, toggleTerminal } = useUIStore();
   const sendPrompt = useSendPrompt();
@@ -59,12 +62,13 @@ export function ChatShell() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {sidecarStatus !== "ready" && (
             <span className="text-xs text-[var(--muted-foreground)] capitalize">
               {sidecarStatus === "starting" ? "Connecting…" : sidecarStatus}
             </span>
           )}
+          <ModelSwitcher />
           <button
             onClick={toggleTerminal}
             title="Toggle terminal"
@@ -77,7 +81,16 @@ export function ChatShell() {
           >
             <TerminalSquare className="h-4 w-4" />
           </button>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            title="Settings (Agents & MCP)"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
         </div>
+
+        {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
       </div>
 
       {/* Dev-server detection banner */}

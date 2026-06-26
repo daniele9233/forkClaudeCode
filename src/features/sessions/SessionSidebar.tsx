@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Plus, Trash2, MessageSquare } from "lucide-react";
+import { Plus, Trash2, MessageSquare, Bot, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSessions, useCreateSession, useDeleteSession } from "@/opencode/session";
+import { useSessions, useCreateSession, useDeleteSession, useSessionChildren } from "@/opencode/session";
 import { useSessionStore } from "@/stores/session.store";
 import { useChatStore } from "@/stores/chat.store";
 import type { Session } from "@opencode-ai/sdk/client";
@@ -78,6 +78,52 @@ function SessionRow({
   );
 }
 
+/** Subagent children shown indented below a parent session */
+function SubagentList({
+  parentId,
+  activeSessionId,
+  runningSessions,
+  onSelect,
+}: {
+  parentId: string;
+  activeSessionId: string | null;
+  runningSessions: Set<string>;
+  onSelect: (id: string) => void;
+}) {
+  const { data: children = [] } = useSessionChildren(parentId);
+  if (children.length === 0) return null;
+
+  return (
+    <div className="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-[var(--border)]/50 pl-2">
+      {children.map((child) => {
+        const isActive = child.id === activeSessionId;
+        const isRunning = runningSessions.has(child.id);
+        const title = child.title?.trim() || "Subagent";
+        return (
+          <button
+            key={child.id}
+            onClick={() => onSelect(child.id)}
+            className={cn(
+              "flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors",
+              isActive
+                ? "bg-[var(--primary)]/10 text-[var(--foreground)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]",
+            )}
+          >
+            <ChevronRight className="h-2.5 w-2.5 shrink-0 opacity-40" />
+            {isRunning ? (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400 animate-pulse" />
+            ) : (
+              <Bot className="h-2.5 w-2.5 shrink-0 opacity-50" />
+            )}
+            <span className="truncate text-[10px]">{title}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SessionSidebar() {
   const { data: sessions, isLoading } = useSessions();
   const { activeSessionId, setActiveSession } = useSessionStore();
@@ -85,8 +131,11 @@ export function SessionSidebar() {
   const createSession = useCreateSession();
   const deleteSession = useDeleteSession();
 
+  // Only top-level sessions (no parentID) shown in the main list
   const sorted = sessions
-    ? [...sessions].sort((a, b) => b.time.updated - a.time.updated)
+    ? [...sessions]
+        .filter((s) => !s.parentID)
+        .sort((a, b) => b.time.updated - a.time.updated)
     : [];
 
   const handleNew = async () => {
@@ -136,14 +185,24 @@ export function SessionSidebar() {
           <p className="px-2 text-xs text-[var(--muted-foreground)]">No sessions yet.</p>
         )}
         {sorted.map((s) => (
-          <SessionRow
-            key={s.id}
-            session={s}
-            isActive={s.id === activeSessionId}
-            isRunning={runningSessions.has(s.id)}
-            onSelect={handleSelect}
-            onDelete={handleDelete}
-          />
+          <div key={s.id}>
+            <SessionRow
+              session={s}
+              isActive={s.id === activeSessionId}
+              isRunning={runningSessions.has(s.id)}
+              onSelect={handleSelect}
+              onDelete={handleDelete}
+            />
+            {/* Show subagent children when this session is active */}
+            {s.id === activeSessionId && (
+              <SubagentList
+                parentId={s.id}
+                activeSessionId={activeSessionId}
+                runningSessions={runningSessions}
+                onSelect={handleSelect}
+              />
+            )}
+          </div>
         ))}
       </div>
     </aside>

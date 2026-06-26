@@ -7,6 +7,7 @@ import type {
   EventSessionIdle,
   EventSessionError,
   EventSessionUpdated,
+  EventSessionCreated,
   EventPermissionUpdated,
   EventSessionCompacted,
 } from "@opencode-ai/sdk/client";
@@ -65,6 +66,17 @@ export function useChatEvents() {
         if (sid) {
           setSessionRunning(sid, false);
           queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sid) });
+        }
+      }),
+
+      // New session created (may be a subagent) — refresh list + parent children
+      onEventType<EventSessionCreated>("session.created", (e) => {
+        queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+        const parentId = e.properties.info.parentID;
+        if (parentId) {
+          queryClient.invalidateQueries({
+            queryKey: [...sessionKeys.detail(parentId), "children"],
+          });
         }
       }),
 
