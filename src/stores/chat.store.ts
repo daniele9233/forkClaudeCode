@@ -72,6 +72,10 @@ export const useChatStore = create<ChatState>((set) => ({
       }
       const nextRunning = new Set(s.runningSessions);
       nextRunning.delete(sessionId);
-      return { liveParts: nextParts, liveMessages: nextMsgs, runningSessions: nextRunning };
+      return {
+        liveParts: nextParts,
+        liveMessages: nextMsgs,
+        runningSessions: nextRunning,
+      };
     }),
 }));

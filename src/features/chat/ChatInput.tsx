@@ -53,7 +53,11 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
         onKeyDown={handleKeyDown}
         disabled={disabled}
         rows={1}
-        placeholder={isRunning ? "Agent is working…" : "Message the agent (Enter to send, Shift+Enter for newline)"}
+        placeholder={
+          isRunning
+            ? "Agent is working…"
+            : "Message the agent (Enter to send, Shift+Enter for newline)"
+        }
         className={cn(
           "flex-1 resize-none bg-transparent text-sm text-[var(--foreground)]",
           "placeholder:text-[var(--muted-foreground)] focus:outline-none",

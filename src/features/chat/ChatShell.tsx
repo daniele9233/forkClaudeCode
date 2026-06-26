@@ -63,7 +63,9 @@ export function ChatShell() {
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center px-6">
           <div className="text-5xl select-none">⚒️</div>
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">Welcome to Forgia</h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">
+            Welcome to Forgia
+          </h2>
           <p className="text-sm text-[var(--muted-foreground)] max-w-sm">
             Send your first message to start an agent session.
           </p>

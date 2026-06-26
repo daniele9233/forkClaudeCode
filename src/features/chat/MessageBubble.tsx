@@ -126,10 +126,6 @@ export function MessageBubble({ message, parts, isStreaming }: Props) {
   }
 
   return (
-    <AssistantBubble
-      parts={parts}
-      isStreaming={isStreaming}
-      error={message.error}
-    />
+    <AssistantBubble parts={parts} isStreaming={isStreaming} error={message.error} />
   );
 }

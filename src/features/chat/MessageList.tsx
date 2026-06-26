@@ -52,9 +52,7 @@ export function MessageList({ sessionId, isRunning }: Props) {
         const message = liveMsg ?? info;
 
         const msgIsStreaming =
-          isRunning &&
-          liveMsgParts !== undefined &&
-          message.role === "assistant";
+          isRunning && liveMsgParts !== undefined && message.role === "assistant";
 
         return (
           <MessageBubble

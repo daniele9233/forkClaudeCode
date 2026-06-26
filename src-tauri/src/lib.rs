@@ -2,8 +2,7 @@ mod sidecar;
 
 use sidecar::Sidecar;
 use std::sync::Arc;
-use tauri::Manager;
-use tokio::sync::OnceCell;
+use tauri::Emitter;
 
 pub struct AppState {
     pub sidecar: Arc<Sidecar>,

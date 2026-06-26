@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Terminal, FileEdit, Search, Globe, Wrench } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Terminal,
+  FileEdit,
+  Search,
+  Globe,
+  Wrench,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ToolPart } from "@opencode-ai/sdk/client";
 
@@ -32,7 +40,11 @@ export function ToolCallCard({ part }: Props) {
   const input = state.status !== "pending" ? state.input : undefined;
   const output = isCompleted ? state.output : undefined;
   const errorMsg = isError ? state.error : undefined;
-  const title = isCompleted ? state.title : state.status === "running" ? state.title : undefined;
+  const title = isCompleted
+    ? state.title
+    : state.status === "running"
+      ? state.title
+      : undefined;
 
   return (
     <div
