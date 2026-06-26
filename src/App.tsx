@@ -5,8 +5,10 @@ import { ChatShell } from "@/features/chat/ChatShell";
 import { FileTree } from "@/features/filetree/FileTree";
 import { FileDiffPanel } from "@/features/filetree/FileDiffPanel";
 import { TerminalPanel } from "@/features/terminal/TerminalPanel";
+import { PreviewPanel } from "@/features/preview/PreviewPanel";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 import { useFileStore } from "@/stores/file.store";
+import { usePreviewStore } from "@/stores/preview.store";
 import { cn } from "@/lib/utils";
 
 function BottomTabButton({
@@ -38,6 +40,7 @@ function BottomTabButton({
 export default function App() {
   const { bottomOpen, bottomTab, setBottomTab, closeBottom } = useUIStore();
   const selectedFilePath = useFileStore((s) => s.selectedFilePath);
+  const previewUrl = usePreviewStore((s) => s.previewUrl);
 
   // If the open file is closed while the diff tab is active, fall back to terminal.
   useEffect(() => {
@@ -115,6 +118,9 @@ export default function App() {
           </>
         )}
       </main>
+
+      {/* Right column: web preview (Fase 4.3) */}
+      {previewUrl && <PreviewPanel />}
     </div>
   );
 }

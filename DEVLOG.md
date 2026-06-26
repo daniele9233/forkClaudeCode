@@ -15,6 +15,45 @@
 
 ---
 
+## 2026-06-26 · Fase 4.3 — Anteprima web (iframe)
+
+**Fase:** 4.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/features/preview/PreviewPanel.tsx`** (nuovo)
+- `<iframe src={previewUrl}>` con `sandbox` permissivo (scripts/same-origin/forms/popups/modals)
+- Toolbar: reload (incrementa `reloadKey` → rimonta iframe), barra URL editabile
+  (Enter → `openPreview`, normalizza schema `http://`), open-external (`window.open`), close
+- `useEffect` sincronizza l'address bar con `previewUrl` esterno
+- Mostrato solo se `previewUrl != null`
+
+**`src/App.tsx`** — aggiornato
+- `<PreviewPanel />` come **terza colonna** a destra (sibling di `<main>`),
+  `w-1/2 border-l`, montata se `previewUrl != null`
+- Layout finale: `[sidebar 256] [main flex-1] [preview w-1/2?]`
+
+**`docs/04-adr-web-preview.md`** (nuovo)
+- ADR: iframe ora vs webview WRY nativa poi
+
+### Perché / decisione
+
+iframe scelto per la 4.3 perché testabile senza Rust (cargo bloccato in remoto) e
+perché i dev server locali non bloccano l'embedding. L'HMR è gestito dal client
+del dev server dentro l'iframe — zero logica lato GUI oltre al reload manuale.
+
+### Gotcha / attenzione
+
+- **Limite chiave per Fase 5:** l'iframe verso `localhost:PORT` è **cross-origin**
+  rispetto all'app Tauri (`tauri://localhost`), quindi `iframe.contentWindow.document`
+  NON è accessibile → niente injection diretta dello script di selezione visuale.
+  Soluzioni: plugin nel progetto utente (postMessage) o webview WRY con
+  `initialization_script`. Documentato nell'ADR 04.
+- `reloadKey` come `key` dell'iframe forza un remount completo (reload pulito)
+- `window.open` funziona in dev; in Tauri valutare il plugin opener per aprire nel browser di sistema
+
+---
+
 ## 2026-06-26 · Fase 4.2 — Rilevamento dev server da output
 
 **Fase:** 4.2 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
