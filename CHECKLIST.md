@@ -12,6 +12,7 @@
 
 > Voce più recente in cima. Formato: `data — fatto — scoperto — riprendere da`.
 
+- _2026-06-26 — **Fatto:** Fasi 0.1–0.4. Struttura repo, licenza MIT, .gitignore. Scaffold Tauri 2 + React 19 + TS + Vite (pnpm). Tailwind v4 CSS-first (@tailwindcss/vite), Motion, Lucide, clsx/twMerge. Design token completi in `src/index.css` (palette forge + amber accent, font display/body/mono, spacing, radii, variabili shadcn). `src/lib/utils.ts` cn(). `App.tsx` hello Forgia. `pnpm build` verde. Cargo bloccato in env remoto (static.crates.io policy) → verificare localmente. **Riprendere da:** 0.5 (CI GitHub Actions) → poi 1.2 (provider test) → 1.3 (sidecar Rust)._
 - _2026-06-26 — **Fatto:** Fase 1.1. Installato `opencode-ai@1.17.11`, avviato `opencode serve` (porta 4096), ispezionata l'OpenAPI 3.1 (181 op, 444 schemi). Aggiunti `CLAUDE.md` (protocollo di lavoro) e `docs/01-opencode-openapi-findings.md`. **Scoperto:** il rischio #1 (§15.2) è rientrato — token/costo sono nativi su `Session` e `AssistantMessage`, la finestra è in `Model.limit.context`, esiste `GET /session/{id}/context` per "cosa è in contesto", più eventi `compaction.*`/`context.updated`. Streaming via SSE `GET /event`; HITL via `/permission`. **Riprendere da:** confermare il piano Fase 0 (scaffold) → poi eseguire; in parallelo Fase 1.2 (provider di test via `opencode auth`)._
 - _(prima sessione: deciso di costruire la GUI sopra OpenCode; riscritti `PROGETTO.md` e `CHECKLIST.md`; raccolte le risorse — OpenCode SDK, Onlook per la selezione visuale, shadcn/Magic UI/Aceternity per la UI. Prossimo passo: Fase 1.1 — avviare `opencode serve` e leggere l'OpenAPI per validare l'integrazione.)_
 
@@ -29,10 +30,10 @@
 
 ## Fase 0 — Fondamenta
 
-- [ ] **0.1** Inizializza il repo (struttura `PROGETTO.md` §12), licenza, `.gitignore`
-- [ ] **0.2** Scaffold Tauri 2 + React 19 + TypeScript + Vite; "hello window" che builda su Windows
-- [ ] **0.3** Setup Tailwind v4 + shadcn/ui + Motion + Lucide; tema dark-first
-- [ ] **0.4** Definisci i **design token** (palette 4–6 hex, scala tipografica display/body/mono, spacing) — `PROGETTO.md` §10
+- [x] **0.1** Inizializza il repo (struttura `PROGETTO.md` §12), licenza, `.gitignore`
+- [x] **0.2** Scaffold Tauri 2 + React 19 + TypeScript + Vite; "hello window" che builda su Windows _(cargo check richiede static.crates.io — verificare in locale; frontend build verde)_
+- [x] **0.3** Setup Tailwind v4 + shadcn/ui + Motion + Lucide; tema dark-first _(shadcn: setup base + `cn()`; v4 CSS-first; `src/index.css`)_
+- [x] **0.4** Definisci i **design token** (palette 4–6 hex, scala tipografica display/body/mono, spacing) — `PROGETTO.md` §10 _(inglobato in 0.3: palette forge-950…50 + amber accent, font display/body/mono, spacing, radii in `@theme` di index.css)_
 - [ ] **0.5** CI minima (build + lint + format) + cartella `docs/` per gli ADR
 
 ## Fase 1 — Integrazione col motore OpenCode ⭐ *(da fare per prima)*

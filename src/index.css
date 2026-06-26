@@ -1,0 +1,199 @@
+@import "tailwindcss";
+
+/*
+  Design tokens — "Forgia" (officina digitale, dark-first)
+  Palette: acciaio scuro + rame/ambra per accenti + bianco caldo per testo
+  Tutti i token sono CSS custom properties per shadcn/ui e la GUI.
+*/
+
+@theme {
+  /* ---------- Palette di base ---------- */
+  --color-forge-950:  #0a0c0e;   /* sfondo profondo */
+  --color-forge-900:  #111418;   /* sfondo app (default dark) */
+  --color-forge-800:  #1a1f26;   /* pannelli / card */
+  --color-forge-700:  #242b35;   /* bordi, dividers */
+  --color-forge-600:  #2e3744;   /* hover state */
+  --color-forge-500:  #3d4a5c;   /* outline / muted */
+  --color-forge-400:  #6b7d96;   /* testo secondario / placeholder */
+  --color-forge-300:  #9baabb;   /* testo disabilitato */
+  --color-forge-200:  #c5d0da;   /* testo body */
+  --color-forge-100:  #e8edf2;   /* testo primario */
+  --color-forge-50:   #f4f7fa;   /* testo bianco caldo */
+
+  /* Accento principale — rame/ambra (elemento firma: Context Inspector) */
+  --color-accent-500: #d97706;   /* amber-600 */
+  --color-accent-400: #f59e0b;   /* amber-500 — focus rings, highlights */
+  --color-accent-300: #fcd34d;   /* testo accento chiaro */
+  --color-accent-900: #1c1008;   /* sfondo accento scuro */
+
+  /* Semantici */
+  --color-success:    #22c55e;
+  --color-warning:    #f59e0b;
+  --color-error:      #ef4444;
+  --color-info:       #3b82f6;
+
+  /* ---------- Tipografia ---------- */
+  /* Display: per titoli grandi (onboarding, heading principale) */
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Body: testo UI */
+  --font-body:    "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Mono: codice, token count, dati numerici */
+  --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+
+  --font-size-xs:   0.75rem;    /* 12px */
+  --font-size-sm:   0.8125rem;  /* 13px */
+  --font-size-base: 0.875rem;   /* 14px — base UI */
+  --font-size-md:   1rem;       /* 16px */
+  --font-size-lg:   1.125rem;   /* 18px */
+  --font-size-xl:   1.25rem;    /* 20px */
+  --font-size-2xl:  1.5rem;     /* 24px */
+  --font-size-3xl:  1.875rem;   /* 30px */
+
+  /* ---------- Spacing ---------- */
+  --spacing-panel-gap: 0.5rem;
+  --spacing-sidebar-w: 14rem;
+  --spacing-context-w: 20rem;
+
+  /* ---------- Bordi e raggi ---------- */
+  --radius-sm:  0.25rem;
+  --radius-md:  0.375rem;
+  --radius-lg:  0.5rem;
+  --radius-xl:  0.75rem;
+  --radius-full: 9999px;
+
+  /* ---------- Ombre ---------- */
+  --shadow-panel: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-popover: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+
+  /* ---------- Transizioni ---------- */
+  --duration-fast:   150ms;
+  --duration-normal: 200ms;
+  --duration-slow:   300ms;
+  --ease-ui:         cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/*
+  Variabili shadcn/ui — mappate sui token Forgia.
+  shadcn le legge da :root tramite questi nomi standard.
+*/
+:root {
+  --background:        var(--color-forge-900);
+  --foreground:        var(--color-forge-100);
+
+  --card:              var(--color-forge-800);
+  --card-foreground:   var(--color-forge-100);
+
+  --popover:           var(--color-forge-800);
+  --popover-foreground: var(--color-forge-100);
+
+  --primary:           var(--color-accent-400);
+  --primary-foreground: var(--color-forge-950);
+
+  --secondary:         var(--color-forge-700);
+  --secondary-foreground: var(--color-forge-100);
+
+  --muted:             var(--color-forge-800);
+  --muted-foreground:  var(--color-forge-400);
+
+  --accent:            var(--color-forge-700);
+  --accent-foreground: var(--color-forge-100);
+
+  --destructive:       var(--color-error);
+  --destructive-foreground: var(--color-forge-50);
+
+  --border:            var(--color-forge-700);
+  --input:             var(--color-forge-700);
+  --ring:              var(--color-accent-400);
+
+  --radius:            var(--radius-md);
+
+  /* Sidebar */
+  --sidebar-background:  var(--color-forge-950);
+  --sidebar-foreground:  var(--color-forge-200);
+  --sidebar-border:      var(--color-forge-800);
+  --sidebar-accent:      var(--color-forge-800);
+  --sidebar-accent-foreground: var(--color-forge-100);
+  --sidebar-ring:        var(--color-accent-400);
+}
+
+/* Tema chiaro (futuro — Fase 9.2) */
+.light {
+  --background:        var(--color-forge-50);
+  --foreground:        var(--color-forge-900);
+  --card:              #ffffff;
+  --card-foreground:   var(--color-forge-900);
+  --popover:           #ffffff;
+  --popover-foreground: var(--color-forge-900);
+  --primary:           var(--color-accent-500);
+  --primary-foreground: #ffffff;
+  --secondary:         var(--color-forge-100);
+  --secondary-foreground: var(--color-forge-900);
+  --muted:             var(--color-forge-100);
+  --muted-foreground:  var(--color-forge-500);
+  --accent:            var(--color-forge-100);
+  --accent-foreground: var(--color-forge-900);
+  --border:            var(--color-forge-200);
+  --input:             var(--color-forge-200);
+}
+
+/* ---------- Reset base ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Focus visibile (non-negoziabile — §10.4) */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Riduzione del motion (non-negoziabile) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrollbar minimalista (dark) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-forge-600);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-forge-500);
+}
+
+/* Utility aggiuntive */
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+}
