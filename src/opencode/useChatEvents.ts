@@ -7,11 +7,14 @@ import type {
   EventSessionIdle,
   EventSessionError,
   EventSessionUpdated,
+  EventPermissionUpdated,
 } from "@opencode-ai/sdk/client";
 import { onEventType } from "./events";
 import { sessionKeys } from "./session";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
+import { usePermissionStore } from "@/stores/permission.store";
+import { getClient } from "./client";
 
 /**
  * Mount once (in OpencodeProvider or ChatShell) to wire SSE events into
@@ -20,6 +23,7 @@ import { useSessionStore } from "@/stores/session.store";
 export function useChatEvents() {
   const { updatePart, removePart, setMessage, setSessionRunning } = useChatStore();
   const { activeSessionId } = useSessionStore();
+  const { addPending, isAutoAllowed } = usePermissionStore();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -36,7 +40,6 @@ export function useChatEvents() {
       // Full message metadata update (cost, tokens, error, finish)
       onEventType<EventMessageUpdated>("message.updated", (e) => {
         setMessage(e.properties.info);
-        // Invalidate React Query so useSessionMessages refreshes
         queryClient.invalidateQueries({
           queryKey: sessionKeys.messages(e.properties.info.sessionID),
         });
@@ -62,10 +65,37 @@ export function useChatEvents() {
           queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sid) });
         }
       }),
+
+      // HITL: permission request from the agent
+      onEventType<EventPermissionUpdated>("permission.updated", (e) => {
+        const p = e.properties;
+        if (isAutoAllowed(p)) {
+          // Auto-approve silently
+          getClient()
+            .postSessionIdPermissionsPermissionId({
+              path: { id: p.sessionID, permissionID: p.id },
+              body: { response: "always" },
+            })
+            .catch(() => {
+              // If auto-approve fails, fall back to showing the banner
+              addPending(p);
+            });
+        } else {
+          addPending(p);
+        }
+      }),
     ];
 
     return () => unsubs.forEach((fn) => fn());
-  }, [updatePart, removePart, setMessage, setSessionRunning, queryClient]);
+  }, [
+    updatePart,
+    removePart,
+    setMessage,
+    setSessionRunning,
+    addPending,
+    isAutoAllowed,
+    queryClient,
+  ]);
 
   const isRunning = activeSessionId
     ? useChatStore.getState().runningSessions.has(activeSessionId)

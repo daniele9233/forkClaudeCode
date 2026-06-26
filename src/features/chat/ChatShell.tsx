@@ -4,6 +4,7 @@ import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
+import { PermissionBanner } from "./PermissionBanner";
 
 export function ChatShell() {
   const { isRunning } = useChatEvents();
@@ -73,18 +74,21 @@ export function ChatShell() {
       )}
 
       {/* Input area */}
-      <div className="border-t border-[var(--border)] p-3">
-        <ChatInput
-          onSend={handleSend}
-          onAbort={handleAbort}
-          disabled={isDisabled}
-          isRunning={isRunning}
-        />
-        {sidecarStatus === "error" && (
-          <p className="mt-1.5 text-center text-xs text-red-400">
-            OpenCode engine unavailable. Restart the app.
-          </p>
-        )}
+      <div className="border-t border-[var(--border)] pt-2">
+        <PermissionBanner />
+        <div className="px-3 pb-3">
+          <ChatInput
+            onSend={handleSend}
+            onAbort={handleAbort}
+            disabled={isDisabled}
+            isRunning={isRunning}
+          />
+          {sidecarStatus === "error" && (
+            <p className="mt-1.5 text-center text-xs text-red-400">
+              OpenCode engine unavailable. Restart the app.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
