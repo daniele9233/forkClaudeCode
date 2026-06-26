@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { X } from "lucide-react";
 import { SessionSidebar } from "@/features/sessions/SessionSidebar";
 import { ChatShell } from "@/features/chat/ChatShell";
@@ -7,6 +7,10 @@ import { FileDiffPanel } from "@/features/filetree/FileDiffPanel";
 import { TerminalPanel } from "@/features/terminal/TerminalPanel";
 import { PreviewPanel } from "@/features/preview/PreviewPanel";
 import { ContextInspectorPanel } from "@/features/inspector/ContextInspectorPanel";
+import { CheckpointTimeline } from "@/features/checkpoints/CheckpointTimeline";
+import { CommandPalette } from "@/features/commandpalette/CommandPalette";
+import { StatusBar } from "@/features/statusbar/StatusBar";
+import { SettingsModal } from "@/features/settings/SettingsModal";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 import { useFileStore } from "@/stores/file.store";
 import { usePreviewStore } from "@/stores/preview.store";
@@ -39,7 +43,18 @@ function BottomTabButton({
 }
 
 export default function App() {
-  const { bottomOpen, bottomTab, setBottomTab, closeBottom } = useUIStore();
+  const {
+    bottomOpen,
+    bottomTab,
+    setBottomTab,
+    closeBottom,
+    commandPaletteOpen,
+    openCommandPalette,
+    closeCommandPalette,
+    settingsOpen,
+    openSettings,
+    closeSettings,
+  } = useUIStore();
   const selectedFilePath = useFileStore((s) => s.selectedFilePath);
   const previewUrl = usePreviewStore((s) => s.previewUrl);
 
@@ -49,6 +64,26 @@ export default function App() {
       setBottomTab("terminal");
     }
   }, [selectedFilePath, bottomTab, setBottomTab]);
+
+  // Global Ctrl+K / Cmd+K → command palette
+  const handleGlobalKey = useCallback(
+    (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        if (commandPaletteOpen) {
+          closeCommandPalette();
+        } else {
+          openCommandPalette();
+        }
+      }
+    },
+    [commandPaletteOpen, openCommandPalette, closeCommandPalette],
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleGlobalKey);
+    return () => document.removeEventListener("keydown", handleGlobalKey);
+  }, [handleGlobalKey]);
 
   return (
     <div className="flex h-full overflow-hidden bg-[var(--background)]">
@@ -63,10 +98,10 @@ export default function App() {
         </div>
       </div>
 
-      {/* Main area: chat (top, flex-1) + bottom panel (terminal / diff / inspector) */}
+      {/* Main area: chat + bottom panel + status bar */}
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-hidden">
-          <ChatShell />
+          <ChatShell onOpenSettings={openSettings} />
         </div>
 
         {bottomOpen && (
@@ -94,6 +129,12 @@ export default function App() {
                     tab="inspector"
                     label="Inspector"
                     active={bottomTab === "inspector"}
+                    onClick={setBottomTab}
+                  />
+                  <BottomTabButton
+                    tab="timeline"
+                    label="Timeline"
+                    active={bottomTab === "timeline"}
                     onClick={setBottomTab}
                   />
                 </div>
@@ -125,14 +166,26 @@ export default function App() {
                 >
                   <ContextInspectorPanel />
                 </div>
+                <div
+                  className={cn("h-full", bottomTab === "timeline" ? "block" : "hidden")}
+                >
+                  <CheckpointTimeline />
+                </div>
               </div>
             </div>
           </>
         )}
+
+        {/* Status bar — always visible */}
+        <StatusBar />
       </main>
 
-      {/* Right column: web preview (Fase 4.3) */}
+      {/* Right column: web preview */}
       {previewUrl && <PreviewPanel />}
+
+      {/* Global overlays */}
+      {commandPaletteOpen && <CommandPalette onOpenSettings={openSettings} />}
+      {settingsOpen && <SettingsModal onClose={closeSettings} />}
     </div>
   );
 }

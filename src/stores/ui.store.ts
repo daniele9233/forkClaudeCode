@@ -1,33 +1,42 @@
 import { create } from "zustand";
 
-export type BottomTab = "terminal" | "diff" | "inspector";
+export type BottomTab = "terminal" | "diff" | "inspector" | "timeline";
 
 interface UIState {
-  /** Whether the bottom panel (terminal/diff) is open. */
   bottomOpen: boolean;
-  /** Which tab the bottom panel is currently showing. */
   bottomTab: BottomTab;
+  commandPaletteOpen: boolean;
+  settingsOpen: boolean;
 
   openBottom: (tab: BottomTab) => void;
   closeBottom: () => void;
   setBottomTab: (tab: BottomTab) => void;
   toggleTerminal: () => void;
+  openCommandPalette: () => void;
+  closeCommandPalette: () => void;
+  openSettings: () => void;
+  closeSettings: () => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
   bottomOpen: false,
   bottomTab: "terminal",
+  commandPaletteOpen: false,
+  settingsOpen: false,
 
   openBottom: (tab) => set({ bottomOpen: true, bottomTab: tab }),
   closeBottom: () => set({ bottomOpen: false }),
   setBottomTab: (tab) => set({ bottomTab: tab }),
   toggleTerminal: () => {
     const { bottomOpen, bottomTab } = get();
-    // If terminal already showing, close it; otherwise open/switch to terminal.
     if (bottomOpen && bottomTab === "terminal") {
       set({ bottomOpen: false });
     } else {
       set({ bottomOpen: true, bottomTab: "terminal" });
     }
   },
+  openCommandPalette: () => set({ commandPaletteOpen: true }),
+  closeCommandPalette: () => set({ commandPaletteOpen: false }),
+  openSettings: () => set({ settingsOpen: true }),
+  closeSettings: () => set({ settingsOpen: false }),
 }));

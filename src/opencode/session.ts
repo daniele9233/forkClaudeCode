@@ -136,6 +136,49 @@ export function useSessionChildren(sessionId: string | null) {
   });
 }
 
+/** Revert a session to a specific message (checkpoint). */
+export function useRevertSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      sessionId,
+      messageId,
+    }: {
+      sessionId: string;
+      messageId: string;
+    }) => {
+      const res = await getClient().session.revert({
+        path: { id: sessionId },
+        body: { messageID: messageId },
+        throwOnError: true,
+      });
+      return res.data;
+    },
+    onSuccess: (_data, { sessionId }) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.messages(sessionId) });
+    },
+  });
+}
+
+/** Restore all reverted messages in a session. */
+export function useUnrevertSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await getClient().session.unrevert({
+        path: { id: sessionId },
+        throwOnError: true,
+      });
+      return res.data;
+    },
+    onSuccess: (_data, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.messages(sessionId) });
+    },
+  });
+}
+
 /** Delete a session and all its data. */
 export function useDeleteSession() {
   const queryClient = useQueryClient();

@@ -15,6 +15,83 @@
 
 ---
 
+## 2026-06-26 · Fase 8 — Differenziatori UX (COMPLETA)
+
+**Fase:** 8.1–8.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/opencode/session.ts`** — aggiornato
+- `useRevertSession()`: `POST /session/{id}/revert` con `{ messageID }`; invalida `detail` + `messages` cache
+- `useUnrevertSession()`: `POST /session/{id}/unrevert`; invalida `detail` + `messages` cache
+
+**`src/stores/ui.store.ts`** — aggiornato
+- Aggiunto `commandPaletteOpen: boolean` + `openCommandPalette()` + `closeCommandPalette()`
+- Aggiunto `settingsOpen: boolean` + `openSettings()` + `closeSettings()`
+- `BottomTab` esteso con `"timeline"`
+
+**`src/features/checkpoints/CheckpointTimeline.tsx`** (nuovo)
+- Legge `session?.revert?.messageID` come indicatore del punto di rewind corrente
+- Merge storico (`sessionMsgsData`) + live (`liveMessages`) per avere tutti gli step in ordine
+- Banner amber "Session reverted — history truncated at checkpoint" con pulsante `Restore` (`useUnrevertSession`)
+- Timeline verticale `border-l` con dot per ogni step; dot amber sul checkpoint revert
+- Ogni card: "Step N", tempo relativo, token totali, costo, `provider/model`
+- Pulsante "Rewind to here" (invisibile sul checkpoint corrente) → `useRevertSession`
+- Elementi precedenti al checkpoint revert: `opacity-40`
+- Stato di caricamento `pendingId` per disabilitare i pulsanti durante la mutazione
+
+**`src/features/commandpalette/CommandPalette.tsx`** (nuovo)
+- Overlay full-screen con `bg-black/60`; click fuori → chiude
+- Gruppo **Actions** (7 voci): New Session, Toggle Terminal, Open Inspector, Open Timeline,
+  Open Web Preview (con URL rilevato come descrizione), Open Settings, Switch Model
+- Gruppo **Sessions**: sessioni top-level (`!parentID`) ordinate per `updated` desc, max 12
+- Ricerca fuzzy su `label + description + group` (lowercase)
+- Navigazione tastiera: ↑↓ sposta indice, Enter seleziona, Escape chiude
+- `data-idx` sugli elementi per `scrollIntoView({ block: 'nearest' })`
+- Attivazione globale via listener `Ctrl+K`/`Cmd+K` in `App.tsx`
+
+**`src/features/statusbar/StatusBar.tsx`** (nuovo)
+- Strip 24px (`h-6 shrink-0`) sempre visibile sotto il bottom panel in `App.tsx`
+- Progress bar context window: `(lastMsg.tokens.input / model.limit.context) * 100`
+- Color coding barra + testo: verde < 65%, amber 65–85%, rosso > 85%
+- Contatore passi: "N msgs in ctx" se ci sono context entries, altrimenti "N step(s)"
+- Costo cumulato sessione: somma `assistantMsgs.reduce((acc, m) => acc + m.cost, 0)`
+- Color coding costo: grigio < $0.10, foreground $0.10–$0.50, amber > $0.50
+- Pill `provider/model` a destra (dall'ultimo `AssistantMessage`)
+- Empty state se `!activeSessionId`
+
+**`src/features/chat/ChatShell.tsx`** — aggiornato
+- Rimosso `useState settingsOpen` e `SettingsModal` interno
+- Prop `onOpenSettings?: () => void` — il gear icon chiama questa prop (o `openSettings` dallo store come fallback)
+- `SettingsModal` spostato in `App.tsx` come overlay globale
+
+**`src/App.tsx`** — riscritto
+- Tab "Timeline" nel bottom panel → `<CheckpointTimeline />`
+- `<StatusBar />` sempre renderizzato sotto il bottom panel (fuori dal conditional `bottomOpen`)
+- Overlay globali in fondo: `{commandPaletteOpen && <CommandPalette />}`, `{settingsOpen && <SettingsModal />}`
+- Listener globale `Ctrl+K`/`Cmd+K` via `useCallback(handleGlobalKey)` + `useEffect`
+
+### Perché / decisione
+
+- **settingsOpen nello store**: sposto l'apertura settings in `ui.store` perché sia `ChatShell`
+  (gear icon) che `CommandPalette` ("Open Settings") devono aprire lo stesso modal. Altrimenti
+  servivano prop-drilling o un secondo `useState` incoerente.
+- **StatusBar sempre visibile**: la barra di stato non è parte del bottom panel collassabile —
+  è un indicatore persistente come in VS Code/JetBrains. Posizionata fuori dal `bottomOpen` block.
+- **Merge live+storico in CheckpointTimeline**: stesso pattern di ContextInspectorPanel e StatusBar
+  per avere i dati più recenti anche durante uno step in corso.
+- **CommandPalette: max 12 sessioni**: limita il risultato per non sovraccaricare la palette;
+  sessioni figlie (`parentID`) escluse perché non navigabili direttamente dalla palette.
+
+### Gotcha / attenzione
+
+- `session?.revert?.messageID` è `undefined` quando non c'è revert attivo (non `null`)
+- La CI gate prettier ha già colpito una volta (commit `cc2f3f0`): SEMPRE `pnpm prettier --write`
+  prima del commit
+- Il chunk `monaco-editor` supera 500KB — warning atteso, rimandato a Fase 10 (lazy split)
+
+---
+
 ## 2026-06-26 · Fase 7 — Funzioni motore nella GUI (COMPLETA)
 
 **Fase:** 7.1–7.4 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

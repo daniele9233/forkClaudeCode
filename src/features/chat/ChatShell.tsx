@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { TerminalSquare, Settings } from "lucide-react";
 import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
@@ -8,15 +8,13 @@ import { useUIStore } from "@/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
 import { ModelSwitcher } from "@/features/settings/ModelSwitcher";
-import { SettingsModal } from "@/features/settings/SettingsModal";
 import { MessageList } from "./MessageList";
 import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
 
-export function ChatShell() {
+export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = {}) {
   const { isRunning } = useChatEvents();
   useTerminalEvents();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const { activeSessionId, sidecarStatus, setActiveSession } = useSessionStore();
   const { bottomOpen, bottomTab, toggleTerminal } = useUIStore();
   const sendPrompt = useSendPrompt();
@@ -82,15 +80,13 @@ export function ChatShell() {
             <TerminalSquare className="h-4 w-4" />
           </button>
           <button
-            onClick={() => setSettingsOpen(true)}
+            onClick={onOpenSettings}
             title="Settings (Agents & MCP)"
             className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
           >
             <Settings className="h-4 w-4" />
           </button>
         </div>
-
-        {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
       </div>
 
       {/* Dev-server detection banner */}
