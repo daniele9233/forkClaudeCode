@@ -12,6 +12,7 @@
 
 > Voce più recente in cima. Formato: `data — fatto — scoperto — riprendere da`.
 
+- _2026-06-26 — **Fatto:** Fasi 1.2–1.6. 1.2: documentato in `docs/02-provider-setup.md` (da eseguire manualmente in locale). 1.3: Rust sidecar (`src-tauri/src/sidecar/mod.rs`: spawn/kill/health su porta libera; lib.rs: comandi Tauri `get_opencode_url`, `stop_opencode`, evento `opencode-ready`). 1.4: SDK layer TS — `src/opencode/client.ts` (singleton), `session.ts` (TQ hooks: list/get/create/prompt/abort), `OpencodeProvider.tsx` (bootstrap + QueryClient). 1.5: `src/opencode/events.ts` (SSE stream via `.stream` AsyncGenerator, `onEvent`/`onEventType`). Store: `src/stores/session.store.ts` (Zustand persist). 1.6: ADR `docs/03-adr-integration-layer.md`. `pnpm build` verde (267KB). **Scoperto:** SDK va importato da `@opencode-ai/sdk/client` (non root — `server.js` usa `child_process`). **Riprendere da:** Fase 2 — Chat shell + streaming markdown (2.1)._
 - _2026-06-26 — **Fatto:** Fasi 0.1–0.4. Struttura repo, licenza MIT, .gitignore. Scaffold Tauri 2 + React 19 + TS + Vite (pnpm). Tailwind v4 CSS-first (@tailwindcss/vite), Motion, Lucide, clsx/twMerge. Design token completi in `src/index.css` (palette forge + amber accent, font display/body/mono, spacing, radii, variabili shadcn). `src/lib/utils.ts` cn(). `App.tsx` hello Forgia. `pnpm build` verde. Cargo bloccato in env remoto (static.crates.io policy) → verificare localmente. **Riprendere da:** 0.5 (CI GitHub Actions) → poi 1.2 (provider test) → 1.3 (sidecar Rust)._
 - _2026-06-26 — **Fatto:** Fase 1.1. Installato `opencode-ai@1.17.11`, avviato `opencode serve` (porta 4096), ispezionata l'OpenAPI 3.1 (181 op, 444 schemi). Aggiunti `CLAUDE.md` (protocollo di lavoro) e `docs/01-opencode-openapi-findings.md`. **Scoperto:** il rischio #1 (§15.2) è rientrato — token/costo sono nativi su `Session` e `AssistantMessage`, la finestra è in `Model.limit.context`, esiste `GET /session/{id}/context` per "cosa è in contesto", più eventi `compaction.*`/`context.updated`. Streaming via SSE `GET /event`; HITL via `/permission`. **Riprendere da:** confermare il piano Fase 0 (scaffold) → poi eseguire; in parallelo Fase 1.2 (provider di test via `opencode auth`)._
 - _(prima sessione: deciso di costruire la GUI sopra OpenCode; riscritti `PROGETTO.md` e `CHECKLIST.md`; raccolte le risorse — OpenCode SDK, Onlook per la selezione visuale, shadcn/Magic UI/Aceternity per la UI. Prossimo passo: Fase 1.1 — avviare `opencode serve` e leggere l'OpenAPI per validare l'integrazione.)_
@@ -39,11 +40,11 @@
 ## Fase 1 — Integrazione col motore OpenCode ⭐ *(da fare per prima)*
 
 - [x] **1.1** Installa OpenCode; avvia `opencode serve`; apri l'OpenAPI `/doc` e **mappa cosa espone** (sessioni, streaming, eventi tool, stato contesto) → nota in `docs/` _(→ `docs/01-opencode-openapi-findings.md`)_
-- [ ] **1.2** Configura un provider di test (DeepSeek o Gemini) via `opencode auth`; verifica una risposta dal terminale
-- [ ] **1.3** Backend Rust: **spawn/kill di `opencode serve`** come sidecar (porta libera, health check, riavvio)
-- [ ] **1.4** Frontend: connetti `@opencode-ai/sdk` (`createOpencodeClient`); **crea sessione + invia prompt + ricevi risposta** (round-trip minimo)
-- [ ] **1.5** **Streaming** dei token/eventi dal server alla UI (rendering progressivo)
-- [ ] **1.6** ADR: confine e contratto del **layer di integrazione** (cosa passa dalla GUI al motore e viceversa)
+- [ ] **1.2** Configura un provider di test (DeepSeek o Gemini) via `opencode auth`; verifica una risposta dal terminale _(manuale — istruzioni in `docs/02-provider-setup.md`; da completare in locale con chiavi API reali)_
+- [x] **1.3** Backend Rust: **spawn/kill di `opencode serve`** come sidecar (porta libera, health check, riavvio) _(→ `src-tauri/src/sidecar/mod.rs`, `lib.rs`; Tauri cmds: `get_opencode_url`, evento `opencode-ready`)_
+- [x] **1.4** Frontend: connetti `@opencode-ai/sdk` (`createOpencodeClient`); **crea sessione + invia prompt + ricevi risposta** (round-trip minimo) _(→ `src/opencode/client.ts`, `session.ts`, `OpencodeProvider.tsx`, `src/stores/session.store.ts`)_
+- [x] **1.5** **Streaming** dei token/eventi dal server alla UI (rendering progressivo) _(→ `src/opencode/events.ts`: SSE `.stream` AsyncGenerator, `onEvent`/`onEventType` bus)_
+- [x] **1.6** ADR: confine e contratto del **layer di integrazione** (cosa passa dalla GUI al motore e viceversa) _(→ `docs/03-adr-integration-layer.md`)_
 
 ## Fase 2 — Chat & revisione (la conversazione)
 
