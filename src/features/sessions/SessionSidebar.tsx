@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Plus, Trash2, MessageSquare, Bot, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSessions, useCreateSession, useDeleteSession, useSessionChildren } from "@/opencode/session";
+import {
+  useSessions,
+  useCreateSession,
+  useDeleteSession,
+  useSessionChildren,
+} from "@/opencode/session";
 import { useSessionStore } from "@/stores/session.store";
 import { useChatStore } from "@/stores/chat.store";
 import type { Session } from "@opencode-ai/sdk/client";

@@ -1,5 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Bot, Network, Plus, ToggleLeft, ToggleRight, Loader2, Trash2 } from "lucide-react";
+import {
+  X,
+  Bot,
+  Network,
+  Plus,
+  ToggleLeft,
+  ToggleRight,
+  Loader2,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAgents, useMcpStatus, useConfig, useUpdateConfig } from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
@@ -174,7 +183,9 @@ function McpTab() {
               <Network className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted-foreground)]" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-[var(--foreground)]">{name}</span>
+                  <span className="text-xs font-medium text-[var(--foreground)]">
+                    {name}
+                  </span>
                   <span
                     className={cn(
                       "rounded px-1 text-[9px]",
@@ -199,9 +210,7 @@ function McpTab() {
                   )}
                 </div>
                 <p className="mt-0.5 truncate text-[10px] text-[var(--muted-foreground)]">
-                  {entry.type === "local"
-                    ? entry.command.join(" ")
-                    : entry.url}
+                  {entry.type === "local" ? entry.command.join(" ") : entry.url}
                 </p>
                 {status?.tools && status.tools.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
@@ -303,7 +312,12 @@ function McpTab() {
               Save
             </button>
             <button
-              onClick={() => { setAddMode(null); setNewName(""); setNewCommand(""); setNewUrl(""); }}
+              onClick={() => {
+                setAddMode(null);
+                setNewName("");
+                setNewCommand("");
+                setNewUrl("");
+              }}
               className="rounded-md px-3 py-1 text-[10px] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
             >
               Cancel

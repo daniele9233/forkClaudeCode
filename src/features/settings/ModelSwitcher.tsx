@@ -63,7 +63,9 @@ export function ModelSwitcher() {
         title="Switch model"
       >
         {currentProviderName && (
-          <span className="text-[var(--muted-foreground)] opacity-70">{currentProviderName}</span>
+          <span className="text-[var(--muted-foreground)] opacity-70">
+            {currentProviderName}
+          </span>
         )}
         <span className="max-w-[120px] truncate font-medium">{displayModel}</span>
         <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
@@ -104,14 +106,19 @@ export function ModelSwitcher() {
                         placeholder={`${provider.env[0]}…`}
                         value={keyInputs[provider.id] ?? ""}
                         onChange={(e) =>
-                          setKeyInputs((prev) => ({ ...prev, [provider.id]: e.target.value }))
+                          setKeyInputs((prev) => ({
+                            ...prev,
+                            [provider.id]: e.target.value,
+                          }))
                         }
                         onKeyDown={(e) => e.key === "Enter" && handleSaveKey(provider.id)}
                         className="h-6 flex-1 rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[10px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                       />
                       <button
                         onClick={() => handleSaveKey(provider.id)}
-                        disabled={savingKey === provider.id || !keyInputs[provider.id]?.trim()}
+                        disabled={
+                          savingKey === provider.id || !keyInputs[provider.id]?.trim()
+                        }
                         className="flex h-6 w-6 items-center justify-center rounded bg-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/25 disabled:opacity-40"
                       >
                         {savingKey === provider.id ? (

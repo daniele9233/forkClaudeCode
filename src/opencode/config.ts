@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Config, Agent, McpLocalConfig, McpRemoteConfig } from "@opencode-ai/sdk/client";
+import type {
+  Config,
+  Agent,
+  McpLocalConfig,
+  McpRemoteConfig,
+} from "@opencode-ai/sdk/client";
 import { getClient } from "./client";
 
 export type { Config, Agent, McpLocalConfig, McpRemoteConfig };
@@ -65,7 +70,10 @@ export function useMcpStatus() {
     queryKey: configKeys.mcp(),
     queryFn: async () => {
       const res = await getClient().mcp.status({ throwOnError: true });
-      return (res.data ?? {}) as Record<string, { connected: boolean; tools?: string[]; error?: string }>;
+      return (res.data ?? {}) as Record<
+        string,
+        { connected: boolean; tools?: string[]; error?: string }
+      >;
     },
     staleTime: 10_000,
     retry: false,
