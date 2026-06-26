@@ -119,3 +119,19 @@ export function useAbortSession() {
     },
   });
 }
+
+/** Delete a session and all its data. */
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      await getClient().session.delete({
+        path: { id: sessionId },
+        throwOnError: true,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+    },
+  });
+}
