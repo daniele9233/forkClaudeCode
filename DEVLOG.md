@@ -15,6 +15,79 @@
 
 ---
 
+## 2026-06-26 · Fase 10 — Hardening (COMPLETA)
+
+**Fase:** 10.1–10.4 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (vari)
+
+### Cosa è cambiato
+
+**10.3 — Resilienza sidecar**
+
+**`src-tauri/src/sidecar/mod.rs`**
+- `start`: ora prova fino a 3 volte su una porta fresca (gestisce TOCTOU porta libera→occupata
+  e avvii lenti); messaggio d'errore chiaro se `opencode` non è installato/nel PATH
+- Aggiunti `restart`, contatore `generation` (incrementato ad ogni start riuscito), `is_healthy`
+  (probe `/health` con timeout 2s)
+
+**`src-tauri/src/lib.rs`**
+- `spawn_health_monitor(handle, sidecar)`: task che fa poll `/health` ogni 3s; dopo un re-check di
+  conferma (per evitare blip transitori) emette `opencode-error` se l'engine smette di rispondere.
+  Generation-guard: un monitor stale termina da solo dopo un restart.
+- Nuovo comando `restart_opencode`: ferma+riavvia il sidecar e re-emette `opencode-ready`/`-error`
+- Monitor avviato sia al boot (dopo il primo `opencode-ready`) sia dopo ogni restart
+
+**`src/opencode/sidecar.ts`** (nuovo)
+- `restartSidecar()`: `invoke("restart_opencode")`, ferma l'event stream morto, mette la UI in "starting";
+  il listener `opencode-ready` esistente re-inizializza client + stream
+
+**10.2 — Stati di errore/empty**
+
+**`src/features/statusbar/SidecarStatusBanner.tsx`** (nuovo)
+- Strip globale in cima all'app: al boot "Connecting to the OpenCode engine…" (calmo, spinner);
+  su crash rosso "OpenCode engine disconnected" + ragione + pulsante **Reconnect** (`restartSidecar`)
+- `App.tsx`: root convertito a `flex-col`; banner sopra il layout a 3 pannelli (wrappati in un nuovo div)
+- `ChatShell`: copy d'errore aggiornato per rimandare al Reconnect del banner (non più "restart the app")
+
+**10.1 — a11y audit**
+- `role="dialog"` + `aria-modal="true"` + `aria-label` su `CommandPalette` e `SettingsModal`
+- `aria-label` sul Close icon-only di SettingsModal
+- Verificato: `:focus-visible` globale (`index.css`); `@media (prefers-reduced-motion)` copre tutte
+  le classi `animate-*`; `useReducedMotion()` su tutte le animazioni Motion JS → nessuna non-gated
+
+**10.4 — Test layer d'integrazione**
+- Setup **Vitest** (jsdom): `vitest.config.ts` (alias `@`, env jsdom), script `test`/`test:watch`
+- 22 test:
+  - `src/stores/chat.store.test.ts` — reducer streaming (accumulo/overwrite/rimozione parti,
+    set running, clear scoped per sessione)
+  - `src/stores/permission.store.test.ts` — approvazioni (auto-allow per tipo/pattern stringa/array, revoca)
+  - `src/features/terminal/detectDevServer.test.ts` — forme URL Vite/Next/CRA, 0.0.0.0→localhost, bare, no-match
+  - `src/opencode/events.test.ts` — `isEventType` narrowing
+  - `src/stores/theme.store.test.ts` — toggle classe `.light`, persistenza, colorScheme
+- **`.github/workflows/ci.yml`**: step `pnpm test` aggiunto al job frontend (tra type-check e build)
+
+### Perché / decisione
+
+- **Health-poll invece di `wait()` sul Child**: monitorare l'uscita con `Child::wait()` richiede di
+  possedere l'handle, in conflitto col path di restart/stop che deve poter uccidere il processo.
+  Un poll su `/health` + generation-guard evita la contesa sull'ownership ed è robusto anche se il
+  processo si "appende" senza morire (health fallisce comunque).
+- **Retry su porta fresca**: tra il probe della porta libera e il bind di opencode c'è una finestra
+  TOCTOU; ritentare su una nuova porta è più semplice e affidabile che lockare la porta.
+- **Test sul layer logico, non sui componenti**: il valore d'integrazione vero è nei reducer (streaming,
+  approvazioni) e nei parser — testabili in isolamento, veloci, senza un server reale.
+
+### Gotcha / attenzione
+
+- **Rust non compilabile in questo web-env**: la network policy del proxy permette `index.crates.io`
+  ma blocca `static.crates.io` (download dei crate) → `cargo check` fallisce con 403. Il codice Rust
+  è stato verificato per ispezione; la compilazione vera la fa il job `rust` della CI.
+- `restartSidecar` dipende da `@tauri-apps/api/core` `invoke` → funziona solo dentro l'app Tauri,
+  non nel browser dev puro (atteso).
+- I file `*.test.ts` sono inclusi da `tsc` nel build: usano import espliciti da `vitest`, nessun tipo
+  globale da configurare in tsconfig.
+
+---
+
 ## 2026-06-26 · Fase 9 — Pass estetico (COMPLETA)
 
 **Fase:** 9.1–9.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
