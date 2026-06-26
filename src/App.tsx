@@ -11,6 +11,7 @@ import { ContextInspectorPanel } from "@/features/inspector/ContextInspectorPane
 import { CheckpointTimeline } from "@/features/checkpoints/CheckpointTimeline";
 import { CommandPalette } from "@/features/commandpalette/CommandPalette";
 import { StatusBar } from "@/features/statusbar/StatusBar";
+import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
 import { SettingsModal } from "@/features/settings/SettingsModal";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 import { useFileStore } from "@/stores/file.store";
@@ -92,103 +93,117 @@ export default function App() {
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="flex h-full overflow-hidden bg-[var(--background)]"
+      className="flex h-full flex-col overflow-hidden bg-[var(--background)]"
     >
-      {/* Left sidebar: sessions (top) + file tree (bottom) */}
-      <div className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
-        <div className="shrink-0 overflow-hidden" style={{ maxHeight: "45%" }}>
-          <SessionSidebar />
-        </div>
-        <div className="h-px shrink-0 bg-[var(--border)]" />
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <FileTree />
-        </div>
-      </div>
+      {/* Global engine status (connecting / disconnected) */}
+      <SidecarStatusBanner />
 
-      {/* Main area: chat + bottom panel + status bar */}
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <ChatShell onOpenSettings={openSettings} />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Left sidebar: sessions (top) + file tree (bottom) */}
+        <div className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
+          <div className="shrink-0 overflow-hidden" style={{ maxHeight: "45%" }}>
+            <SessionSidebar />
+          </div>
+          <div className="h-px shrink-0 bg-[var(--border)]" />
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <FileTree />
+          </div>
         </div>
 
-        {bottomOpen && (
-          <>
-            <div className="h-px shrink-0 bg-[var(--border)]" />
-            <div className="flex h-[42vh] shrink-0 flex-col">
-              {/* Tab bar */}
-              <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--background)] pr-2">
-                <div className="flex items-center">
-                  <BottomTabButton
-                    tab="terminal"
-                    label="Terminal"
-                    active={bottomTab === "terminal"}
-                    onClick={setBottomTab}
-                  />
-                  {selectedFilePath && (
+        {/* Main area: chat + bottom panel + status bar */}
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <ChatShell onOpenSettings={openSettings} />
+          </div>
+
+          {bottomOpen && (
+            <>
+              <div className="h-px shrink-0 bg-[var(--border)]" />
+              <div className="flex h-[42vh] shrink-0 flex-col">
+                {/* Tab bar */}
+                <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--background)] pr-2">
+                  <div className="flex items-center">
                     <BottomTabButton
-                      tab="diff"
-                      label="Diff"
-                      active={bottomTab === "diff"}
+                      tab="terminal"
+                      label="Terminal"
+                      active={bottomTab === "terminal"}
                       onClick={setBottomTab}
                     />
-                  )}
-                  <BottomTabButton
-                    tab="inspector"
-                    label="Inspector"
-                    active={bottomTab === "inspector"}
-                    onClick={setBottomTab}
-                  />
-                  <BottomTabButton
-                    tab="timeline"
-                    label="Timeline"
-                    active={bottomTab === "timeline"}
-                    onClick={setBottomTab}
-                  />
-                </div>
-                <button
-                  onClick={closeBottom}
-                  className="rounded p-0.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                  title="Close panel"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              {/* Panel body — terminal stays mounted to preserve scrollback */}
-              <div className="min-h-0 flex-1">
-                <div
-                  className={cn("h-full", bottomTab === "terminal" ? "block" : "hidden")}
-                >
-                  <TerminalPanel />
-                </div>
-                {selectedFilePath && (
-                  <div
-                    className={cn("h-full", bottomTab === "diff" ? "block" : "hidden")}
-                  >
-                    <FileDiffPanel />
+                    {selectedFilePath && (
+                      <BottomTabButton
+                        tab="diff"
+                        label="Diff"
+                        active={bottomTab === "diff"}
+                        onClick={setBottomTab}
+                      />
+                    )}
+                    <BottomTabButton
+                      tab="inspector"
+                      label="Inspector"
+                      active={bottomTab === "inspector"}
+                      onClick={setBottomTab}
+                    />
+                    <BottomTabButton
+                      tab="timeline"
+                      label="Timeline"
+                      active={bottomTab === "timeline"}
+                      onClick={setBottomTab}
+                    />
                   </div>
-                )}
-                <div
-                  className={cn("h-full", bottomTab === "inspector" ? "block" : "hidden")}
-                >
-                  <ContextInspectorPanel />
+                  <button
+                    onClick={closeBottom}
+                    className="rounded p-0.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                    title="Close panel"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                <div
-                  className={cn("h-full", bottomTab === "timeline" ? "block" : "hidden")}
-                >
-                  <CheckpointTimeline />
+
+                {/* Panel body — terminal stays mounted to preserve scrollback */}
+                <div className="min-h-0 flex-1">
+                  <div
+                    className={cn(
+                      "h-full",
+                      bottomTab === "terminal" ? "block" : "hidden",
+                    )}
+                  >
+                    <TerminalPanel />
+                  </div>
+                  {selectedFilePath && (
+                    <div
+                      className={cn("h-full", bottomTab === "diff" ? "block" : "hidden")}
+                    >
+                      <FileDiffPanel />
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      "h-full",
+                      bottomTab === "inspector" ? "block" : "hidden",
+                    )}
+                  >
+                    <ContextInspectorPanel />
+                  </div>
+                  <div
+                    className={cn(
+                      "h-full",
+                      bottomTab === "timeline" ? "block" : "hidden",
+                    )}
+                  >
+                    <CheckpointTimeline />
+                  </div>
                 </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
-        {/* Status bar — always visible */}
-        <StatusBar />
-      </main>
+          {/* Status bar — always visible */}
+          <StatusBar />
+        </main>
 
-      {/* Right column: web preview */}
-      {previewUrl && <PreviewPanel />}
+        {/* Right column: web preview */}
+        {previewUrl && <PreviewPanel />}
+      </div>
 
       {/* Global overlays */}
       {commandPaletteOpen && <CommandPalette onOpenSettings={openSettings} />}

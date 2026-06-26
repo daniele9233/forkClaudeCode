@@ -13,6 +13,9 @@ pub struct SidecarState {
 pub struct Sidecar {
     child: Arc<Mutex<Option<Child>>>,
     pub state: Arc<Mutex<Option<SidecarState>>>,
+    /// Bumped on every successful (re)start. A health monitor captures the
+    /// generation it was started for and stops once a newer one supersedes it.
+    generation: Arc<Mutex<u64>>,
 }
 
 impl Sidecar {
@@ -20,30 +23,99 @@ impl Sidecar {
         Self {
             child: Arc::new(Mutex::new(None)),
             state: Arc::new(Mutex::new(None)),
+            generation: Arc::new(Mutex::new(0)),
         }
     }
 
     /// Spawn `opencode serve` on a free port and wait until healthy.
+    ///
+    /// Retries on a fresh port if the chosen one is taken between the probe and
+    /// opencode binding it (TOCTOU), or if the server is briefly slow to come up.
     pub async fn start(&self) -> Result<SidecarState, String> {
-        let port = free_port().await?;
-        let base_url = format!("http://127.0.0.1:{}", port);
+        // A previous instance may still be around (restart path).
+        self.stop();
 
-        let child = Command::new("opencode")
-            .args(["serve", "--port", &port.to_string(), "--hostname", "127.0.0.1"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .kill_on_drop(true)
-            .spawn()
-            .map_err(|e| format!("failed to spawn opencode serve: {e}"))?;
+        let mut last_err = String::new();
+        for attempt in 0..3u32 {
+            let port = free_port().await?;
+            let base_url = format!("http://127.0.0.1:{}", port);
 
-        *self.child.lock().unwrap() = Some(child);
+            let spawn = Command::new("opencode")
+                .args([
+                    "serve",
+                    "--port",
+                    &port.to_string(),
+                    "--hostname",
+                    "127.0.0.1",
+                ])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .kill_on_drop(true)
+                .spawn();
 
-        // Wait up to 10 seconds for the health endpoint to respond.
-        wait_healthy(&base_url, 10).await?;
+            let child = match spawn {
+                Ok(c) => c,
+                Err(e) => {
+                    return Err(format!(
+                        "failed to spawn `opencode serve` (is opencode installed and on PATH?): {e}"
+                    ));
+                }
+            };
 
-        let state = SidecarState { port, base_url: base_url.clone() };
-        *self.state.lock().unwrap() = Some(state.clone());
-        Ok(state)
+            *self.child.lock().unwrap() = Some(child);
+
+            // Wait up to 10 seconds for the health endpoint to respond.
+            match wait_healthy(&base_url, 10).await {
+                Ok(()) => {
+                    let state = SidecarState {
+                        port,
+                        base_url: base_url.clone(),
+                    };
+                    *self.state.lock().unwrap() = Some(state.clone());
+                    *self.generation.lock().unwrap() += 1;
+                    return Ok(state);
+                }
+                Err(e) => {
+                    last_err = e;
+                    // Kill the unhealthy child before retrying on a new port.
+                    self.stop();
+                    sleep(Duration::from_millis(250 * u64::from(attempt + 1))).await;
+                }
+            }
+        }
+
+        Err(format!(
+            "opencode sidecar failed to become healthy after 3 attempts: {last_err}"
+        ))
+    }
+
+    /// Stop the current sidecar (if any) and start a fresh one.
+    pub async fn restart(&self) -> Result<SidecarState, String> {
+        self.stop();
+        self.start().await
+    }
+
+    /// The current generation; a monitor task uses this to detect that it has
+    /// been superseded by a restart and should stop polling.
+    pub fn generation(&self) -> u64 {
+        *self.generation.lock().unwrap()
+    }
+
+    /// Probe the health endpoint of the running sidecar. Returns `false` if no
+    /// sidecar is running or the endpoint does not respond with success.
+    pub async fn is_healthy(&self) -> bool {
+        let Some(state) = self.state() else {
+            return false;
+        };
+        let url = format!("{}/health", state.base_url);
+        matches!(
+            reqwest::Client::new()
+                .get(&url)
+                .timeout(Duration::from_secs(2))
+                .send()
+                .await,
+            Ok(r) if r.status().is_success()
+        )
     }
 
     /// Kill the sidecar process if running.
@@ -54,7 +126,9 @@ impl Sidecar {
                 let _ = child.start_kill();
             }
         }
-        *self.state.lock().unwrap() = None;
+        if let Ok(mut s) = self.state.lock() {
+            *s = None;
+        }
     }
 
     pub fn state(&self) -> Option<SidecarState> {
@@ -86,7 +160,9 @@ async fn wait_healthy(base_url: &str, timeout_secs: u64) -> Result<(), String> {
 
     loop {
         if tokio::time::Instant::now() > deadline {
-            return Err(format!("opencode serve did not become healthy within {timeout_secs}s"));
+            return Err(format!(
+                "opencode serve did not become healthy within {timeout_secs}s"
+            ));
         }
         match client.get(&url).send().await {
             Ok(r) if r.status().is_success() => return Ok(()),

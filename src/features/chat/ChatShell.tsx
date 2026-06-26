@@ -113,8 +113,9 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
             isRunning={isRunning}
           />
           {sidecarStatus === "error" && (
-            <p className="mt-1.5 text-center text-xs text-red-400">
-              OpenCode engine unavailable. Restart the app.
+            <p className="mt-1.5 text-center text-xs text-[var(--muted-foreground)]">
+              Engine offline — use <span className="text-red-400">Reconnect</span> in the
+              banner above to retry.
             </p>
           )}
         </div>
