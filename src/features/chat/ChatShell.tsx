@@ -3,7 +3,7 @@ import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
 import { MessageList } from "./MessageList";
-import { ChatInput } from "./ChatInput";
+import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
 
 export function ChatShell() {
@@ -14,7 +14,7 @@ export function ChatShell() {
   const abortSession = useAbortSession();
 
   const handleSend = useCallback(
-    async (text: string) => {
+    async (text: string, mode: AgentMode) => {
       let sessionId = activeSessionId;
 
       // Auto-create session if none active
@@ -24,7 +24,7 @@ export function ChatShell() {
         setActiveSession(sessionId);
       }
 
-      sendPrompt.mutate({ sessionId, text });
+      sendPrompt.mutate({ sessionId, text, agent: mode });
     },
     [activeSessionId, createSession, sendPrompt, setActiveSession],
   );

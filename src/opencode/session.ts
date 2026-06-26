@@ -78,17 +78,20 @@ export function useSendPrompt() {
       text,
       modelID,
       providerID,
+      agent,
     }: {
       sessionId: string;
       text: string;
       modelID?: string;
       providerID?: string;
+      agent?: string;
     }) => {
       const res = await getClient().session.prompt({
         path: { id: sessionId },
         body: {
           parts: [{ type: "text", text }],
           ...(modelID && providerID ? { model: { modelID, providerID } } : {}),
+          ...(agent ? { agent } : {}),
         },
         throwOnError: true,
       });
