@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { RotateCw, ExternalLink, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { RotateCw, ExternalLink, X, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
+import { useSelectionStore, type SelectedElement } from "@/stores/selection.store";
+import { ElementCompose } from "./ElementCompose";
 
 /**
  * Web preview of the running dev server. Uses an <iframe> for now: local dev
@@ -9,6 +11,11 @@ import { usePreviewStore } from "@/stores/preview.store";
  * iframe content automatically. A native WRY webview is the future evolution
  * (see docs/04-adr-web-preview.md) to bypass iframe limitations and enable
  * the visual element selection of Fase 5.
+ *
+ * Visual selection (Fase 5): when the user's dev server runs the
+ * forgiaInspector() Vite plugin (see ForgiaInspectorPlugin.ts), the iframe
+ * posts forgia:hover / forgia:select messages to the parent window. This panel
+ * listens for them and drives the selection store + ElementCompose UI.
  */
 export function PreviewPanel() {
   const { previewUrl, openPreview, closePreview } = usePreviewStore();
@@ -16,10 +23,78 @@ export function PreviewPanel() {
   const [reloadKey, setReloadKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  const {
+    selectionMode,
+    inspectorReady,
+    toggleSelectionMode,
+    setSelectionMode,
+    setHoveredElement,
+    setSelectedElement,
+    setInspectorReady,
+    clearSelection,
+  } = useSelectionStore();
+
   // Keep the address bar in sync when the store URL changes externally.
   useEffect(() => {
     setUrlInput(previewUrl ?? "");
   }, [previewUrl]);
+
+  // Reset selection state when preview is closed or URL changes.
+  useEffect(() => {
+    clearSelection();
+    setInspectorReady(false);
+    setSelectionMode(false);
+  }, [previewUrl, clearSelection, setInspectorReady, setSelectionMode]);
+
+  // Stable ref so the message listener always sees current selectionMode
+  // without needing to re-register itself on every toggle.
+  const selectionModeRef = useRef(selectionMode);
+  useEffect(() => {
+    selectionModeRef.current = selectionMode;
+  }, [selectionMode]);
+
+  // Post a message into the iframe content window.
+  const sendToIframe = useCallback((msg: object) => {
+    try {
+      iframeRef.current?.contentWindow?.postMessage(msg, "*");
+    } catch {
+      // iframe may be cross-origin or not yet loaded — ignore
+    }
+  }, []);
+
+  // Listen for messages from the iframe's injected inspector script.
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (!e.data || typeof e.data !== "object") return;
+      const { type, ...data } = e.data as { type: string } & Partial<SelectedElement>;
+
+      switch (type) {
+        case "forgia:ready":
+          setInspectorReady(true);
+          // Re-enable selection if it was on before the page reloaded.
+          if (selectionModeRef.current) sendToIframe({ type: "forgia:enable" });
+          break;
+        case "forgia:pong":
+          setInspectorReady(true);
+          break;
+        case "forgia:hover":
+          if (data.file && data.line != null) setHoveredElement(data as SelectedElement);
+          break;
+        case "forgia:select":
+          if (data.file && data.line != null) setSelectedElement(data as SelectedElement);
+          break;
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [sendToIframe, setInspectorReady, setHoveredElement, setSelectedElement]);
+
+  // Sync selection mode with the iframe after every toggle.
+  useEffect(() => {
+    if (!inspectorReady) return;
+    sendToIframe({ type: selectionMode ? "forgia:enable" : "forgia:disable" });
+  }, [selectionMode, inspectorReady, sendToIframe]);
 
   if (!previewUrl) return null;
 
@@ -31,10 +106,29 @@ export function PreviewPanel() {
     setReloadKey((k) => k + 1);
   };
 
-  const reload = () => setReloadKey((k) => k + 1);
+  const reload = () => {
+    clearSelection();
+    setInspectorReady(false);
+    setReloadKey((k) => k + 1);
+  };
 
   const openExternal = () => {
     window.open(previewUrl, "_blank", "noopener,noreferrer");
+  };
+
+  // After iframe loads a new page, ping the inspector script.
+  const handleIframeLoad = () => {
+    setInspectorReady(false);
+    // Give the injected script time to register its message listener.
+    setTimeout(() => sendToIframe({ type: "forgia:ping" }), 150);
+  };
+
+  const handleToggleSelection = () => {
+    if (selectionMode) {
+      // Turning off — clear any pending selection.
+      clearSelection();
+    }
+    toggleSelectionMode();
   };
 
   return (
@@ -47,6 +141,24 @@ export function PreviewPanel() {
           title="Reload"
         >
           <RotateCw className="h-3.5 w-3.5" />
+        </button>
+
+        {/* Visual selection mode toggle */}
+        <button
+          onClick={handleToggleSelection}
+          className={cn(
+            "shrink-0 rounded p-1 transition-colors",
+            selectionMode
+              ? "bg-[var(--primary)]/15 text-[var(--primary)] ring-1 ring-[var(--primary)]/40"
+              : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+          )}
+          title={
+            selectionMode
+              ? "Exit selection mode"
+              : "Enter selection mode (hover & click elements to edit)"
+          }
+        >
+          <Crosshair className="h-3.5 w-3.5" />
         </button>
 
         <input
@@ -80,8 +192,24 @@ export function PreviewPanel() {
         </button>
       </div>
 
+      {/* Element compose panel — visible when an element is selected */}
+      <ElementCompose />
+
+      {/* Selection mode hint — shown when active and inspector is not yet detected */}
+      {selectionMode && !inspectorReady && (
+        <div className="shrink-0 border-b border-[var(--border)] bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-400">
+          Add{" "}
+          <code className="rounded bg-amber-500/20 px-1 font-mono">
+            forgiaInspector()
+          </code>{" "}
+          to your project&apos;s{" "}
+          <code className="rounded bg-amber-500/20 px-1 font-mono">vite.config.ts</code>{" "}
+          to enable visual selection.
+        </div>
+      )}
+
       {/* Iframe */}
-      <div className="min-h-0 flex-1 bg-white">
+      <div className={cn("min-h-0 flex-1 bg-white", selectionMode && "cursor-crosshair")}>
         <iframe
           ref={iframeRef}
           key={reloadKey}
@@ -89,6 +217,7 @@ export function PreviewPanel() {
           title="Web preview"
           className="h-full w-full border-0"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          onLoad={handleIframeLoad}
         />
       </div>
     </div>

@@ -15,6 +15,83 @@
 
 ---
 
+## 2026-06-26 · Fase 5 — Selezione visuale degli elementi (COMPLETA)
+
+**Fase:** 5.1–5.5 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/stores/selection.store.ts`** (nuovo)
+- `SelectedElement { file, line, col, tagName, outerHTML }`
+- Stato: `selectionMode`, `hoveredElement`, `selectedElement`, `composeText`, `inspectorReady`
+- Azioni: `toggleSelectionMode`, `setSelectionMode`, `setHoveredElement`, `setSelectedElement`,
+  `setComposeText`, `setInspectorReady`, `clearSelection`
+
+**`src/features/preview/ForgiaInspectorPlugin.ts`** (nuovo)
+- Plugin Vite `forgiaInspector()`: apply `"serve"` only (dev mode)
+- `transformIndexHtml` → inietta `INSPECTOR_SCRIPT` come `<script>` a fine `<body>`
+- `INSPECTOR_SCRIPT` (JS vanilla, ~120 righe):
+  - `getFiberSource(el)`: trova chiave `__reactFiber$*` o `__reactInternals$*` sull'elemento,
+    naviga `fiber.return` fino a `fiber._debugSource` (file/line/col)
+  - `getAttrSource(el)`: fallback a `data-forgia-loc="file:line:col"` attribute
+  - Overlay highlight amber: `<div id="__forgia_hl__">` + tooltip con basename:riga
+  - `onMove/onClick` in capture phase → postMessage `forgia:hover/select` al parent
+  - `onClick` usa `e.stopImmediatePropagation()` per bloccare l'azione originale
+  - Ascolta `forgia:enable/disable/ping` dal parent
+  - Segnala `forgia:ready` al DOMContentLoaded, risponde `forgia:pong` ai ping
+
+**`src/features/preview/ElementCompose.tsx`** (nuovo)
+- Visibile solo quando `selectedElement != null` (ritorna `null` altrimenti)
+- Row 1: badge `<tag>`, `file.tsx:line`, outerHTML troncata (80 chars), open-in-editor, dismiss
+- Row 2: input testo autoFocus + pulsante "✦ Edit"
+- `buildPrompt(file, line, tagName, outerHTML, userText)`: compone prompt strutturato
+  per OpenCode con path assoluto, markdown code block HTML, e il testo utente
+- `handleSend`: `useSendPrompt.mutate({ sessionId, text: prompt })` + `clearSelection()`
+- `handleKeyDown`: Enter=send, Escape=dismiss
+- `handleOpenEditor`: `openFile(file, line)` → Monaco diff panel
+
+**`src/features/preview/PreviewPanel.tsx`** — aggiornato
+- Import: `useSelectionStore`, `SelectedElement`, `ElementCompose`
+- Nuovo pulsante `Crosshair` nel toolbar (tra reload e URL bar):
+  glow amber + ring quando `selectionMode === true`
+- Hint sotto toolbar: "Aggiungi forgiaInspector() al tuo vite.config.ts"
+  visibile solo se `selectionMode && !inspectorReady`
+- `sendToIframe(msg)`: `useCallback` stabile, try/catch per cross-origin silence
+- `selectionModeRef`: ref aggiornata su ogni toggle — il listener messaggio legge
+  questa ref senza dover ri-registrarsi
+- `useEffect(message listener)`: gestisce `forgia:ready|pong|hover|select`
+- `useEffect(sync mode)`: quando `selectionMode` cambia e inspector è pronto →
+  invia `forgia:enable` o `forgia:disable`
+- `handleIframeLoad`: reset `inspectorReady` + ping dopo 150ms (dà tempo allo script di registrarsi)
+- `handleToggleSelection`: clearSelection se si disabilita, poi toggle
+- Reset completo (clearSelection, setInspectorReady false, setSelectionMode false)
+  quando `previewUrl` cambia
+
+### Perché / decisione (D1)
+
+React in dev mode abilita `@babel/plugin-transform-react-jsx-source` automaticamente
+(via `@vitejs/plugin-react`), che popola `fiber._debugSource` su ogni componente.
+Questo ci dà la mappatura DOM→file:riga **senza nessun Babel plugin extra**,
+purché la pagina sia una React app in dev mode.
+
+La comunicazione avviene via `postMessage('*')`: sicuro in un contesto desktop locale
+(nessun altro origine riceve il messaggio perché non ci sono altre pagine).
+
+### Gotcha / attenzione
+
+- `_debugSource` non è disponibile nelle build di produzione — il fallback
+  `data-forgia-loc` richiede un Babel transform separato (non implementato per ora)
+- `Object.keys(el)` per trovare `__reactFiber$*` è O(n) sul numero di proprietà
+  dell'elemento; accettabile (gli elementi DOM hanno poche proprietà)
+- `e.stopImmediatePropagation()` nel capture phase blocca tutto — se altri listener
+  capture sono registrati dopo il nostro script, non vengono chiamati
+- Il tooltip posizionato `bottom: calc(100% + 5px)` può uscire dallo schermo per
+  elementi vicino al bordo superiore; non critico per l'MVP
+- `autoFocus` su `ElementCompose` input funziona correttamente perché il componente
+  è montato/smontato (non semplicemente nascosto) al cambio di `selectedElement`
+
+---
+
 ## 2026-06-26 · Fase 4.3 — Anteprima web (iframe)
 
 **Fase:** 4.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
