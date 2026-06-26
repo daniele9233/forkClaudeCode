@@ -12,6 +12,7 @@
 
 > Voce più recente in cima. Formato: `data — fatto — scoperto — riprendere da`.
 
+- _2026-06-26 — **Fatto:** Fase 3.2 — Diff inline Monaco. `@monaco-editor/react@4.7.0` installato. `src/stores/file.store.ts`: Zustand store `selectedFilePath`. `FileDiffPanel.tsx`: header con path+badge git (A/M/D, +N/-N linee), Monaco DiffEditor side-by-side per file con patch, Monaco Editor read-only per file puliti, `reverseApplyPatch` che ricostruisce l'originale dai patch hunks (logica: context copy+modIdx++, `-` → origLines, `+` → modIdx++). Pannello `h-[42vh]` sotto la chat, si mostra solo quando `selectedFilePath != null`. `FileTree.tsx`: selection ora usa store via `setSelectedFilePath`. Build verde (485KB). **Riprendere da:** Fase 3.3 — Apertura file alla riga esatta._
 - _2026-06-26 — **Fatto:** Fase 3.1 — File tree del progetto. `src/opencode/file.ts`: hooks TanStack Query per `useProjectCurrent`, `useFileList(path)`, `useFileRead`, `useFileStatus`, `useInvalidateFiles`. `src/features/filetree/FileTree.tsx`: tree ricorsivo con lazy-load per directory, badge git A/M/D colorati (verde/amber/rosso), icone per estensione (TS=blu, RS=arancio, JSON=giallo, MD=grigio, CSS=rosa, config=viola), sort dirs-first, filtro file ignored. Sottoscrizione a `file.edited` e `file.watcher.updated` per invalidare la cache. `SessionSidebar.tsx`: rimossi `w-56 shrink-0 border-r` dall'aside (spostati al parent). `App.tsx`: sidebar sinistra `w-64` con sessions (max 45% altezza) + divider + file tree (flex-1). Build verde (467KB). **Riprendere da:** Fase 3.2 — Diff inline Monaco._
 - _2026-06-26 — **Fatto:** polish UI — angoli prompt input arrotondati elegantemente. `ChatInput.tsx`: `rounded-xl` → `rounded-2xl` + `overflow-hidden` sul container esterno; children ora vengono clippati dentro i bordi. Build verde. **Riprendere da:** Fase 3 — Editor & diff (file tree + Monaco)._
 - _2026-06-26 — **Fatto:** Fase 2.5 — Gestione sessioni sidebar. `useDeleteSession` aggiunto a `session.ts` (DELETE /session/{id}). `SessionSidebar.tsx`: lista sessioni ordinata per updated, running indicator pulsante, tempo relativo, tasto New (+), delete on hover (Trash2, non visibile se running). Auto-switch alla sessione precedente dopo delete. `App.tsx` → layout 2-colonne (sidebar 224px + chat flex). `pnpm build` verde (459KB). **Riprendere da:** Fase 3 — Editor & diff (file tree + Monaco)._
@@ -63,7 +64,7 @@
 ## Fase 3 — Editor & diff
 
 - [x] **3.1** File tree del progetto _(→ `src/opencode/file.ts` hooks; `src/features/filetree/FileTree.tsx`: lazy-load, git status A/M/D, icone per tipo, selezione; `App.tsx` ristrutturato: sidebar sinistra 256px con sessions (max 45%) + file tree (flex-1 sotto))_
-- [ ] **3.2** **Diff inline** con Monaco (o CodeMirror, D2) per le modifiche proposte
+- [x] **3.2** **Diff inline** con Monaco (o CodeMirror, D2) per le modifiche proposte _(→ `@monaco-editor/react` installato; `src/stores/file.store.ts`; `src/features/filetree/FileDiffPanel.tsx`: Monaco DiffEditor side-by-side con ricostruzione original via `reverseApplyPatch`; Monaco Editor read-only per file senza diff; pannello h-[42vh] sotto la chat in `App.tsx`)_
 - [ ] **3.3** Apertura file alla riga esatta (per collegare con la selezione visuale, Fase 5)
 
 ## Fase 4 — Terminale & anteprima web

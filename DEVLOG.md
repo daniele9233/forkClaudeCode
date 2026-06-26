@@ -15,6 +15,64 @@
 
 ---
 
+## 2026-06-26 · Fase 3.2 — Diff inline Monaco
+
+**Fase:** 3.2 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`@monaco-editor/react@4.7.0`** — installato (usa CDN di default in Tauri, bundling locale in Fase 10)
+
+**`src/stores/file.store.ts`** (nuovo)
+- Zustand store minimo: `selectedFilePath: string | null` + `setSelectedFilePath`
+- Senza persist (la selezione è session-lived)
+
+**`src/features/filetree/FileDiffPanel.tsx`** (nuovo)
+- `getLang(path)`: mappa estensione → Monaco language ID
+- `reverseApplyPatch(modified, patch)`: ricostruisce il contenuto originale
+  dai patch hunks. Algoritmo:
+  - Scansiona `modified` con `modIdx`
+  - Per ogni hunk: copia le righe invariate (`modIdx < newStart0`), poi
+    processa le righe: `-` → push in origLines (solo in original); `+` →
+    incrementa modIdx (solo in modified); ` ` → push + incrementa (in entrambi)
+  - Dopo tutti gli hunks: copia le righe rimanenti
+  - Salta le righe `\\ No newline at end of file`
+- Header: `GitBranch` icon + path completo + badge git con contatori `+N/-N` + tasto X
+- Body:
+  - Loading / errore API
+  - `hasDiff = !!fileContent.patch` → `<DiffEditor>` Monaco side-by-side (original vs modified)
+  - `!hasDiff` → `<Editor>` Monaco read-only (vista file pulito)
+  - `!enabled` → placeholder "Select a file..."
+- `MONACO_OPTIONS`: minimap off, fontSize 12, readOnly, no scrollBeyondLastLine
+
+**`src/features/filetree/FileTree.tsx`** — aggiornato
+- Selection ora usa `useFileStore`: `setSelectedFilePath` invece di `useState` locale
+- `selectedFilePath` passato come `selectedPath` ai `FileTreeNode`
+
+**`src/App.tsx`** — aggiornato
+- `const { selectedFilePath } = useFileStore()` per conditionally renderizzare `FileDiffPanel`
+- Pannello diff: `h-[42vh] shrink-0` appeso in fondo a `<main>`, diviso da `h-px` divider
+- Chat: `min-h-0 flex-1` per cedere spazio al diff panel
+
+### Perché / decisione
+
+Monaco DiffEditor side-by-side è la scelta più leggibile per code review.
+La ricostruzione del "before" dai patch hunks evita una seconda chiamata API
+(non esiste endpoint `/file/original` nell'SDK) ed è deterministica.
+CDN loading di Monaco (`@monaco-editor/react` default) è accettabile in Tauri
+(il processo webview ha accesso a internet); bundling locale sarà fatto in Fase 10.
+
+### Gotcha / attenzione
+
+- `FileContent.patch.hunks[i].newStart` è **1-based** → convertire a 0-based (`-1`) prima di confrontare con l'array di righe
+- Il patch può contenere righe `\\ No newline at end of file` — filtrarle con `line.startsWith("\\ ")`
+- Monaco DiffEditor richiede `height: 100%` sul container — usare `min-h-0 flex-1` sul wrapper
+- `@monaco-editor/react` carica Monaco dal CDN `cdn.jsdelivr.net` di default; non
+  serve config extra per dev/Tauri, ma la prima apertura del pannello ha un piccolo delay
+- La variabile `filename` in `FileDiffPanel` era dichiarata ma inutilizzata — rimossa prima del commit
+
+---
+
 ## 2026-06-26 · Fase 3.1 — File tree del progetto
 
 **Fase:** 3.1 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

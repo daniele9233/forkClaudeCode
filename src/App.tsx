@@ -1,8 +1,12 @@
 import { SessionSidebar } from "@/features/sessions/SessionSidebar";
 import { ChatShell } from "@/features/chat/ChatShell";
 import { FileTree } from "@/features/filetree/FileTree";
+import { FileDiffPanel } from "@/features/filetree/FileDiffPanel";
+import { useFileStore } from "@/stores/file.store";
 
 export default function App() {
+  const { selectedFilePath } = useFileStore();
+
   return (
     <div className="flex h-full overflow-hidden bg-[var(--background)]">
       {/* Left sidebar: sessions (top) + file tree (bottom) */}
@@ -21,8 +25,20 @@ export default function App() {
         </div>
       </div>
 
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <ChatShell />
+      {/* Main area: chat (top, flex-1) + diff panel (bottom, fixed height) */}
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ChatShell />
+        </div>
+
+        {selectedFilePath && (
+          <>
+            <div className="h-px shrink-0 bg-[var(--border)]" />
+            <div className="h-[42vh] shrink-0">
+              <FileDiffPanel />
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

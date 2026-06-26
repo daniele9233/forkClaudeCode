@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useFileStore } from "@/stores/file.store";
 import {
   ChevronRight,
   ChevronDown,
@@ -189,7 +190,11 @@ export function FileTree() {
   const { data: root, isLoading } = useFileList(".");
   const { data: statusList } = useFileStatus();
   const invalidateFiles = useInvalidateFiles();
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const { selectedFilePath, setSelectedFilePath } = useFileStore();
+  const setSelectedPath = useCallback(
+    (path: string) => setSelectedFilePath(path),
+    [setSelectedFilePath],
+  );
 
   // Rebuild git-status map whenever status list changes
   const statusMap = useMemo(() => {
@@ -254,7 +259,7 @@ export function FileTree() {
             node={node}
             depth={0}
             statusMap={statusMap}
-            selectedPath={selectedPath}
+            selectedPath={selectedFilePath}
             onSelect={setSelectedPath}
           />
         ))}
