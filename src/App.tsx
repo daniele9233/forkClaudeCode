@@ -6,6 +6,7 @@ import { FileTree } from "@/features/filetree/FileTree";
 import { FileDiffPanel } from "@/features/filetree/FileDiffPanel";
 import { TerminalPanel } from "@/features/terminal/TerminalPanel";
 import { PreviewPanel } from "@/features/preview/PreviewPanel";
+import { ContextInspectorPanel } from "@/features/inspector/ContextInspectorPanel";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 import { useFileStore } from "@/stores/file.store";
 import { usePreviewStore } from "@/stores/preview.store";
@@ -62,7 +63,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Main area: chat (top, flex-1) + bottom panel (terminal / diff) */}
+      {/* Main area: chat (top, flex-1) + bottom panel (terminal / diff / inspector) */}
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-hidden">
           <ChatShell />
@@ -89,6 +90,12 @@ export default function App() {
                       onClick={setBottomTab}
                     />
                   )}
+                  <BottomTabButton
+                    tab="inspector"
+                    label="Inspector"
+                    active={bottomTab === "inspector"}
+                    onClick={setBottomTab}
+                  />
                 </div>
                 <button
                   onClick={closeBottom}
@@ -113,6 +120,11 @@ export default function App() {
                     <FileDiffPanel />
                   </div>
                 )}
+                <div
+                  className={cn("h-full", bottomTab === "inspector" ? "block" : "hidden")}
+                >
+                  <ContextInspectorPanel />
+                </div>
               </div>
             </div>
           </>

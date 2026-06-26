@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type BottomTab = "terminal" | "diff";
+export type BottomTab = "terminal" | "diff" | "inspector";
 
 interface UIState {
   /** Whether the bottom panel (terminal/diff) is open. */

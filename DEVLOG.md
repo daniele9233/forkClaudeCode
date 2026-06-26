@@ -15,6 +15,81 @@
 
 ---
 
+## 2026-06-26 · Fase 6 — Context Inspector (COMPLETA)
+
+**Fase:** 6.1–6.5 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/opencode/context.ts`** (nuovo)
+- `contextKeys`: factory chiavi TanStack Query (`["context","messages",sid]`, `["config","providers"]`)
+- `ContextEntry { info: { id, role, sessionID? }, parts? }`: shape minimale del contesto
+- `useContextMessages(sessionId)`: raw `fetch` verso `/api/session/{id}/context`
+  (endpoint non esposto nell'SDK) → `ContextEntry[]`; `staleTime: 15_000`
+- `useProviders()`: `getClient().config.providers()` → `Provider[]` con `models[id].limit.context`;
+  `staleTime: 60_000`
+- `useContextInvalidate()`: helper per invalidare la cache context messages
+
+**`src/opencode/useChatEvents.ts`** — aggiornato
+- Import aggiunto: `EventSessionCompacted` da `@opencode-ai/sdk/client`
+- Import aggiunto: `contextKeys` da `./context`
+- Nuovo handler `"session.compacted"`: invalida `contextKeys.messages(sid)` E
+  `sessionKeys.messages(sid)` — garantisce che Inspector e lista messaggi si aggiornino
+  subito dopo una compaction
+
+**`src/stores/ui.store.ts`** — aggiornato
+- `BottomTab` esteso: `"terminal" | "diff" | "inspector"` (era `"terminal" | "diff"`)
+
+**`src/features/inspector/ContextInspectorPanel.tsx`** (nuovo)
+- Helper `fmtNum(n)`: K/M formatting (`45K`, `1.23M`)
+- Helper `fmtCost(c)`: `$0.00` / `$0.0000` / `$0.000000` per diversi ordini di grandezza
+- `ROLE_META`: badge colorati per `user/assistant/system/tool/summary`
+- Sub-components `SectionLabel` e `StatCell` locali (nessun export)
+- **Merge storico + live**: combina `useSessionMessages` (dati TQ cached) con
+  `useChatStore().liveMessages` (SSE in-flight) in `Map<id, AssistantMessage>`;
+  sort per `time.created` — l'ultimo messaggio è sempre il più recente
+- **Sezione "Context window"**: `lastMsg.tokens.input` come proxy dei token correnti;
+  `contextLimit` da `Provider.models[modelID].limit.context`; progress bar colorata
+  (green/amber/red per 0–65% / 65–85% / >85%); label `%` + `fmtNum tokens / limit`;
+  fallback se `contextLimit === 0` ("Send a prompt to see context usage")
+- **Sezione "Session totals"**: reduce su tutti i messaggi assistant per
+  `input/output/reasoning/cacheRead/cacheWrite/cost`; griglia 3×2; cost in accent color
+- **Sezione "In context"**: breakdown per ruolo da `contextEntries` con barre proporzionali
+  (larghezza = `share * 0.8`px, min 4px); contatore totale nel titolo
+
+**`src/App.tsx`** — aggiornato
+- Import `ContextInspectorPanel` aggiunto
+- Nuovo `<BottomTabButton tab="inspector" label="Inspector" …/>` (sempre visibile,
+  non condizionale su `selectedFilePath` come il tab "Diff")
+- Pannello body per Inspector:
+  `<div className={cn("h-full", bottomTab==="inspector" ? "block" : "hidden")}>`
+
+### Perché / decisione
+
+- **`Session` type SDK senza token/cost**: la struttura dati del contesto vive su
+  `AssistantMessage.tokens.*` e `.cost` (per step). L'aggregazione va fatta lato GUI.
+- **Raw fetch per `/context`**: l'endpoint non è esposto dall'SDK generato; si usa
+  `getBaseUrl()` (già esportato da `client.ts`) per costruire l'URL manualmente.
+- **Proxy "token correnti" = `lastMsg.tokens.input`**: l'input token count dell'ultimo
+  step include già il contesto completo (history + context window) — è il dato più
+  preciso disponibile senza un endpoint dedicato.
+- **Nessun chart Recharts per ora**: la griglia + progress bar è più leggibile e meno
+  costosa in bundle size per l'MVP. Recharts rimandato a Fase 9 (pass estetico).
+
+### Gotcha / attenzione
+
+- `Array.at(-1)` non disponibile nel target TS: sostituito con
+  `arr[arr.length - 1]` per evitare l'errore `Property 'at' does not exist`
+- `useContextMessages` usa `staleTime: 15_000` — potrebbe mostrare dati leggermente
+  obsoleti; l'invalidation su `session.compacted` garantisce l'aggiornamento post-compaction
+- Il breakdown "In context" mostra i ruoli così come arrivano dall'endpoint
+  (es. `"tool"` potrebbe essere `"tool_result"` — dipende da OpenCode); `ROLE_META`
+  ha un fallback `bg-slate-500` per ruoli sconosciuti
+- La tab "Inspector" rimane visibile anche senza sessione attiva: mostra
+  "No active session" come empty state (coerente con il resto dei panel)
+
+---
+
 ## 2026-06-26 · Fase 5 — Selezione visuale degli elementi (COMPLETA)
 
 **Fase:** 5.1–5.5 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

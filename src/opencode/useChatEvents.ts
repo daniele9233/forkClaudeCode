@@ -8,9 +8,11 @@ import type {
   EventSessionError,
   EventSessionUpdated,
   EventPermissionUpdated,
+  EventSessionCompacted,
 } from "@opencode-ai/sdk/client";
 import { onEventType } from "./events";
 import { sessionKeys } from "./session";
+import { contextKeys } from "./context";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePermissionStore } from "@/stores/permission.store";
@@ -64,6 +66,15 @@ export function useChatEvents() {
           setSessionRunning(sid, false);
           queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sid) });
         }
+      }),
+
+      // Compaction finished — context shrunk, re-fetch context messages
+      onEventType<EventSessionCompacted>("session.compacted", (e) => {
+        const sid = e.properties.sessionID;
+        queryClient.invalidateQueries({
+          queryKey: contextKeys.messages(sid),
+        });
+        queryClient.invalidateQueries({ queryKey: sessionKeys.messages(sid) });
       }),
 
       // HITL: permission request from the agent
