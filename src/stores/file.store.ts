@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useUIStore } from "./ui.store";
 
 interface FileState {
   /** Path of the file currently open in the diff/editor panel. */
@@ -15,6 +16,9 @@ export const useFileStore = create<FileState>((set) => ({
   selectedFilePath: null,
   selectedLine: null,
   setSelectedFilePath: (path) => set({ selectedFilePath: path, selectedLine: null }),
-  openFile: (path, line = null) =>
-    set({ selectedFilePath: path, selectedLine: line ?? null }),
+  openFile: (path, line = null) => {
+    set({ selectedFilePath: path, selectedLine: line ?? null });
+    // Surface the diff panel when a file is opened.
+    if (path) useUIStore.getState().openBottom("diff");
+  },
 }));

@@ -190,11 +190,8 @@ export function FileTree() {
   const { data: root, isLoading } = useFileList(".");
   const { data: statusList } = useFileStatus();
   const invalidateFiles = useInvalidateFiles();
-  const { selectedFilePath, setSelectedFilePath } = useFileStore();
-  const setSelectedPath = useCallback(
-    (path: string) => setSelectedFilePath(path),
-    [setSelectedFilePath],
-  );
+  const { selectedFilePath, openFile } = useFileStore();
+  const setSelectedPath = useCallback((path: string) => openFile(path), [openFile]);
 
   // Rebuild git-status map whenever status list changes
   const statusMap = useMemo(() => {

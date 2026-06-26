@@ -15,6 +15,79 @@
 
 ---
 
+## 2026-06-26 · Fase 4.1 — Terminale xterm.js
+
+**Fase:** 4.1 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**Dipendenze** — `@xterm/xterm@6`, `@xterm/addon-fit`, `@xterm/addon-web-links`
+
+**`src/stores/terminal.store.ts`** (nuovo)
+- `TermEntry { id, command, output?, error? }`
+- `entries: TermEntry[]` + `writtenIds: Set<string>` (dedupe per part.id, dato che
+  un ToolPart emette più update SSE)
+- `addEntry` (no-op se id già presente), `clear`
+
+**`src/stores/ui.store.ts`** (nuovo)
+- `bottomOpen: boolean`, `bottomTab: 'terminal' | 'diff'`
+- `openBottom(tab)`, `closeBottom()`, `setBottomTab(tab)`, `toggleTerminal()`
+  (toggle: se terminale già aperto → chiude, altrimenti apre+switch a terminal)
+
+**`src/features/terminal/useTerminalEvents.ts`** (nuovo)
+- Hook montato in ChatShell (sempre attivo, anche con pannello chiuso)
+- Sottoscrive `message.part.updated`, filtra `part.type === "tool"` con
+  `tool` che include "bash", su `completed`/`error` aggiunge entry
+- Command estratto da `state.input.command` (fallback al nome tool)
+
+**`src/features/terminal/TerminalPanel.tsx`** (nuovo)
+- Istanza xterm read-only (`disableStdin: true`, `cursorBlink: false`)
+- Tema `FORGE_THEME`: bg `#0a0c0e`, fg slate, cursor amber `#f59e0b`
+- ANSI: `$ command` in cyan, output normale, errori in rosso
+- `nl()` converte `\n` → `\r\n` (xterm richiede CR+LF)
+- FitAddon + ResizeObserver per adattare le dimensioni
+- Scrive entry esistenti al mount + nuove incrementalmente (`writtenCountRef`)
+- Se `entries.length < writtenCount` → store pulito → `term.clear()`
+- WebLinksAddon per URL cliccabili (utile per la 4.2)
+- Header con tasto "Clear"
+
+**`src/App.tsx`** — ristrutturato bottom panel
+- Tab-bar `Terminal | Diff` (Diff appare solo se `selectedFilePath != null`)
+- `h-[42vh]` come prima; terminale resta montato con `display:hidden` quando
+  non attivo (preserva lo scrollback xterm); diff montato solo se file aperto
+- `useEffect`: se il file viene chiuso mentre il tab diff è attivo → torna a terminal
+- Tasto X chiude tutto il pannello (`closeBottom`)
+
+**`src/features/chat/ChatShell.tsx`** — aggiornato
+- Monta `useTerminalEvents()`
+- Pulsante toggle terminale (`TerminalSquare`) nell'header, evidenziato se attivo
+
+**`src/stores/file.store.ts`** — aggiornato
+- `openFile(path, line?)` ora chiama `useUIStore.getState().openBottom("diff")`
+  (apertura file → mostra diff). Cross-store via `getState()` (no hook in store)
+
+**`src/features/filetree/FileTree.tsx`** — aggiornato
+- Selezione file usa `openFile` invece di `setSelectedFilePath` (così apre il pannello)
+
+### Perché / decisione
+
+Il "terminale" è read-only: OpenCode esegue già il PTY lato motore, noi mostriamo
+l'output dei tool bash. Non serve un PTY interattivo nella GUI (coerente con
+PROGETTO.md §3). La sottoscrizione SSE vive in un hook sempre montato (ChatShell),
+non nel pannello, così non si perde output quando il terminale è nascosto.
+
+### Gotcha / attenzione
+
+- xterm richiede `\r\n`, non `\n` — la funzione `nl()` lo gestisce
+- Il terminale nascosto via `display:hidden` ha dimensioni 0; il ResizeObserver
+  ri-esegue `fit()` quando torna visibile (xterm ricalcola righe/colonne)
+- `import "@xterm/xterm/css/xterm.css"` è obbligatorio o il layout è rotto
+- Cross-store call: `file.store` importa `ui.store` (no ciclo: ui non importa file)
+- Bundle salito a 826KB (xterm ~200KB gzip) — il warning Vite >500KB è atteso;
+  code-splitting di xterm/Monaco con `lazy()` rinviato a Fase 10
+
+---
+
 ## 2026-06-26 · Fase 3.3 — Apertura file alla riga esatta
 
 **Fase:** 3.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

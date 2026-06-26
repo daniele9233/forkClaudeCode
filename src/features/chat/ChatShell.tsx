@@ -1,17 +1,24 @@
 import { useCallback } from "react";
+import { TerminalSquare } from "lucide-react";
 import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
+import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
+import { useUIStore } from "@/stores/ui.store";
+import { cn } from "@/lib/utils";
 import { MessageList } from "./MessageList";
 import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
 
 export function ChatShell() {
   const { isRunning } = useChatEvents();
+  useTerminalEvents();
   const { activeSessionId, sidecarStatus, setActiveSession } = useSessionStore();
+  const { bottomOpen, bottomTab, toggleTerminal } = useUIStore();
   const sendPrompt = useSendPrompt();
   const createSession = useCreateSession();
   const abortSession = useAbortSession();
+  const terminalActive = bottomOpen && bottomTab === "terminal";
 
   const handleSend = useCallback(
     async (text: string, mode: AgentMode) => {
@@ -51,11 +58,25 @@ export function ChatShell() {
             </span>
           )}
         </div>
-        {sidecarStatus !== "ready" && (
-          <span className="text-xs text-[var(--muted-foreground)] capitalize">
-            {sidecarStatus === "starting" ? "Connecting…" : sidecarStatus}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {sidecarStatus !== "ready" && (
+            <span className="text-xs text-[var(--muted-foreground)] capitalize">
+              {sidecarStatus === "starting" ? "Connecting…" : sidecarStatus}
+            </span>
+          )}
+          <button
+            onClick={toggleTerminal}
+            title="Toggle terminal"
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+              terminalActive
+                ? "bg-[var(--primary)]/15 text-[var(--primary)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+            )}
+          >
+            <TerminalSquare className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Message area */}
