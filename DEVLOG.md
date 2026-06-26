@@ -15,6 +15,64 @@
 
 ---
 
+## 2026-06-26 · Fase 3.1 — File tree del progetto
+
+**Fase:** 3.1 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/opencode/file.ts`** (nuovo)
+- `fileKeys` factory per cache keys coerenti
+- `useProjectCurrent()`: `client.project.current()` → `Project` (campo `worktree` = path assoluto del progetto)
+- `useFileList(path, enabled?)`: `client.file.list({ query: { path } })` → `Array<FileNode>`, `staleTime: 5s`
+- `useFileRead(path, enabled?)`: `client.file.read({ query: { path } })` → `FileContent`
+- `useFileStatus()`: `client.file.status()` → `Array<{ path, status, added, removed }>`, `staleTime: 3s`
+- `useInvalidateFiles()`: invalida tutto `fileKeys.all`
+
+**`src/features/filetree/FileTree.tsx`** (nuovo)
+- `FileTreeNode`: componente ricorsivo
+  - `isDir && expanded` → chiama `useFileList(node.path, true)` (lazy-load)
+  - Sort: directory prima, poi file, poi alpha
+  - Filtro: `!node.ignored` (nasconde file in .gitignore)
+  - Icone per estensione (`EXT_MAP`): TS/JS=blu, RS/Go/Py=arancio, JSON=giallo,
+    MD/TXT=grigio, TOML/YAML/ENV=viola, CSS=rosa, HTML/SVG=amber, default=muted
+  - Badge git: `A` verde / `M` amber / `D` rosso (angolo destro del row)
+  - Indentazione: `depth * 12 + 6`px left padding
+  - Selezione: `bg-[var(--primary)]/15` + state `selectedPath`
+- `FileTree`: componente radice
+  - Header: icona Folder + nome progetto (basename di `project.worktree`)
+  - Carica root con `useFileList(".")`
+  - `statusMap: Map<string, GitStatus>` da `useFileStatus()`
+  - `useEffect` → subscribe a `file.edited` e `file.watcher.updated` → `invalidateFiles()`
+
+**`src/features/sessions/SessionSidebar.tsx`** — modificato
+- Rimossi `w-56 shrink-0 border-r` dall'outer `<aside>` (ownership spostata al parent)
+
+**`src/App.tsx`** — modificato
+- Nuova struttura: wrapper `w-64 shrink-0 border-r` che contiene:
+  - `div` con `maxHeight: "45%"` → `<SessionSidebar />`
+  - `div h-px` → divider
+  - `div flex-1 min-h-0` → `<FileTree />`
+
+### Perché / decisione
+
+File tree lazy: non caricare tutto l'albero all'avvio (potenzialmente migliaia di file).
+Ogni directory espande solo i propri figli on-demand. `staleTime` breve (3-5s) per
+sentire le modifiche dell'agente quasi in tempo reale senza flooding di richieste.
+
+### Gotcha / attenzione
+
+- `FileListData.query.path` è relativo alla root del progetto; `"."` = root
+- `FileNode.ignored` riflette `.gitignore` — filtrarlo per default mantiene l'albero pulito
+- `file.watcher.updated` e `file.edited` sono eventi distinti: il primo viene
+  dal file system watcher, il secondo viene quando il tool agent scrive un file
+- La percentuale `maxHeight: "45%"` su un container `flex-col` con `h-full`
+  funziona correttamente perché il parent ha altezza definita
+- `useInvalidateFiles` restituisce una funzione stabile — usarla come dipendenza
+  nell'`useEffect` è corretto (non causa re-subscribe ripetuti)
+
+---
+
 ## 2026-06-26 · Polish — angoli prompt input arrotondati
 
 **Fase:** 2.x polish | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** `e06db57`

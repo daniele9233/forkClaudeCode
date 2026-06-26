@@ -108,7 +108,7 @@ export function SessionSidebar() {
   };
 
   return (
-    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--background)]">
+    <aside className="flex h-full flex-col bg-[var(--background)]">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
