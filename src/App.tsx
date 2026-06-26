@@ -25,9 +25,7 @@ export default function App() {
           </svg>
         </div>
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--foreground)]">
-            Forgia
-          </h1>
+          <h1 className="text-2xl font-semibold text-[var(--foreground)]">Forgia</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             GUI desktop per OpenCode — scaffold pronto
           </p>
@@ -35,7 +33,9 @@ export default function App() {
         <div className="flex gap-2 text-xs text-[var(--muted-foreground)]">
           <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5">Tauri 2</span>
           <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5">React 19</span>
-          <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5">Tailwind v4</span>
+          <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5">
+            Tailwind v4
+          </span>
         </div>
       </div>
     </div>

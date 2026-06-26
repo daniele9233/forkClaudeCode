@@ -34,7 +34,7 @@
 - [x] **0.2** Scaffold Tauri 2 + React 19 + TypeScript + Vite; "hello window" che builda su Windows _(cargo check richiede static.crates.io — verificare in locale; frontend build verde)_
 - [x] **0.3** Setup Tailwind v4 + shadcn/ui + Motion + Lucide; tema dark-first _(shadcn: setup base + `cn()`; v4 CSS-first; `src/index.css`)_
 - [x] **0.4** Definisci i **design token** (palette 4–6 hex, scala tipografica display/body/mono, spacing) — `PROGETTO.md` §10 _(inglobato in 0.3: palette forge-950…50 + amber accent, font display/body/mono, spacing, radii in `@theme` di index.css)_
-- [ ] **0.5** CI minima (build + lint + format) + cartella `docs/` per gli ADR
+- [x] **0.5** CI minima (build + lint + format) + cartella `docs/` per gli ADR _(`.github/workflows/ci.yml`: frontend lint+build+format check; rust job con webkit2gtk; `.prettierrc`)_
 
 ## Fase 1 — Integrazione col motore OpenCode ⭐ *(da fare per prima)*
 
