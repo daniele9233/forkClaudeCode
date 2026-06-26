@@ -59,7 +59,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   return (
     <div
       className={cn(
-        "rounded-xl border bg-[var(--card)] transition-colors",
+        "overflow-hidden rounded-2xl border bg-[var(--card)] transition-colors",
         "border-[var(--border)] focus-within:border-[var(--primary)]",
         disabled && "opacity-50",
       )}
