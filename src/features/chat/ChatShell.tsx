@@ -6,6 +6,7 @@ import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/ses
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { cn } from "@/lib/utils";
+import { DevServerBanner } from "@/features/preview/DevServerBanner";
 import { MessageList } from "./MessageList";
 import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
@@ -78,6 +79,9 @@ export function ChatShell() {
           </button>
         </div>
       </div>
+
+      {/* Dev-server detection banner */}
+      <DevServerBanner />
 
       {/* Message area */}
       {activeSessionId ? (

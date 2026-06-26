@@ -15,6 +15,56 @@
 
 ---
 
+## 2026-06-26 · Fase 4.2 — Rilevamento dev server da output
+
+**Fase:** 4.2 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+
+**`src/features/terminal/detectDevServer.ts`** (nuovo)
+- `detectDevServerUrl(text): string | null`
+- `URL_RE`: `https?://(localhost|127.0.0.1|0.0.0.0)(:port)?(/path)?`
+- `BARE_RE`: `(localhost|127.0.0.1):port` senza schema
+- Normalizza `0.0.0.0` → `localhost`, ritorna URL `http://host:port/`
+- Testato su output reali Vite (`➜ Local: http://localhost:5173/`), Next, CRA
+
+**`src/stores/preview.store.ts`** (nuovo)
+- `detectedUrl` (suggerimento), `previewUrl` (caricato in 4.3), `dismissed`
+- `setDetectedUrl` (ignora se invariato o già in preview), `openPreview`,
+  `closePreview`, `dismissDetected`
+
+**`src/features/terminal/useTerminalEvents.ts`** — aggiornato
+- `scanForDevServer(text)` su:
+  - `state.output` (completed)
+  - `state.error` (error)
+  - `JSON.stringify(state.metadata)` (running) — i dev server NON si completano
+- Estrazione `command` resa robusta con cast `Record<string,unknown>` (input
+  è `unknown` in stato running)
+
+**`src/features/preview/DevServerBanner.tsx`** (nuovo)
+- Banner ambra visibile se `detectedUrl && !dismissed && detectedUrl !== previewUrl`
+- Mostra l'URL, pulsante "Open preview" (→ `openPreview`), X per dismiss
+
+**`src/features/chat/ChatShell.tsx`** — aggiornato
+- `<DevServerBanner />` montato sotto l'header
+
+### Perché / decisione
+
+I processi long-running (dev server) restano in stato `running` e non emettono
+mai `state.output` (riservato a `completed`). Per questo la detection scansiona
+anche `state.metadata` durante il running. Il banner separa la "scoperta"
+(4.2) dall'"apertura anteprima" (4.3): `openPreview` setta solo `previewUrl`.
+
+### Gotcha / attenzione
+
+- La regex `\d{2,5}` per la porta evita falsi positivi su numeri brevi
+- `0.0.0.0` non è raggiungibile come URL nel browser → normalizzato a `localhost`
+- In stato `running`, `state.input` è `unknown` (non l'oggetto): serve cast esplicito
+- La detection da `metadata` dipende da cosa OpenCode espone lì; se il dev server
+  scrive solo su un PTY non riflesso in metadata, l'URL va digitato a mano in 4.3
+
+---
+
 ## 2026-06-26 · Fase 4.1 — Terminale xterm.js
 
 **Fase:** 4.1 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
