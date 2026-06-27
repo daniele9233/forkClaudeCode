@@ -9,12 +9,14 @@ import {
   Settings,
   Clock,
   Layers,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useSessions, useCreateSession } from "@/opencode/session";
+import { useOnboardingStore } from "@/stores/onboarding.store";
 import type { Session } from "@opencode-ai/sdk/client";
 
 interface PaletteItem {
@@ -39,6 +41,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
   const { closeCommandPalette, openBottom, toggleTerminal, openSettings } = useUIStore();
   const { setActiveSession } = useSessionStore();
   const { openPreview, detectedUrl, previewUrl } = usePreviewStore();
+  const resetOnboarding = useOnboardingStore((s) => s.reset);
   const { data: sessions = [] } = useSessions();
   const createSession = useCreateSession();
 
@@ -117,6 +120,17 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
         },
       },
       {
+        id: "replay-intro",
+        group: "Actions",
+        label: "Replay Intro",
+        description: "Show the first-run onboarding again",
+        icon: <Sparkles className="h-3.5 w-3.5" />,
+        onSelect: () => {
+          resetOnboarding();
+          closeCommandPalette();
+        },
+      },
+      {
         id: "select-model",
         group: "Actions",
         label: "Switch Model",
@@ -140,6 +154,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
       openPreview,
       openSettings,
       onOpenSettings,
+      resetOnboarding,
     ],
   );
 
