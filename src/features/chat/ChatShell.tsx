@@ -50,31 +50,29 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const isDisabled = !isReady || sendPrompt.isPending || createSession.isPending;
 
   return (
-    <div className="flex h-full flex-col bg-[var(--background)]">
-      {/* Header — HUD bar */}
+    <div className="flex h-full flex-col">
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
         <div className="flex items-center gap-2.5">
-          <span className="h-3.5 w-3.5 bg-[var(--primary)]" aria-hidden />
-          <span className="font-mono text-sm font-bold uppercase tracking-[0.2em] text-[var(--foreground)]">
-            Forgia
-          </span>
+          <span
+            className="h-4 w-4 rounded-md bg-[var(--primary)] shadow-sm"
+            aria-hidden
+          />
+          <span className="text-sm font-semibold text-[var(--foreground)]">Forgia</span>
           <span className="hidden items-center gap-1.5 sm:flex">
-            <span className="text-[var(--muted-foreground)]/30">/</span>
             {isRunning ? (
-              <span className="flex items-center gap-1.5 hud-label text-[var(--primary)]">
+              <span className="flex items-center gap-1.5 text-xs text-[var(--primary)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)] animate-pulse" />
-                RUNNING
+                Working…
               </span>
             ) : sidecarStatus === "ready" ? (
-              <span className="flex items-center gap-1.5 hud-label text-[var(--color-online)]">
+              <span className="flex items-center gap-1.5 text-xs text-[var(--color-online)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-online)]" />
-                ONLINE
+                Online
               </span>
             ) : (
-              <span className="hud-label">
-                {sidecarStatus === "starting"
-                  ? "CONNECTING"
-                  : sidecarStatus.toUpperCase()}
+              <span className="text-xs text-[var(--muted-foreground)]">
+                {sidecarStatus === "starting" ? "Connecting…" : sidecarStatus}
               </span>
             )}
           </span>

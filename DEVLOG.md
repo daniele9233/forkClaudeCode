@@ -15,6 +15,34 @@
 
 ---
 
+## 2026-06-27 · Restyle → Codex-clean + glassmorphism (pivot)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+L'utente ha rifiutato il look HUD/brutalista → nuova direzione: **pulito stile Codex
+con sfondo glassmorphism** (pannelli frosted translucidi su gradiente colorato morbido).
+
+- **`index.css`**: radii morbidi (8–20px); sfondo a orb-gradient colorato (ambra/indaco/
+  teal/rosa) fisso, dark e light; bordi translucidi (`--border` = white/10 dark, slate/10
+  light); `.hud-label` ridefinita **pulita** (sans, niente mono/maiuscolo); utility nuove
+  `.glass`, `.glass-strong`, `.glass-border` (backdrop-blur + bg translucido, adattive al tema).
+- **App/ChatShell/Sidebar/StatusBar/bottom panel**: superfici rese trasparenti o `.glass`
+  così traspare il gradiente; header pulito (quadrato ambra arrotondato + "Forgia" + stato
+  Online/Working pulito).
+- **WelcomeScreen**: riscritto pulito — card glass arrotondata, badge gradiente, 3 suggerimenti
+  come righe morbide con hint e freccia; niente più "vectors/crop-mark".
+- **ChatInput**: composer glass arrotondato (rounded-3xl), toggle Build/Plan a pill, send
+  circolare; **rimosso il chamfer** (incoerente col nuovo stile).
+- **CommandPalette / SettingsModal / ModelSwitcher dropdown / OnboardingWizard**: `.glass-strong`,
+  label pulite sentence-case, highlight arrotondato.
+- **MessageBubble**: bolla utente arrotondata (niente chamfer).
+
+Build verde, 22 test ok, prettier pulito. Screenshot verificati (welcome dark+light, palette).
+Da rifinire ancora (eventuale pass): tool-call card / inspector / timeline / banner / diff /
+preview toolbar — sono già morbidi (radii) ma non ancora "glass" pieni.
+
+---
+
 ## 2026-06-27 · Restyle HUD / mission-control (pass 2 — uniformazione)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

@@ -240,7 +240,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="w-[560px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)] shadow-2xl"
+        className="glass-strong glass-border w-[560px] overflow-hidden rounded-2xl shadow-2xl"
       >
         {/* Search input */}
         <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-3">
@@ -279,10 +279,10 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
                     onClick={item.onSelect}
                     onMouseEnter={() => setActiveIdx(globalIdx)}
                     className={cn(
-                      "flex w-full items-center gap-3 border-l-2 px-3 py-2 text-left transition-colors",
+                      "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
                       isActive
-                        ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]"
-                        : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
+                        ? "bg-white/[0.06] text-[var(--foreground)]"
+                        : "text-[var(--muted-foreground)] hover:bg-white/[0.03] hover:text-[var(--foreground)]",
                     )}
                   >
                     <span
@@ -296,7 +296,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
                       {item.icon}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <span className="block truncate font-mono text-xs uppercase tracking-wide">
+                      <span className="block truncate text-sm font-medium">
                         {item.label}
                       </span>
                       {item.description && (

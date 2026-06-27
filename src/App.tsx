@@ -36,7 +36,7 @@ function BottomTabButton({
     <button
       onClick={() => onClick(tab)}
       className={cn(
-        "border-b-2 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors",
+        "border-b-2 px-3 py-1.5 text-xs font-medium transition-colors",
         active
           ? "border-[var(--primary)] text-[var(--foreground)]"
           : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
@@ -101,14 +101,14 @@ export default function App() {
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="flex h-full flex-col overflow-hidden bg-[var(--background)]"
+      className="flex h-full flex-col overflow-hidden"
     >
       {/* Global engine status (connecting / disconnected) */}
       <SidecarStatusBanner />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Left sidebar: sessions (top) + file tree (bottom) */}
-        <div className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
+        <div className="glass flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
           <div className="shrink-0 overflow-hidden" style={{ maxHeight: "45%" }}>
             <SessionSidebar />
           </div>
@@ -127,9 +127,9 @@ export default function App() {
           {bottomOpen && (
             <>
               <div className="h-px shrink-0 bg-[var(--border)]" />
-              <div className="flex h-[42vh] shrink-0 flex-col">
+              <div className="glass flex h-[42vh] shrink-0 flex-col">
                 {/* Tab bar */}
-                <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--background)] pr-2">
+                <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] pr-2">
                   <div className="flex items-center">
                     <BottomTabButton
                       tab="terminal"

@@ -44,11 +44,10 @@ function UserBubble({ parts }: { parts: Part[] }) {
     <div className="flex justify-end">
       <div
         className={cn(
-          "notch-tl max-w-[75%] px-4 py-2.5",
+          "max-w-[75%] rounded-3xl rounded-br-lg px-4 py-2.5",
           "bg-[var(--primary)] text-[var(--primary-foreground)]",
-          "text-sm leading-relaxed whitespace-pre-wrap",
+          "whitespace-pre-wrap text-sm leading-relaxed",
         )}
-        style={{ "--notch": "12px" } as React.CSSProperties}
       >
         {text}
       </div>

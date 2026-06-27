@@ -64,18 +64,20 @@ export function StatusBar() {
 
   if (!activeSessionId) {
     return (
-      <div className="flex h-6 shrink-0 items-center border-t border-[var(--border)] px-3">
-        <span className="hud-label opacity-40">NO ACTIVE SESSION</span>
+      <div className="glass flex h-6 shrink-0 items-center border-t border-[var(--border)] px-3">
+        <span className="text-[10px] text-[var(--muted-foreground)]/50">
+          No active session
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="flex h-6 shrink-0 items-center gap-3 border-t border-[var(--border)] bg-[var(--background)] px-3">
+    <div className="glass flex h-6 shrink-0 items-center gap-3 border-t border-[var(--border)] px-3">
       {/* Context meter */}
       {contextLimit > 0 && (
         <div className="flex items-center gap-1.5">
-          <span className="hud-label opacity-50">CTX</span>
+          <span className="text-[10px] text-[var(--muted-foreground)]/70">ctx</span>
           <div className="relative h-1.5 w-20 overflow-hidden rounded-sm bg-[var(--muted)]">
             <div
               className={cn("h-full transition-all duration-500", meterColor)}
@@ -96,11 +98,11 @@ export function StatusBar() {
       {/* Token count for this session */}
       <div className="flex items-center gap-1">
         <Zap className="h-2.5 w-2.5 text-[var(--muted-foreground)]/60" />
-        <span className="hud-mono text-[9px] uppercase text-[var(--muted-foreground)]">
+        <span className="hud-mono text-[9px] text-[var(--muted-foreground)]">
           {contextEntries.length > 0
-            ? `${contextEntries.length} MSGS`
+            ? `${contextEntries.length} msgs`
             : assistantMsgs.length > 0
-              ? `${assistantMsgs.length} STEP${assistantMsgs.length !== 1 ? "S" : ""}`
+              ? `${assistantMsgs.length} step${assistantMsgs.length !== 1 ? "s" : ""}`
               : "—"}
         </span>
       </div>
@@ -127,7 +129,7 @@ export function StatusBar() {
 
       {/* Model pill at the right */}
       {lastMsg && (
-        <span className="ml-auto hud-mono text-[9px] uppercase text-[var(--muted-foreground)]/60">
+        <span className="hud-mono ml-auto text-[9px] text-[var(--muted-foreground)]/60">
           {lastMsg.providerID}/{lastMsg.modelID}
         </span>
       )}

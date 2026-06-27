@@ -11,7 +11,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CornerBrackets } from "@/components/CornerBrackets";
 import { useProviders } from "@/opencode/context";
 import { useConfig, useUpdateConfig, useSetAuth } from "@/opencode/config";
 import { useOnboardingStore } from "@/stores/onboarding.store";
@@ -37,9 +36,8 @@ export function OnboardingWizard() {
         role="dialog"
         aria-modal="true"
         aria-label="Welcome to Forgia"
-        className="relative flex max-h-[80vh] w-[560px] flex-col overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--background)] shadow-2xl"
+        className="glass-strong glass-border relative flex max-h-[80vh] w-[560px] flex-col overflow-hidden rounded-3xl shadow-2xl"
       >
-        <CornerBrackets size={16} inset={3} />
         {/* Progress dots */}
         <div className="flex shrink-0 items-center justify-center gap-1.5 pt-4">
           {(["welcome", "provider", "tour"] as const).map((s) => (
@@ -65,13 +63,12 @@ export function OnboardingWizard() {
                   aria-hidden
                   className="absolute inset-0 -z-10 rounded-full bg-[var(--primary)]/20 blur-2xl"
                 />
-                <div className="flex h-16 w-16 items-center justify-center rounded-sm border border-[var(--primary)]/30 bg-[var(--primary)]/10">
-                  <Hammer className="h-7 w-7 text-[var(--primary)]" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--primary)] to-amber-600 shadow-lg">
+                  <Hammer className="h-7 w-7 text-white" />
                 </div>
               </div>
-              <span className="hud-label">FORGIA // FIRST RUN</span>
-              <h2 className="font-mono text-2xl font-bold uppercase tracking-[0.14em] text-[var(--foreground)]">
-                Welcome
+              <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+                Welcome to Forgia
               </h2>
               <p className="max-w-md text-sm text-[var(--muted-foreground)]">
                 A calm, elegant desktop shell over the OpenCode engine. Let's get you set
@@ -85,7 +82,7 @@ export function OnboardingWizard() {
 
           {step === "tour" && (
             <motion.div key="tour" {...fade} className="flex flex-col gap-4">
-              <h2 className="font-mono text-lg font-bold uppercase tracking-[0.12em] text-[var(--foreground)]">
+              <h2 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
                 Three things to know
               </h2>
               <TourItem
@@ -134,7 +131,7 @@ function NextButton({ label, onClick }: { label: string; onClick: () => void }) 
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 rounded-sm bg-[var(--primary)] px-3.5 py-1.5 font-mono text-[11px] font-medium uppercase tracking-wider text-[var(--primary-foreground)] transition-opacity hover:opacity-90"
+      className="flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-1.5 text-xs font-medium text-[var(--primary-foreground)] transition-opacity hover:opacity-90"
     >
       {label}
       <ArrowRight className="h-3.5 w-3.5" />
@@ -152,15 +149,13 @@ function TourItem({
   body: string;
 }) {
   return (
-    <div className="flex gap-3 rounded-sm border border-[var(--border)] bg-[var(--muted)]/20 p-3">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[var(--primary)]/10 text-[var(--primary)]">
+    <div className="flex gap-3 rounded-2xl border border-[var(--border)] bg-white/[0.03] p-3">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)]/10 text-[var(--primary)]">
         {icon}
       </span>
       <div>
-        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-[var(--foreground)]">
-          {title}
-        </p>
-        <p className="mt-1 text-xs text-[var(--muted-foreground)]">{body}</p>
+        <p className="text-sm font-medium text-[var(--foreground)]">{title}</p>
+        <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{body}</p>
       </div>
     </div>
   );
@@ -203,7 +198,7 @@ function ProviderStep({ fade }: { fade: Record<string, unknown> }) {
   return (
     <motion.div key="provider" {...fade} className="flex flex-col gap-3">
       <div>
-        <h2 className="font-mono text-lg font-bold uppercase tracking-[0.12em] text-[var(--foreground)]">
+        <h2 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
           Connect a provider
         </h2>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">

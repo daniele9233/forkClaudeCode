@@ -58,11 +58,11 @@
   --spacing-sidebar-w: 14rem;
   --spacing-context-w: 20rem;
 
-  /* ---------- Bordi e raggi (HUD: angoli netti) ---------- */
-  --radius-sm:  0.0625rem;  /* 1px */
-  --radius-md:  0.125rem;   /* 2px */
-  --radius-lg:  0.125rem;   /* 2px */
-  --radius-xl:  0.1875rem;  /* 3px */
+  /* ---------- Bordi e raggi (morbidi, stile Codex) ---------- */
+  --radius-sm:  0.5rem;     /* 8px */
+  --radius-md:  0.75rem;    /* 12px */
+  --radius-lg:  1rem;       /* 16px */
+  --radius-xl:  1.25rem;    /* 20px */
   --radius-full: 9999px;
 
   /* ---------- Ombre ---------- */
@@ -105,8 +105,8 @@
   --destructive:       var(--color-error);
   --destructive-foreground: var(--color-forge-50);
 
-  --border:            var(--color-forge-700);
-  --input:             var(--color-forge-700);
+  --border:            rgba(255, 255, 255, 0.10);
+  --input:             rgba(255, 255, 255, 0.12);
   --ring:              var(--color-accent-400);
 
   --radius:            var(--radius-md);
@@ -138,8 +138,8 @@
   --accent-foreground: var(--color-forge-900);
   --destructive:       var(--color-error);
   --destructive-foreground: #ffffff;
-  --border:            var(--color-forge-200);
-  --input:             var(--color-forge-200);
+  --border:            rgba(15, 23, 42, 0.10);
+  --input:             rgba(15, 23, 42, 0.14);
   --ring:              var(--color-accent-500);
 
   /* Sidebar (light) */
@@ -180,16 +180,23 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Atmospheric, cinematic backdrop (dark only) — subtle warm glow + vignette */
+/* Glassmorphism backdrop — soft, colourful gradient orbs behind frosted panels */
 body {
+  background-color: #0a0b12;
   background-image:
-    radial-gradient(120% 80% at 50% -10%, rgba(245, 158, 11, 0.06), transparent 55%),
-    radial-gradient(100% 60% at 85% 110%, rgba(120, 90, 60, 0.10), transparent 60%),
-    radial-gradient(100% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.45));
+    radial-gradient(42% 38% at 14% 16%, rgba(245, 158, 11, 0.18), transparent 60%),
+    radial-gradient(48% 42% at 86% 22%, rgba(99, 102, 241, 0.20), transparent 62%),
+    radial-gradient(55% 50% at 72% 96%, rgba(20, 184, 166, 0.14), transparent 62%),
+    radial-gradient(42% 40% at 28% 88%, rgba(236, 72, 153, 0.12), transparent 60%);
   background-attachment: fixed;
 }
 .light body {
-  background-image: none;
+  background-color: #eaedefff;
+  background-image:
+    radial-gradient(42% 38% at 14% 16%, rgba(245, 158, 11, 0.22), transparent 60%),
+    radial-gradient(48% 42% at 86% 22%, rgba(99, 102, 241, 0.20), transparent 62%),
+    radial-gradient(55% 50% at 72% 96%, rgba(20, 184, 166, 0.18), transparent 62%),
+    radial-gradient(42% 40% at 28% 88%, rgba(236, 72, 153, 0.14), transparent 60%);
 }
 
 #root {
@@ -243,27 +250,54 @@ code, pre, kbd, samp {
 }
 
 /* ====================================================================
-   HUD / mission-control utilities (stile tecnico-brutalista)
+   Utilities — clean (Codex-like) + glassmorphism
    ==================================================================== */
 
-/* Micro-label maiuscola monospace con tracking — i "data label" dell'HUD */
+/* Etichetta piccola, pulita e discreta (niente più mono/maiuscolo) */
 .hud-label {
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 10px;
-  line-height: 1;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 500;
   color: var(--muted-foreground);
 }
 
+/* Numeri/dati tabellari in mono (token, costi, timecodes) */
 .hud-mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
-/* Smussatura di un singolo angolo (chamfer) — come il bottone "LAUNCH" della ref.
-   Si usa con la tecnica a due strati per avere il bordo anche sulla diagonale:
-   <div class="notch-tr-border"> <div class="notch-tr-fill"> … */
+/* Pannello glass: superficie frosted translucida con blur.
+   Da abbinare a un bordo sottile chiaro (es. border-white/10). */
+.glass {
+  background-color: rgba(18, 20, 28, 0.5);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+.glass-strong {
+  background-color: rgba(16, 18, 26, 0.72);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+}
+.light .glass {
+  background-color: rgba(255, 255, 255, 0.55);
+}
+.light .glass-strong {
+  background-color: rgba(255, 255, 255, 0.78);
+}
+
+/* Bordo "vetro" sottile e luminoso */
+.glass-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.light .glass-border {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+/* Smussatura singolo angolo (mantenuta per usi puntuali) */
 .notch-tr {
   --notch: 14px;
   clip-path: polygon(
@@ -276,49 +310,5 @@ code, pre, kbd, samp {
 }
 .notch-tl {
   --notch: 14px;
-  clip-path: polygon(
-    var(--notch) 0,
-    100% 0,
-    100% 100%,
-    0 100%,
-    0 var(--notch)
-  );
-}
-
-/* Crop-mark / registration corner brackets (gli angoli a L della ref. OBSIDIAN) */
-.hud-frame {
-  position: relative;
-}
-.hud-frame::before,
-.hud-frame::after {
-  content: "";
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  pointer-events: none;
-  border-color: var(--muted-foreground);
-  opacity: 0.5;
-}
-.hud-frame::before {
-  top: 0;
-  left: 0;
-  border-top: 1px solid;
-  border-left: 1px solid;
-}
-.hud-frame::after {
-  bottom: 0;
-  right: 0;
-  border-bottom: 1px solid;
-  border-right: 1px solid;
-}
-
-/* Sottile texture a scanline per le superfici-dati (molto leggera) */
-.hud-scan {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 2px,
-    rgba(255, 255, 255, 0.012) 2px,
-    rgba(255, 255, 255, 0.012) 3px
-  );
+  clip-path: polygon(var(--notch) 0, 100% 0, 100% 100%, 0 100%, 0 var(--notch));
 }
