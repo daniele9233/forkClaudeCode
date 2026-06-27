@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import { SendHorizontal, Square, Hammer, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ChamferPanel } from "@/components/ChamferPanel";
+import { Panel } from "@/components/Panel";
 
 export type AgentMode = "build" | "plan";
 
@@ -58,12 +58,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   };
 
   return (
-    <ChamferPanel
-      notch={20}
-      className={cn("shadow-lg transition-opacity", disabled && "opacity-50")}
-    >
+    <Panel className={cn("shadow-lg transition-opacity", disabled && "opacity-50")}>
       {/* Mode toggle row */}
-      <div className="flex items-center gap-1 px-3 pt-2.5">
+      <div className="flex items-center gap-1 border-b border-[var(--border)] px-2.5 py-1.5">
         {MODES.map((m) => (
           <button
             key={m.value}
@@ -71,7 +68,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
             disabled={disabled || isRunning}
             title={m.title}
             className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              "flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-widest transition-colors",
               mode === m.value
                 ? "bg-[var(--primary)]/15 text-[var(--primary)]"
                 : "text-[var(--muted-foreground)] hover:bg-white/5 hover:text-[var(--foreground)]",
@@ -82,10 +79,13 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
             {m.label}
           </button>
         ))}
+        <span className="hud-label ml-auto pr-1 opacity-50">
+          {isRunning ? "● running" : "ready"}
+        </span>
       </div>
 
       {/* Textarea + send button row */}
-      <div className="flex items-end gap-2 px-4 pb-3 pt-2">
+      <div className="flex items-end gap-2 px-3 py-2.5">
         <textarea
           ref={textareaRef}
           value={text}
@@ -108,7 +108,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           <button
             onClick={onAbort}
             className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-sm transition-colors",
               "bg-[var(--color-alert)]/80 text-white hover:bg-[var(--color-alert)]",
             )}
             title="Stop"
@@ -121,7 +121,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
             onClick={submit}
             disabled={!text.trim() || disabled}
             className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-sm transition-all",
               text.trim() && !disabled
                 ? "bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90"
                 : "cursor-not-allowed bg-white/5 text-[var(--muted-foreground)]",
@@ -133,6 +133,6 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           </button>
         )}
       </div>
-    </ChamferPanel>
+    </Panel>
   );
 }

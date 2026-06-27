@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ChamferPanel } from "@/components/ChamferPanel";
+import { Panel } from "@/components/Panel";
 import { useAgents, useMcpStatus, useConfig, useUpdateConfig } from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
 
@@ -352,22 +352,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onMouseDown={(e) => e.target === overlayRef.current && onClose()}
     >
-      <ChamferPanel
+      <Panel
         strong
-        notch={22}
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
-        className="h-[70vh] w-[520px] shadow-2xl"
-        innerClassName="flex flex-col overflow-hidden"
+        className="flex h-[70vh] w-[520px] flex-col overflow-hidden shadow-2xl"
       >
         {/* Modal header */}
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-          <span className="text-sm font-semibold text-[var(--foreground)]">Settings</span>
+        <div className="flex items-center justify-between border-b border-[var(--border)] pr-2">
+          <span className="bp-tab">settings</span>
           <button
             onClick={onClose}
             aria-label="Close settings"
-            className="rounded-lg p-1 text-[var(--muted-foreground)] transition-colors hover:bg-white/5 hover:text-[var(--foreground)]"
+            className="rounded-sm p-1 text-[var(--muted-foreground)] transition-colors hover:bg-white/5 hover:text-[var(--foreground)]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -380,7 +378,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                "border-b-2 px-3 py-2 text-xs font-medium transition-colors",
+                "border-b-2 px-3 py-2 text-[10px] font-medium uppercase tracking-widest transition-colors",
                 tab === t
                   ? "border-[var(--primary)] text-[var(--foreground)]"
                   : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
@@ -396,7 +394,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           {tab === "skills" && <SkillsTab />}
           {tab === "mcp" && <McpTab />}
         </div>
-      </ChamferPanel>
+      </Panel>
     </div>
   );
 }

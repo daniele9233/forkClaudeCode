@@ -36,7 +36,7 @@ function BottomTabButton({
     <button
       onClick={() => onClick(tab)}
       className={cn(
-        "border-b-2 px-3 py-1.5 text-xs font-medium transition-colors",
+        "border-b-2 px-3 py-1.5 text-[10px] font-medium uppercase tracking-widest transition-colors",
         active
           ? "border-[var(--primary)] text-[var(--foreground)]"
           : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]",

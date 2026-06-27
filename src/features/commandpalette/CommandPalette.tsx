@@ -12,7 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ChamferPanel } from "@/components/ChamferPanel";
+import { Panel } from "@/components/Panel";
 import { useUIStore } from "@/stores/ui.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePreviewStore } from "@/stores/preview.store";
@@ -237,14 +237,12 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
         if (e.target === e.currentTarget) closeCommandPalette();
       }}
     >
-      <ChamferPanel
+      <Panel
         strong
-        notch={22}
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="w-[560px] shadow-2xl"
-        innerClassName="overflow-hidden"
+        className="w-[560px] overflow-hidden shadow-2xl"
       >
         {/* Search input */}
         <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-3">
@@ -283,10 +281,10 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
                     onClick={item.onSelect}
                     onMouseEnter={() => setActiveIdx(globalIdx)}
                     className={cn(
-                      "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
+                      "flex w-full items-center gap-3 border-l-2 px-3 py-2 text-left transition-colors",
                       isActive
-                        ? "bg-white/[0.06] text-[var(--foreground)]"
-                        : "text-[var(--muted-foreground)] hover:bg-white/[0.03] hover:text-[var(--foreground)]",
+                        ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]"
+                        : "border-transparent text-[var(--muted-foreground)] hover:bg-white/[0.03] hover:text-[var(--foreground)]",
                     )}
                   >
                     <span
@@ -300,7 +298,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
                       {item.icon}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <span className="block truncate text-sm font-medium">
+                      <span className="block truncate text-xs font-medium uppercase tracking-wider">
                         {item.label}
                       </span>
                       {item.description && (
@@ -328,7 +326,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
             <kbd className="rounded bg-[var(--muted)] px-1 py-0.5">Ctrl K</kbd> toggle
           </span>
         </div>
-      </ChamferPanel>
+      </Panel>
     </div>
   );
 }

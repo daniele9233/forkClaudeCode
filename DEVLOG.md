@@ -15,6 +15,34 @@
 
 ---
 
+## 2026-06-27 · Restyle DEFINITIVO → Brutalist Blueprint (variante D scelta)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+Dopo aver mostrato 4 mockup statici, l'utente ha scelto lo stile **"Brutalist blueprint /
+variante D"**: monocromo + accento ambra, griglia hairline, pannelli frosted con
+**linguetta header incassata (notched tab)**, dati densi, tutto monospace. Adattata
+**tutta l'app**.
+
+- **`index.css`**: font UI → **monospace** ovunque; sfondo near-black con **griglia
+  hairline** + glow ambra (dark e light); radii netti (2–3px); accento `#e7a93c`;
+  `.hud-label` = mono uppercase tracking; `.glass`/`.glass-strong` tarati; nuove utility
+  **`.bp-tab`** (linguetta con angolo tagliato), `.bp-cell`, `.bp-bar`.
+- **`src/components/Panel.tsx`** (nuovo): `Panel` (glass + bordo) + `PanelTab` (linguetta
+  incassata) — mattone riusabile dello stile D.
+- **Chat**: ChatShell header (quadrato ambra + FORGIA + ●ONLINE), WelcomeScreen (Panel con
+  tab "FORGIA // AGENT SHELL", wordmark, "START VECTORS", righe numerate 01/02/03), ChatInput
+  (Panel, toggle BUILD/PLAN mono + READY, send netto), MessageBubble (bolla utente bordata ambra).
+- **Sidebar/panels**: SessionSidebar + FileTree con header `bp-tab`, righe attive con barra
+  ambra a sinistra; bottom-panel tab mono uppercase; Inspector/Timeline ereditano `hud-label`.
+- **Overlay**: CommandPalette / SettingsModal / OnboardingWizard portati su `Panel`
+  (`glass-strong`), label mono uppercase, highlight con barra ambra.
+- Rimossi `ChamferPanel` e `CornerBrackets` (non più usati).
+
+Build verde, 22 test ok, prettier pulito. Screenshot verificati (welcome, palette — dark+light).
+
+---
+
 ## 2026-06-27 · Restyle → dark OpenCode + glass trasparente + chamfer (pivot 2)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

@@ -54,25 +54,25 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
         <div className="flex items-center gap-2.5">
-          <span
-            className="h-4 w-4 rounded-md bg-[var(--primary)] shadow-sm"
-            aria-hidden
-          />
-          <span className="text-sm font-semibold text-[var(--foreground)]">Forgia</span>
+          <span className="h-3 w-3 bg-[var(--primary)]" aria-hidden />
+          <span className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--foreground)]">
+            Forgia
+          </span>
           <span className="hidden items-center gap-1.5 sm:flex">
+            <span className="text-[var(--muted-foreground)]/30">·</span>
             {isRunning ? (
-              <span className="flex items-center gap-1.5 text-xs text-[var(--primary)]">
+              <span className="hud-label flex items-center gap-1.5 text-[var(--primary)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)] animate-pulse" />
-                Working…
+                Working
               </span>
             ) : sidecarStatus === "ready" ? (
-              <span className="flex items-center gap-1.5 text-xs text-[var(--color-online)]">
+              <span className="hud-label flex items-center gap-1.5 text-[var(--color-online)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-online)]" />
                 Online
               </span>
             ) : (
-              <span className="text-xs text-[var(--muted-foreground)]">
-                {sidecarStatus === "starting" ? "Connecting…" : sidecarStatus}
+              <span className="hud-label">
+                {sidecarStatus === "starting" ? "Connecting" : sidecarStatus}
               </span>
             )}
           </span>

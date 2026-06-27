@@ -42,10 +42,10 @@ function SessionRow({
   return (
     <button
       className={cn(
-        "group relative flex w-full flex-col gap-0.5 rounded-xl px-2.5 py-2 text-left transition-colors",
+        "group relative flex w-full flex-col gap-0.5 border-l-2 px-2.5 py-2 text-left transition-colors",
         isActive
-          ? "bg-white/[0.07] text-[var(--foreground)]"
-          : "text-[var(--muted-foreground)] hover:bg-white/[0.04] hover:text-[var(--foreground)]",
+          ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]"
+          : "border-transparent text-[var(--muted-foreground)] hover:bg-white/[0.04] hover:text-[var(--foreground)]",
       )}
       onClick={() => onSelect(session.id)}
       onMouseEnter={() => setHovered(true)}
@@ -59,7 +59,7 @@ function SessionRow({
         )}
         <span className="truncate text-xs font-medium">{title}</span>
       </div>
-      <span className="pl-4 text-[10px] text-[var(--muted-foreground)]">
+      <span className="hud-label pl-4 normal-case tracking-normal text-[var(--muted-foreground)]">
         {relativeTime(session.time.updated)}
       </span>
 
@@ -164,8 +164,10 @@ export function SessionSidebar() {
   return (
     <aside className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2.5">
-        <span className="hud-label">Sessions</span>
+      <div className="flex items-center justify-between border-b border-[var(--border)] pr-2">
+        <span className="bp-tab">
+          sessions{sorted.length > 0 && ` · ${String(sorted.length).padStart(2, "0")}`}
+        </span>
         <button
           onClick={handleNew}
           disabled={createSession.isPending}

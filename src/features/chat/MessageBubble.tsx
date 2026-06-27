@@ -44,8 +44,8 @@ function UserBubble({ parts }: { parts: Part[] }) {
     <div className="flex justify-end">
       <div
         className={cn(
-          "max-w-[75%] rounded-3xl rounded-br-lg px-4 py-2.5",
-          "bg-[var(--primary)] text-[var(--primary-foreground)]",
+          "max-w-[75%] rounded-sm border border-[var(--primary)]/40 px-4 py-2.5",
+          "bg-[var(--primary)]/10 text-[var(--foreground)]",
           "whitespace-pre-wrap text-sm leading-relaxed",
         )}
       >

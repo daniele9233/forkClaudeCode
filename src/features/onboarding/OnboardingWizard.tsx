@@ -11,7 +11,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ChamferPanel } from "@/components/ChamferPanel";
+import { Panel } from "@/components/Panel";
 import { useProviders } from "@/opencode/context";
 import { useConfig, useUpdateConfig, useSetAuth } from "@/opencode/config";
 import { useOnboardingStore } from "@/stores/onboarding.store";
@@ -33,14 +33,12 @@ export function OnboardingWizard() {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
-      <ChamferPanel
+      <Panel
         strong
-        notch={24}
         role="dialog"
         aria-modal="true"
         aria-label="Welcome to Forgia"
-        className="w-[560px] shadow-2xl"
-        innerClassName="relative flex max-h-[80vh] flex-col overflow-hidden"
+        className="relative flex max-h-[80vh] w-[560px] flex-col overflow-hidden shadow-2xl"
       >
         {/* Progress dots */}
         <div className="flex shrink-0 items-center justify-center gap-1.5 pt-4">
@@ -126,7 +124,7 @@ export function OnboardingWizard() {
             <NextButton label="Start using Forgia" onClick={complete} />
           )}
         </div>
-      </ChamferPanel>
+      </Panel>
     </div>
   );
 }

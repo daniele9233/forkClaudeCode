@@ -232,9 +232,9 @@ export function FileTree() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-3 py-2.5">
-        <Folder className="h-3 w-3 shrink-0 text-[var(--primary)]/70" />
-        <span className="hud-label truncate" title={project?.worktree}>
+      <div className="flex items-center border-b border-[var(--border)]">
+        <span className="bp-tab max-w-full truncate" title={project?.worktree}>
+          <Folder className="h-3 w-3 shrink-0" />
           {projectName}
         </span>
       </div>
