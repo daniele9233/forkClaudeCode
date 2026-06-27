@@ -8,6 +8,7 @@ import { FileDiffPanel } from "@/features/filetree/FileDiffPanel";
 import { TerminalPanel } from "@/features/terminal/TerminalPanel";
 import { PreviewPanel } from "@/features/preview/PreviewPanel";
 import { ContextInspectorPanel } from "@/features/inspector/ContextInspectorPanel";
+import { ContextSparkline } from "@/features/inspector/ContextSparkline";
 import { CheckpointTimeline } from "@/features/checkpoints/CheckpointTimeline";
 import { CommandPalette } from "@/features/commandpalette/CommandPalette";
 import { StatusBar } from "@/features/statusbar/StatusBar";
@@ -107,15 +108,16 @@ export default function App() {
       <SidecarStatusBanner />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Left sidebar: sessions (top) + file tree (bottom) */}
+        {/* Left sidebar: sessions (top) + file tree + context sparkline */}
         <div className="glass flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
-          <div className="shrink-0 overflow-hidden" style={{ maxHeight: "45%" }}>
+          <div className="shrink-0 overflow-hidden" style={{ maxHeight: "42%" }}>
             <SessionSidebar />
           </div>
           <div className="h-px shrink-0 bg-[var(--border)]" />
           <div className="min-h-0 flex-1 overflow-hidden">
             <FileTree />
           </div>
+          <ContextSparkline />
         </div>
 
         {/* Main area: chat + bottom panel + status bar */}

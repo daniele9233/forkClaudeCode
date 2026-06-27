@@ -86,12 +86,15 @@ export function ToolCallCard({ part }: Props) {
       )}
     >
       <button
-        className="flex w-full items-center gap-2 px-3 py-2 text-left"
+        className="flex w-full items-center border-b border-[var(--border)] text-left"
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="text-[var(--muted-foreground)]">{iconForTool(tool)}</span>
-        <span className="flex-1 truncate font-semibold uppercase tracking-wide text-[var(--foreground)]">
-          {title ?? tool}
+        <span className="bp-tab">
+          {iconForTool(tool)}
+          {(title ?? tool).split(" ")[0]}
+          {fileRef && (
+            <span className="opacity-70"> · {fileRef.path.split("/").pop()}</span>
+          )}
         </span>
 
         {/* File:line chip — opens the file in the diff panel */}
@@ -102,7 +105,7 @@ export function ToolCallCard({ part }: Props) {
               openFile(fileRef.path, fileRef.line);
             }}
             className={cn(
-              "flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10px]",
+              "ml-2 flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[10px]",
               "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
               "transition-colors",
             )}
@@ -110,23 +113,24 @@ export function ToolCallCard({ part }: Props) {
           >
             <ExternalLink className="h-2.5 w-2.5" />
             <span className="max-w-[120px] truncate">
-              {fileRef.path.split("/").pop()}
-              {fileRef.line ? `:${fileRef.line}` : ""}
+              {fileRef.line ? `:${fileRef.line}` : "open"}
             </span>
           </button>
         )}
 
         {isRunning && (
-          <span className="shrink-0 animate-pulse font-sans italic text-[var(--muted-foreground)]">
-            running…
+          <span className="hud-label ml-2 shrink-0 animate-pulse text-[var(--primary)]">
+            running
           </span>
         )}
-        {isError && <span className="shrink-0 font-sans text-red-400">error</span>}
-        {open ? (
-          <ChevronDown className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]" />
-        ) : (
-          <ChevronRight className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]" />
-        )}
+        {isError && <span className="hud-label ml-2 shrink-0 text-red-400">error</span>}
+        <span className="ml-auto pr-2 text-[var(--muted-foreground)]">
+          {open ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </span>
       </button>
       {open && (
         <div className="space-y-2 border-t border-[var(--border)] px-3 py-2">

@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import type {
   Message,
   AssistantMessage,
@@ -34,21 +33,24 @@ function getErrorMessage(error: AssistantMessage["error"]): string {
   return typeof data.message === "string" ? data.message : error.name;
 }
 
-function UserBubble({ parts }: { parts: Part[] }) {
+function UserBubble({ message, parts }: { message: Message; parts: Part[] }) {
   const text = parts
     .filter(isTextPart)
     .map((p) => p.text)
     .join("\n");
 
+  const time = new Date(message.time.created * 1000).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
   return (
-    <div className="flex justify-end">
-      <div
-        className={cn(
-          "max-w-[75%] rounded-sm border border-[var(--primary)]/40 px-4 py-2.5",
-          "bg-[var(--primary)]/10 text-[var(--foreground)]",
-          "whitespace-pre-wrap text-sm leading-relaxed",
-        )}
-      >
+    <div className="border border-[var(--border)]">
+      <div className="flex items-center border-b border-[var(--border)]">
+        <span className="bp-tab">user · {time}</span>
+      </div>
+      <div className="whitespace-pre-wrap px-3.5 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
         {text}
       </div>
     </div>
@@ -122,7 +124,7 @@ function AssistantBubble({ parts, isStreaming, error }: AssistantBubbleProps) {
 
 export function MessageBubble({ message, parts, isStreaming }: Props) {
   if (message.role === "user") {
-    return <UserBubble parts={parts} />;
+    return <UserBubble message={message} parts={parts} />;
   }
 
   return (

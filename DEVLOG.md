@@ -15,6 +15,28 @@
 
 ---
 
+## 2026-06-27 · Blueprint — match esatto del mockup (dashboard + sparkline + blocchi)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+L'utente ha rimandato lo screenshot del mockup v3 chiedendo "l'app esattamente così".
+Aggiunti gli elementi-dati mancanti, collegati ai dati reali:
+
+- **`features/inspector/useSessionStats.ts`** (nuovo): hook che aggrega tokens in/out,
+  step, cache-hit %, costo, % finestra di contesto da messaggi storici + live.
+- **`features/inspector/StatStrip.tsx`** (nuovo): riga dashboard sopra la conversazione —
+  TOKENS IN / OUT / STEPS / CACHE HIT / COST (celle divise, mono). In `ChatShell`.
+- **`features/inspector/ContextSparkline.tsx`** (nuovo): pannello CONTEXT in fondo alla
+  sidebar con barre sparkline (input/step) + "X / Y TOK · Z%". In `App.tsx`.
+- **MessageBubble**: blocco USER con tab incassata "USER · HH:MM:SS".
+- **ToolCallCard**: header come tab incassata "EDIT · file" + chip open + chevron.
+- **StatusBar**: riformattata a celle divise — SESSION / MODEL / CTX% / COST / FORGIA v0.1.0.
+
+Verificato con anteprima a dati simulati (fetch del motore mockato): combacia col mockup D.
+Build verde, 22 test ok, prettier pulito.
+
+---
+
 ## 2026-06-27 · Restyle DEFINITIVO → Brutalist Blueprint (variante D scelta)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

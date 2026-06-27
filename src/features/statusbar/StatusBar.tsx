@@ -1,138 +1,58 @@
-import { useMemo } from "react";
-import { Zap, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSessionStore } from "@/stores/session.store";
-import { useSessionMessages } from "@/opencode/session";
-import { useContextMessages, useProviders } from "@/opencode/context";
-import { useChatStore } from "@/stores/chat.store";
-import type { AssistantMessage } from "@opencode-ai/sdk/client";
+import { useSessionStats } from "@/features/inspector/useSessionStats";
 
-function fmtNum(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
-  return String(Math.round(n));
-}
-
-function fmtCost(c: number): string {
-  if (c === 0) return "$0.00";
-  if (c < 0.0001) return `$${c.toFixed(5)}`;
-  if (c < 0.01) return `$${c.toFixed(4)}`;
-  return `$${c.toFixed(3)}`;
-}
-
-export function StatusBar() {
-  const activeSessionId = useSessionStore((s) => s.activeSessionId);
-  const { data: sessionMsgsData = [] } = useSessionMessages(activeSessionId);
-  const liveMessages = useChatStore((s) => s.liveMessages);
-  const { data: contextEntries = [] } = useContextMessages(activeSessionId);
-  const { data: providers = [] } = useProviders();
-
-  const assistantMsgs = useMemo((): AssistantMessage[] => {
-    const byId = new Map<string, AssistantMessage>();
-    for (const { info } of sessionMsgsData) {
-      if (info.role === "assistant") byId.set(info.id, info as AssistantMessage);
-    }
-    for (const [id, msg] of liveMessages) {
-      if (msg.role === "assistant") byId.set(id, msg as AssistantMessage);
-    }
-    return Array.from(byId.values()).sort((a, b) => a.time.created - b.time.created);
-  }, [sessionMsgsData, liveMessages]);
-
-  const totalCost = useMemo(
-    () => assistantMsgs.reduce((acc, m) => acc + m.cost, 0),
-    [assistantMsgs],
+function Cell({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-1.5 border-r border-[var(--border)] px-3 py-[3px]",
+        className,
+      )}
+    >
+      <span className="hud-label">{label}</span>
+      <span className="hud-mono text-[10px] text-[var(--foreground)]">{children}</span>
+    </div>
   );
+}
 
-  const lastMsg = assistantMsgs[assistantMsgs.length - 1];
-  const currentContextTokens = lastMsg?.tokens.input ?? 0;
-
-  const provider = providers.find((p) => p.id === lastMsg?.providerID);
-  const model = lastMsg ? provider?.models[lastMsg.modelID] : undefined;
-  const contextLimit = model?.limit.context ?? 0;
-  const pct =
-    contextLimit > 0 ? Math.min(100, (currentContextTokens / contextLimit) * 100) : 0;
-
-  const meterColor =
-    pct > 85 ? "bg-red-500" : pct > 65 ? "bg-amber-500" : "bg-[var(--primary)]";
-
-  const textColor =
-    pct > 85
-      ? "text-red-400"
-      : pct > 65
-        ? "text-amber-400"
-        : "text-[var(--muted-foreground)]";
+/** Slim divided status bar (style D). */
+export function StatusBar() {
+  const { activeSessionId, lastMsg, pct, totalCost } = useSessionStats();
 
   if (!activeSessionId) {
     return (
       <div className="glass flex h-6 shrink-0 items-center border-t border-[var(--border)] px-3">
-        <span className="text-[10px] text-[var(--muted-foreground)]/50">
-          No active session
-        </span>
+        <span className="hud-label opacity-40">no active session</span>
+        <span className="hud-label ml-auto opacity-40">forgia v0.1.0</span>
       </div>
     );
   }
 
   return (
-    <div className="glass flex h-6 shrink-0 items-center gap-3 border-t border-[var(--border)] px-3">
-      {/* Context meter */}
-      {contextLimit > 0 && (
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-[var(--muted-foreground)]/70">ctx</span>
-          <div className="relative h-1.5 w-20 overflow-hidden rounded-sm bg-[var(--muted)]">
-            <div
-              className={cn("h-full transition-all duration-500", meterColor)}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span className={cn("hud-mono text-[9px]", textColor)}>{pct.toFixed(0)}%</span>
-          <span className="hud-mono text-[9px] text-[var(--muted-foreground)]">
-            {fmtNum(currentContextTokens)}/{fmtNum(contextLimit)}
-          </span>
-        </div>
-      )}
-
-      {contextLimit > 0 && (
-        <span className="text-[var(--muted-foreground)]/30 text-[9px]">|</span>
-      )}
-
-      {/* Token count for this session */}
-      <div className="flex items-center gap-1">
-        <Zap className="h-2.5 w-2.5 text-[var(--muted-foreground)]/60" />
-        <span className="hud-mono text-[9px] text-[var(--muted-foreground)]">
-          {contextEntries.length > 0
-            ? `${contextEntries.length} msgs`
-            : assistantMsgs.length > 0
-              ? `${assistantMsgs.length} step${assistantMsgs.length !== 1 ? "s" : ""}`
-              : "—"}
-        </span>
-      </div>
-
-      {/* Separator */}
-      <span className="text-[var(--muted-foreground)]/30 text-[9px]">|</span>
-
-      {/* Cost meter */}
-      <div className="flex items-center gap-1">
-        <DollarSign className="h-2.5 w-2.5 text-[var(--muted-foreground)]/60" />
-        <span
-          className={cn(
-            "hud-mono text-[9px]",
-            totalCost > 0.5
-              ? "text-amber-400"
-              : totalCost > 0.1
-                ? "text-[var(--foreground)]"
-                : "text-[var(--muted-foreground)]",
-          )}
-        >
-          {fmtCost(totalCost)}
-        </span>
-      </div>
-
-      {/* Model pill at the right */}
+    <div className="glass flex h-6 shrink-0 items-center border-t border-[var(--border)] text-[var(--muted-foreground)]">
+      <Cell label="session">{activeSessionId.slice(-6)}</Cell>
       {lastMsg && (
-        <span className="hud-mono ml-auto text-[9px] text-[var(--muted-foreground)]/60">
+        <Cell label="model">
           {lastMsg.providerID}/{lastMsg.modelID}
-        </span>
+        </Cell>
       )}
+      <Cell label="ctx">
+        <span
+          className={pct > 85 ? "text-red-400" : pct > 65 ? "text-amber-400" : undefined}
+        >
+          {pct.toFixed(0)}%
+        </span>
+      </Cell>
+      <Cell label="cost">${totalCost.toFixed(3)}</Cell>
+      <span className="hud-label ml-auto px-3 opacity-60">forgia v0.1.0</span>
     </div>
   );
 }

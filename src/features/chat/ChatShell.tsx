@@ -10,6 +10,7 @@ import { DevServerBanner } from "@/features/preview/DevServerBanner";
 import { ModelSwitcher } from "@/features/settings/ModelSwitcher";
 import { ThemeToggle } from "@/features/settings/ThemeToggle";
 import { WelcomeScreen } from "@/features/onboarding/WelcomeScreen";
+import { StatStrip } from "@/features/inspector/StatStrip";
 import { MessageList } from "./MessageList";
 import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
@@ -104,6 +105,9 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
 
       {/* Dev-server detection banner */}
       <DevServerBanner />
+
+      {/* Token / cost dashboard (style D) */}
+      <StatStrip />
 
       {/* Message area */}
       {activeSessionId ? (
