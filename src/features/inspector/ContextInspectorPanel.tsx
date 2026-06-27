@@ -36,11 +36,7 @@ function roleMeta(role: string) {
 /* ── sub-components ─────────────────────────────────────────────── */
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
-      {children}
-    </p>
-  );
+  return <p className="hud-label mb-1.5">{children}</p>;
 }
 
 function StatCell({

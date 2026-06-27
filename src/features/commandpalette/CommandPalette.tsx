@@ -268,9 +268,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
 
           {Array.from(grouped.entries()).map(([group, items]) => (
             <div key={group}>
-              <p className="px-3 pb-0.5 pt-2.5 text-[9px] font-semibold uppercase tracking-widest text-[var(--muted-foreground)]">
-                {group}
-              </p>
+              <p className="hud-label px-3 pb-1 pt-3">{group}</p>
               {items.map((item) => {
                 const globalIdx = flatItems.indexOf(item);
                 const isActive = globalIdx === activeIdx;
@@ -281,10 +279,10 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
                     onClick={item.onSelect}
                     onMouseEnter={() => setActiveIdx(globalIdx)}
                     className={cn(
-                      "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
+                      "flex w-full items-center gap-3 border-l-2 px-3 py-2 text-left transition-colors",
                       isActive
-                        ? "bg-[var(--primary)]/10 text-[var(--foreground)]"
-                        : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
+                        ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]"
+                        : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
                     )}
                   >
                     <span
@@ -298,7 +296,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
                       {item.icon}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <span className="block truncate text-xs font-medium">
+                      <span className="block truncate font-mono text-xs uppercase tracking-wide">
                         {item.label}
                       </span>
                       {item.description && (

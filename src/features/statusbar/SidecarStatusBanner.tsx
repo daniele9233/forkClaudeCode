@@ -28,9 +28,7 @@ export function SidecarStatusBanner() {
     return (
       <div className="flex shrink-0 items-center justify-center gap-2 border-b border-[var(--border)] bg-[var(--muted)]/40 px-4 py-1.5">
         <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--muted-foreground)]" />
-        <span className="text-xs text-[var(--muted-foreground)]">
-          Connecting to the OpenCode engine…
-        </span>
+        <span className="hud-label">Connecting to engine…</span>
       </div>
     );
   }
@@ -40,13 +38,17 @@ export function SidecarStatusBanner() {
     <div className="flex shrink-0 items-center gap-2 border-b border-red-500/30 bg-red-500/10 px-4 py-1.5">
       <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-400" />
       <span className="flex-1 truncate text-xs text-red-300">
-        <span className="font-medium">OpenCode engine disconnected.</span>{" "}
-        {sidecarError ?? "The local server is not responding."}
+        <span className="font-mono text-[11px] font-bold uppercase tracking-wider">
+          Engine disconnected
+        </span>{" "}
+        <span className="text-[var(--muted-foreground)]">
+          {sidecarError ?? "The local server is not responding."}
+        </span>
       </span>
       <button
         onClick={handleReconnect}
         disabled={reconnecting}
-        className="flex shrink-0 items-center gap-1 rounded bg-red-500/20 px-2 py-0.5 text-[11px] font-medium text-red-200 transition-colors hover:bg-red-500/30 disabled:opacity-50"
+        className="flex shrink-0 items-center gap-1 rounded-sm bg-red-500/20 px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-red-200 transition-colors hover:bg-red-500/30 disabled:opacity-50"
       >
         <RefreshCw className={reconnecting ? "h-3 w-3 animate-spin" : "h-3 w-3"} />
         {reconnecting ? "Reconnecting…" : "Reconnect"}

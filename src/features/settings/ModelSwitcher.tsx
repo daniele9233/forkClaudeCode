@@ -55,10 +55,10 @@ export function ModelSwitcher() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex h-7 items-center gap-1.5 rounded-md px-2 text-xs transition-colors",
+          "flex h-7 items-center gap-1.5 rounded-sm px-2 font-mono text-[11px] uppercase tracking-wide transition-colors",
           "border border-[var(--border)] bg-[var(--muted)]/40",
-          "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]",
-          open && "text-[var(--foreground)] bg-[var(--muted)]",
+          "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+          open && "bg-[var(--muted)] text-[var(--foreground)]",
         )}
         title="Switch model"
       >
@@ -72,7 +72,7 @@ export function ModelSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-80 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--background)] shadow-xl">
+        <div className="absolute right-0 top-full z-50 mt-1 w-80 overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--background)] shadow-xl">
           <div className="max-h-[60vh] overflow-y-auto py-1">
             {providers.length === 0 && (
               <p className="px-3 py-4 text-center text-xs text-[var(--muted-foreground)]">

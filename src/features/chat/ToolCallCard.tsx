@@ -77,10 +77,12 @@ export function ToolCallCard({ part }: Props) {
   return (
     <div
       className={cn(
-        "my-1.5 rounded-lg border text-xs font-mono",
-        isRunning && "border-[var(--border)] bg-[var(--muted)]/30",
-        isError && "border-red-800/50 bg-red-950/20",
-        isCompleted && "border-[var(--border)] bg-[var(--muted)]/20",
+        "my-1.5 rounded-sm border border-l-2 font-mono text-xs",
+        isRunning &&
+          "border-[var(--border)] border-l-[var(--primary)] bg-[var(--muted)]/30",
+        isError && "border-red-800/50 border-l-[var(--color-alert)] bg-red-950/20",
+        isCompleted &&
+          "border-[var(--border)] border-l-[var(--color-online)]/60 bg-[var(--muted)]/20",
       )}
     >
       <button
@@ -88,7 +90,7 @@ export function ToolCallCard({ part }: Props) {
         onClick={() => setOpen((v) => !v)}
       >
         <span className="text-[var(--muted-foreground)]">{iconForTool(tool)}</span>
-        <span className="flex-1 truncate font-semibold text-[var(--foreground)]">
+        <span className="flex-1 truncate font-semibold uppercase tracking-wide text-[var(--foreground)]">
           {title ?? tool}
         </span>
 

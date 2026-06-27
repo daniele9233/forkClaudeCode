@@ -111,9 +111,7 @@ export function CheckpointTimeline() {
         {checkpoints.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
             <Clock className="h-8 w-8 text-[var(--muted-foreground)]/30" />
-            <p className="text-[11px] text-[var(--muted-foreground)]">
-              No checkpoints yet
-            </p>
+            <p className="hud-label">No checkpoints yet</p>
             <p className="text-[10px] text-[var(--muted-foreground)]/60">
               Each agent step creates a checkpoint you can rewind to
             </p>
@@ -146,20 +144,18 @@ export function CheckpointTimeline() {
                     )}
                   />
 
-                  <div className="rounded-lg border border-[var(--border)]/50 bg-[var(--muted)]/10 p-2.5 hover:border-[var(--border)] transition-colors">
+                  <div className="rounded-sm border border-[var(--border)]/50 bg-[var(--muted)]/10 p-2.5 transition-colors hover:border-[var(--border)]">
                     {/* Header row */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-semibold text-[var(--muted-foreground)]">
-                          Step {stepNum}
-                        </span>
+                        <span className="hud-label">STEP {stepNum}</span>
                         {isCurrentRevert && (
-                          <span className="rounded bg-amber-500/20 px-1 text-[9px] text-amber-400">
-                            reverted here
+                          <span className="rounded-sm bg-amber-500/20 px-1 font-mono text-[9px] uppercase text-amber-400">
+                            reverted
                           </span>
                         )}
                       </div>
-                      <span className="shrink-0 text-[9px] text-[var(--muted-foreground)]">
+                      <span className="hud-mono shrink-0 text-[9px] uppercase text-[var(--muted-foreground)]">
                         {relTime(msg.time.created)}
                       </span>
                     </div>

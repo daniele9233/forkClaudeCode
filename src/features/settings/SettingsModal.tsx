@@ -359,11 +359,16 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       >
         {/* Modal header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-          <span className="text-sm font-semibold text-[var(--foreground)]">Settings</span>
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 bg-[var(--primary)]" aria-hidden />
+            <span className="font-mono text-sm font-bold uppercase tracking-[0.18em] text-[var(--foreground)]">
+              Settings
+            </span>
+          </div>
           <button
             onClick={onClose}
             aria-label="Close settings"
-            className="rounded p-0.5 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+            className="rounded-sm p-0.5 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -376,7 +381,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                "border-b-2 px-3 py-2 text-xs font-medium capitalize transition-colors",
+                "border-b-2 px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors",
                 tab === t
                   ? "border-[var(--primary)] text-[var(--foreground)]"
                   : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]",

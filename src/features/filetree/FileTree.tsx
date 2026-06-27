@@ -232,23 +232,18 @@ export function FileTree() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-1.5 px-3 py-2">
-        <Folder className="h-3 w-3 shrink-0 text-amber-400/70" />
-        <span
-          className="truncate text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
-          title={project?.worktree}
-        >
+      <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-3 py-2.5">
+        <Folder className="h-3 w-3 shrink-0 text-[var(--primary)]/70" />
+        <span className="hud-label truncate" title={project?.worktree}>
           {projectName}
         </span>
       </div>
 
       {/* Tree list */}
-      <div className="flex-1 overflow-y-auto px-1 pb-3">
-        {isLoading && (
-          <p className="px-3 text-xs text-[var(--muted-foreground)]">Loading…</p>
-        )}
+      <div className="flex-1 overflow-y-auto px-1 pb-3 pt-1">
+        {isLoading && <p className="hud-label px-3 py-2">Loading…</p>}
         {!isLoading && rootNodes.length === 0 && (
-          <p className="px-3 text-xs text-[var(--muted-foreground)]">No files found.</p>
+          <p className="hud-label px-3 py-2 opacity-50">No files found</p>
         )}
         {rootNodes.map((node) => (
           <FileTreeNode

@@ -42,10 +42,10 @@ function SessionRow({
   return (
     <button
       className={cn(
-        "group relative flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors",
+        "group relative flex w-full flex-col gap-0.5 border-l-2 px-2.5 py-2 text-left transition-colors",
         isActive
-          ? "bg-[var(--primary)]/10 text-[var(--foreground)]"
-          : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]",
+          ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)]"
+          : "border-transparent text-[var(--muted-foreground)] hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]",
       )}
       onClick={() => onSelect(session.id)}
       onMouseEnter={() => setHovered(true)}
@@ -59,7 +59,7 @@ function SessionRow({
         )}
         <span className="truncate text-xs font-medium">{title}</span>
       </div>
-      <span className="pl-4 text-[10px] text-[var(--muted-foreground)]">
+      <span className="hud-mono pl-4 text-[9px] uppercase text-[var(--muted-foreground)]">
         {relativeTime(session.time.updated)}
       </span>
 
@@ -164,16 +164,14 @@ export function SessionSidebar() {
   return (
     <aside className="flex h-full flex-col bg-[var(--background)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-          Sessions
-        </span>
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2.5">
+        <span className="hud-label">Sessions</span>
         <button
           onClick={handleNew}
           disabled={createSession.isPending}
           title="New session"
           className={cn(
-            "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+            "flex h-6 w-6 items-center justify-center rounded-sm transition-colors",
             "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
           )}
         >
@@ -183,11 +181,9 @@ export function SessionSidebar() {
 
       {/* Session list */}
       <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-1.5 pb-3">
-        {isLoading && (
-          <p className="px-2 text-xs text-[var(--muted-foreground)]">Loading…</p>
-        )}
+        {isLoading && <p className="hud-label px-2 py-2">Loading…</p>}
         {!isLoading && sorted.length === 0 && (
-          <p className="px-2 text-xs text-[var(--muted-foreground)]">No sessions yet.</p>
+          <p className="hud-label px-2 py-2 opacity-50">No sessions yet</p>
         )}
         {sorted.map((s) => (
           <div key={s.id}>

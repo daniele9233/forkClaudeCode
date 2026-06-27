@@ -15,6 +15,37 @@
 
 ---
 
+## 2026-06-27 · Restyle HUD / mission-control (pass 2 — uniformazione)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+Estensione dello stile HUD a tutto il resto della UI (l'utente ha confermato:
+chamfer top-right ok, glow ambra ok, uniformare tutto).
+
+- **SessionSidebar**: header `hud-label`, righe con accento `border-l-2` ambra
+  sull'attiva, timestamp mono uppercase, empty/loading come hud-label.
+- **FileTree**: header hud-label + border-b, empty/loading hud-label.
+- **App** (bottom tabs): tab mono uppercase tracking.
+- **CommandPalette**: group header `hud-label`, label azioni mono uppercase,
+  accento `border-l-2` sull'item attivo.
+- **SettingsModal**: header con quadrato ambra + `SETTINGS` mono, tab mono uppercase.
+- **OnboardingWizard**: CornerBrackets, heading mono uppercase, card/bottoni sharp.
+- **MessageBubble**: user bubble con chamfer `notch-tl`; reasoning/error con accento
+  `border-l-2` invece del box pieno.
+- **ToolCallCard**: accento `border-l-2` per stato (running ambra / error rosso /
+  completed verde), titolo uppercase.
+- **ContextInspectorPanel**: SectionLabel → `hud-label`.
+- **CheckpointTimeline**: STEP N hud-label, badge "reverted", tempi mono.
+- **ModelSwitcher**: pill + dropdown mono uppercase, sharp.
+- **SidecarStatusBanner / DevServerBanner / PermissionBanner**: testi mono uppercase,
+  bottoni sharp, accenti coerenti.
+
+Build verde, 22 test ok, prettier pulito. Screenshot verificati (welcome, palette,
+settings, onboarding). Resta marginale: toolbar PreviewPanel e FileDiffPanel header
+(meno visibili) — eventuale pass 3.
+
+---
+
 ## 2026-06-27 · Restyle HUD / mission-control (pass 1)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

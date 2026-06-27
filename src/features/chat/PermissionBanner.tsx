@@ -37,12 +37,13 @@ function PermissionCard({ permission }: PermissionCardProps) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-amber-700/50 bg-amber-950/20 px-3 py-2.5",
+        "rounded-sm border border-amber-700/50 border-l-2 border-l-[var(--primary)] bg-amber-950/20 px-3 py-2.5",
         "flex items-start gap-2.5",
       )}
     >
       <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
       <div className="min-w-0 flex-1">
+        <p className="hud-label mb-1 text-amber-400/70">Permission required</p>
         <p className="text-sm font-medium text-amber-200">{permission.title}</p>
         {patterns.length > 0 && (
           <p className="mt-0.5 truncate font-mono text-xs text-amber-400/80">
@@ -56,7 +57,7 @@ function PermissionCard({ permission }: PermissionCardProps) {
           disabled={respond.isPending}
           title="Allow once"
           className={cn(
-            "flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
+            "flex items-center gap-1 rounded-sm px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors",
             "border border-amber-700/50 text-amber-300 hover:bg-amber-900/40",
             "disabled:opacity-50",
           )}
@@ -69,7 +70,7 @@ function PermissionCard({ permission }: PermissionCardProps) {
           disabled={respond.isPending}
           title="Always allow this type"
           className={cn(
-            "flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
+            "flex items-center gap-1 rounded-sm px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors",
             "border border-green-700/50 text-green-300 hover:bg-green-900/30",
             "disabled:opacity-50",
           )}
@@ -82,7 +83,7 @@ function PermissionCard({ permission }: PermissionCardProps) {
           disabled={respond.isPending}
           title="Reject"
           className={cn(
-            "flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors",
+            "flex items-center gap-1 rounded-sm px-2 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors",
             "border border-red-800/50 text-red-400 hover:bg-red-950/30",
             "disabled:opacity-50",
           )}
