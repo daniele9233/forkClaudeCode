@@ -26,6 +26,13 @@ async fn stop_opencode(state: tauri::State<'_, AppState>) -> Result<(), String> 
     Ok(())
 }
 
+/// Returns the engine version string (`opencode --version`) for the UI's
+/// version-compatibility check against the pinned SDK.
+#[tauri::command]
+async fn opencode_version(state: tauri::State<'_, AppState>) -> Result<String, String> {
+    state.sidecar.version().await
+}
+
 /// Restart the sidecar (used by the UI's "Reconnect" action after a crash).
 /// Re-emits `opencode-ready` / `opencode-error` so the frontend re-initializes.
 #[tauri::command]
@@ -114,7 +121,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_opencode_url,
             stop_opencode,
-            restart_opencode
+            restart_opencode,
+            opencode_version
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

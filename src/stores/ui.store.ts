@@ -7,6 +7,9 @@ interface UIState {
   bottomTab: BottomTab;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
+  /** Set when the running engine version doesn't match the pinned SDK. */
+  engineWarning: string | null;
+  engineWarningDismissed: boolean;
 
   openBottom: (tab: BottomTab) => void;
   closeBottom: () => void;
@@ -16,6 +19,8 @@ interface UIState {
   closeCommandPalette: () => void;
   openSettings: () => void;
   closeSettings: () => void;
+  setEngineWarning: (msg: string | null) => void;
+  dismissEngineWarning: () => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -23,6 +28,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   bottomTab: "terminal",
   commandPaletteOpen: false,
   settingsOpen: false,
+  engineWarning: null,
+  engineWarningDismissed: false,
 
   openBottom: (tab) => set({ bottomOpen: true, bottomTab: tab }),
   closeBottom: () => set({ bottomOpen: false }),
@@ -39,4 +46,6 @@ export const useUIStore = create<UIState>((set, get) => ({
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
   openSettings: () => set({ settingsOpen: true }),
   closeSettings: () => set({ settingsOpen: false }),
+  setEngineWarning: (msg) => set({ engineWarning: msg }),
+  dismissEngineWarning: () => set({ engineWarningDismissed: true }),
 }));

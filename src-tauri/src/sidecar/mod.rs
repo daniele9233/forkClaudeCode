@@ -118,6 +118,26 @@ impl Sidecar {
         )
     }
 
+    /// Report the engine version by running `opencode --version`.
+    /// Used by the UI to warn when the bundled engine and the pinned SDK diverge.
+    pub async fn version(&self) -> Result<String, String> {
+        let out = Command::new(opencode_bin())
+            .arg("--version")
+            .output()
+            .await
+            .map_err(|e| format!("failed to run `opencode --version`: {e}"))?;
+        let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !stdout.is_empty() {
+            return Ok(stdout);
+        }
+        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        Ok(if stderr.is_empty() {
+            "unknown".into()
+        } else {
+            stderr
+        })
+    }
+
     /// Kill the sidecar process if running.
     pub fn stop(&self) {
         if let Ok(mut guard) = self.child.lock() {

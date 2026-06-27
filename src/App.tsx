@@ -13,6 +13,7 @@ import { CheckpointTimeline } from "@/features/checkpoints/CheckpointTimeline";
 import { CommandPalette } from "@/features/commandpalette/CommandPalette";
 import { StatusBar } from "@/features/statusbar/StatusBar";
 import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
+import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
 import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { SettingsModal } from "@/features/settings/SettingsModal";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
@@ -106,6 +107,7 @@ export default function App() {
     >
       {/* Global engine status (connecting / disconnected) */}
       <SidecarStatusBanner />
+      <EngineVersionBanner />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Left sidebar: sessions (top) + file tree + context sparkline */}

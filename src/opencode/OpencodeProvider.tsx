@@ -3,7 +3,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { initClient } from "./client";
 import { startEventStream, stopEventStream } from "./events";
+import {
+  checkEngineVersion,
+  EXPECTED_ENGINE_MAJOR_MINOR,
+  PINNED_SDK_VERSION,
+} from "./version";
 import { useSessionStore } from "@/stores/session.store";
+import { useUIStore } from "@/stores/ui.store";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +50,16 @@ function SidecarBootstrap({ children }: { children: ReactNode }) {
       setOpencodeUrl(url);
       setSidecarStatus("ready");
       startEventStream();
+
+      // Warn if the running engine doesn't match the SDK we built against.
+      checkEngineVersion().then((info) => {
+        const { setEngineWarning } = useUIStore.getState();
+        setEngineWarning(
+          info.ok
+            ? null
+            : `Engine ${info.engine} may not match this build (expects ${EXPECTED_ENGINE_MAJOR_MINOR}.x / SDK ${PINNED_SDK_VERSION}). Some features could misbehave.`,
+        );
+      });
     });
 
     const unlistenError = listen<string>("opencode-error", (event) => {

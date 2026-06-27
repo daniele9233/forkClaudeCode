@@ -34,7 +34,11 @@ The actual binary is **not committed** (it is large and platform-specific — se
 ```
 
 In CI this is done automatically by `.github/workflows/release.yml` before
-`tauri build`.
+`tauri build`. The engine version is **pinned** there via the `OPENCODE_VERSION`
+env var — keep it in sync with the pinned `@opencode-ai/sdk` in `package.json`
+so the GUI and the engine speak the same API. At runtime the app also compares
+`opencode --version` against the SDK and shows a non-blocking warning on a
+mismatch (see `src/opencode/version.ts`).
 
 > Dev mode (`pnpm tauri dev`) does **not** need a file here as long as
 > `opencode` is installed and on your `PATH`.

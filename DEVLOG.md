@@ -15,6 +15,30 @@
 
 ---
 
+## 2026-06-27 · Hardening versioni motore ↔ SDK
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (vari)
+
+Mitigazioni contro il "cosa succede se OpenCode aggiorna il codice":
+
+- **`package.json`**: `@opencode-ai/sdk` pinnato da `^0` a **`0.15.31`** esatto (no più
+  update 0.x silenziosi e potenzialmente rotti all'install).
+- **`.github/workflows/release.yml`**: binario opencode **pinnato** via env
+  `OPENCODE_VERSION: "0.15.31"` (prova `v<ver>` → `<ver>` → fallback `latest`), allineato
+  all'SDK; commento per tenerli in sync.
+- **Controllo versione all'avvio**:
+  - Rust: `Sidecar::version()` (esegue `opencode --version`) + comando `opencode_version`.
+  - `src/opencode/version.ts`: `checkEngineVersion()` confronta major.minor del motore con
+    `EXPECTED_ENGINE_MAJOR_MINOR` (0.15, derivato dall'SDK pinnato); non-throwing.
+  - `OpencodeProvider`: alla `opencode-ready` chiama il check e, se mismatch, setta
+    `engineWarning` nello `ui.store`.
+  - `features/statusbar/EngineVersionBanner.tsx`: avviso ambra **non bloccante e dismissibile**.
+
+Frontend build verde, 22 test ok, prettier pulito. (Rust verificato per ispezione — lo
+compila la CI; `static.crates.io` resta bloccato in web-env.)
+
+---
+
 ## 2026-06-27 · Blueprint — match esatto del mockup (dashboard + sparkline + blocchi)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
