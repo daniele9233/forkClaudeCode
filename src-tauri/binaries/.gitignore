@@ -1,0 +1,7 @@
+# Do not commit the (large, platform-specific) opencode sidecar binaries.
+# They are fetched per-target at bundle time (see README.md / release.yml).
+opencode-*
+opencode
+opencode.exe
+!README.md
+!.gitignore

@@ -1,0 +1,67 @@
+name: Release (Windows)
+
+# Builds the Forgia Windows installer with the opencode sidecar bundled.
+# Triggered by pushing a version tag (e.g. v0.1.0) or manually.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Fetch the opencode engine and place it as the Tauri sidecar with the
+      # target-triple suffix Tauri expects. Verify the asset name matches the
+      # current opencode release naming before relying on this in production.
+      - name: Fetch opencode sidecar
+        shell: pwsh
+        run: |
+          $triple = "x86_64-pc-windows-msvc"
+          $dest = "src-tauri/binaries/opencode-$triple.exe"
+          $zip = "$env:RUNNER_TEMP/opencode.zip"
+          $url = "https://github.com/sst/opencode/releases/latest/download/opencode-windows-x64.zip"
+          Write-Host "Downloading $url"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath "$env:RUNNER_TEMP/opencode" -Force
+          $bin = Get-ChildItem -Path "$env:RUNNER_TEMP/opencode" -Recurse -Filter "opencode.exe" | Select-Object -First 1
+          if (-not $bin) { throw "opencode.exe not found in the downloaded archive" }
+          Copy-Item $bin.FullName $dest -Force
+          Write-Host "Sidecar placed at $dest"
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Forgia ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+          args: --target x86_64-pc-windows-msvc

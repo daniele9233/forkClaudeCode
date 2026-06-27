@@ -40,7 +40,7 @@ impl Sidecar {
             let port = free_port().await?;
             let base_url = format!("http://127.0.0.1:{}", port);
 
-            let spawn = Command::new("opencode")
+            let spawn = Command::new(opencode_bin())
                 .args([
                     "serve",
                     "--port",
@@ -140,6 +140,28 @@ impl Drop for Sidecar {
     fn drop(&mut self) {
         self.stop();
     }
+}
+
+/// Resolve the `opencode` executable.
+///
+/// Prefers the sidecar binary bundled next to the app executable (Tauri
+/// `externalBin` is placed there at runtime, without the target-triple suffix);
+/// falls back to `opencode` on `PATH` for development.
+fn opencode_bin() -> std::path::PathBuf {
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            let name = if cfg!(windows) {
+                "opencode.exe"
+            } else {
+                "opencode"
+            };
+            let candidate = dir.join(name);
+            if candidate.exists() {
+                return candidate;
+            }
+        }
+    }
+    std::path::PathBuf::from("opencode")
 }
 
 /// Find a free TCP port by binding to port 0.
