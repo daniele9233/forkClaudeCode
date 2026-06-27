@@ -65,9 +65,7 @@ export function StatusBar() {
   if (!activeSessionId) {
     return (
       <div className="flex h-6 shrink-0 items-center border-t border-[var(--border)] px-3">
-        <span className="text-[10px] text-[var(--muted-foreground)]/40">
-          No active session
-        </span>
+        <span className="hud-label opacity-40">NO ACTIVE SESSION</span>
       </div>
     );
   }
@@ -77,17 +75,15 @@ export function StatusBar() {
       {/* Context meter */}
       {contextLimit > 0 && (
         <div className="flex items-center gap-1.5">
-          <div className="relative h-1.5 w-20 overflow-hidden rounded-full bg-[var(--muted)]">
+          <span className="hud-label opacity-50">CTX</span>
+          <div className="relative h-1.5 w-20 overflow-hidden rounded-sm bg-[var(--muted)]">
             <div
-              className={cn(
-                "h-full rounded-full transition-all duration-500",
-                meterColor,
-              )}
+              className={cn("h-full transition-all duration-500", meterColor)}
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className={cn("font-mono text-[9px]", textColor)}>{pct.toFixed(0)}%</span>
-          <span className="text-[9px] text-[var(--muted-foreground)]">
+          <span className={cn("hud-mono text-[9px]", textColor)}>{pct.toFixed(0)}%</span>
+          <span className="hud-mono text-[9px] text-[var(--muted-foreground)]">
             {fmtNum(currentContextTokens)}/{fmtNum(contextLimit)}
           </span>
         </div>
@@ -100,11 +96,11 @@ export function StatusBar() {
       {/* Token count for this session */}
       <div className="flex items-center gap-1">
         <Zap className="h-2.5 w-2.5 text-[var(--muted-foreground)]/60" />
-        <span className="font-mono text-[9px] text-[var(--muted-foreground)]">
+        <span className="hud-mono text-[9px] uppercase text-[var(--muted-foreground)]">
           {contextEntries.length > 0
-            ? `${contextEntries.length} msgs in ctx`
+            ? `${contextEntries.length} MSGS`
             : assistantMsgs.length > 0
-              ? `${assistantMsgs.length} step${assistantMsgs.length !== 1 ? "s" : ""}`
+              ? `${assistantMsgs.length} STEP${assistantMsgs.length !== 1 ? "S" : ""}`
               : "—"}
         </span>
       </div>
@@ -117,7 +113,7 @@ export function StatusBar() {
         <DollarSign className="h-2.5 w-2.5 text-[var(--muted-foreground)]/60" />
         <span
           className={cn(
-            "font-mono text-[9px]",
+            "hud-mono text-[9px]",
             totalCost > 0.5
               ? "text-amber-400"
               : totalCost > 0.1
@@ -131,11 +127,9 @@ export function StatusBar() {
 
       {/* Model pill at the right */}
       {lastMsg && (
-        <>
-          <span className="ml-auto text-[9px] text-[var(--muted-foreground)]/50">
-            {lastMsg.providerID}/{lastMsg.modelID}
-          </span>
-        </>
+        <span className="ml-auto hud-mono text-[9px] uppercase text-[var(--muted-foreground)]/60">
+          {lastMsg.providerID}/{lastMsg.modelID}
+        </span>
       )}
     </div>
   );

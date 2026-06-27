@@ -15,6 +15,42 @@
 
 ---
 
+## 2026-06-27 · Restyle HUD / mission-control (pass 1)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Contesto
+L'utente ha rifiutato il look "soft shadcn" e ha fornito 2 reference (OBSIDIAN hero +
+AGENT DATA OVERVIEW dashboard): estetica tecnico-brutalista — monospace, bordi a filo,
+angoli netti, crop-mark, micro-label maiuscole, accenti misurati (ambra/verde/rosso).
+Richiesta specifica: il **prompt con un solo angolo smussato** (chamfer) verso l'interno.
+
+### Cosa è cambiato
+- **`src/index.css`**: radius ridotti (1–3px, look netto); sfondo atmosferico (radial
+  gradient ambra + vignette, solo dark); accenti `--color-online` (verde) / `--color-alert`
+  (rosso); utility HUD: `.hud-label` (mono uppercase tracking), `.hud-mono` (tabular-nums),
+  `.notch-tr`/`.notch-tl` (clip-path chamfer), `.hud-frame` (crop-mark via ::before/::after),
+  `.hud-scan` (scanline leggera).
+- **`src/components/CornerBrackets.tsx`** (nuovo): 4 crop-mark ad L riusabili.
+- **`src/features/chat/ChatInput.tsx`**: **chamfer top-right** con tecnica a due strati
+  (outer=border color clippato, inner=fill, +1px → bordo anche sulla diagonale); focus-within
+  ambra; mode toggle BUILD/PLAN mono uppercase; indicatore READY/RUNNING.
+- **`src/features/chat/ChatShell.tsx`**: header HUD — quadrato ambra + wordmark `FORGIA`
+  mono uppercase tracking, stato ONLINE (verde) / RUNNING / CONNECTING come hud-label.
+- **`src/features/onboarding/WelcomeScreen.tsx`**: riprogettato — pannello con CornerBrackets,
+  meta-row (FORGIA // AGENT SHELL · v0.1.0), wordmark grande, divider "START VECTORS",
+  3 card numerate (01/02/03), footer CTRL K + STANDBY; tutto mono, gated reduced-motion.
+- **`src/features/statusbar/StatusBar.tsx`**: label CTX/MSGS/STEPS/model in mono uppercase.
+
+### Note
+- Chamfer scelto in alto a destra ("verso l'interno"); facilmente spostabile cambiando
+  `.notch-tr` → `.notch-tl` e il lato.
+- Pass 1: header, welcome, input, status bar. Da rifinire ancora (pass 2): command palette,
+  message bubble/tool-call card, settings modal, inspector/timeline, sidebar — per coerenza piena.
+- Build verde; screenshot verificati in Chromium (dark+light).
+
+---
+
 ## 2026-06-27 · Fix CI — externalBin in overlay di release
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
