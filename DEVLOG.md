@@ -15,6 +15,31 @@
 
 ---
 
+## 2026-06-27 · Fix CI — externalBin in overlay di release
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+### Cosa è cambiato
+- `src-tauri/tauri.conf.json`: rimosso `bundle.externalBin`
+- `src-tauri/tauri.release.conf.json` (nuovo): overlay con solo `bundle.externalBin`
+- `.github/workflows/release.yml`: `args` ora include `--config src-tauri/tauri.release.conf.json`
+- `docs/06-adr-sidecar-bundling.md` + `src-tauri/binaries/README.md`: aggiornati
+
+### Perché
+Il job `Rust (cargo check)` falliva con
+`resource path binaries/opencode-x86_64-unknown-linux-gnu doesn't exist`.
+Il build-script di Tauri (`generate_context!`) **valida `externalBin` a check/build
+time** ed esige che il binario (con suffisso target-triple) esista. Il binario non è
+committato → `cargo check` (e `pnpm tauri dev`) rompono. Tenendo `externalBin` solo in
+un overlay applicato in release, il config base resta compilabile ovunque; in CI di
+release l'overlay viene mergiato dopo che il binario è stato scaricato.
+
+### Gotcha
+- Il path di `--config` è risolto relativamente alla cwd del comando tauri (repo root in
+  tauri-action) → `src-tauri/tauri.release.conf.json`. Da confermare al primo run reale di release.
+
+---
+
 ## 2026-06-26 · Fase 11 — Packaging & release (11.1–11.3)
 
 **Fase:** 11.1–11.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (vari)

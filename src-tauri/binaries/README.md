@@ -1,10 +1,13 @@
 # Sidecar binaries — `opencode`
 
 This directory holds the **bundled `opencode` engine** that Forgia ships as a
-Tauri *sidecar* (`externalBin` in `tauri.conf.json`). At runtime the Rust
-backend prefers this binary (placed next to the app executable by the bundler)
-and falls back to `opencode` on `PATH` for development — see
-`src-tauri/src/sidecar/mod.rs` (`opencode_bin()`).
+Tauri *sidecar*. `externalBin` is declared in the release-only overlay
+`src-tauri/tauri.release.conf.json` (merged at build time with
+`tauri build --config …`), **not** in the base `tauri.conf.json` — otherwise
+`cargo check` and `pnpm tauri dev` would fail because Tauri validates that the
+(uncommitted) binary exists. At runtime the Rust backend prefers this binary
+(placed next to the app executable by the bundler) and falls back to `opencode`
+on `PATH` for development — see `src-tauri/src/sidecar/mod.rs` (`opencode_bin()`).
 
 ## Naming convention (required by Tauri)
 

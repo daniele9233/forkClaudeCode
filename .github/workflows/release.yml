@@ -64,4 +64,7 @@ jobs:
           releaseName: "Forgia ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false
-          args: --target x86_64-pc-windows-msvc
+          # Merge the release-only overlay that adds the opencode sidecar
+          # (externalBin) — kept out of the base config so `cargo check` / dev
+          # don't require the (uncommitted) binary to be present.
+          args: --target x86_64-pc-windows-msvc --config src-tauri/tauri.release.conf.json

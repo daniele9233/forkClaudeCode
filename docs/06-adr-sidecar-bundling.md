@@ -11,10 +11,15 @@ mano, il binario `opencode` va impacchettato dentro l'installer (decisione D4 in
 
 ## Decisione
 
-1. **Tauri `externalBin`.** In `tauri.conf.json`:
-   `bundle.externalBin = ["binaries/opencode"]`. Il bundler include il binario
-   nell'installer e, a runtime, lo colloca **accanto all'eseguibile** dell'app
-   (senza il suffisso del target-triple).
+1. **Tauri `externalBin` in un overlay di release.** `bundle.externalBin =
+   ["binaries/opencode"]` vive in `src-tauri/tauri.release.conf.json` (overlay
+   mergiato a build time con `tauri build --config …`), **non** nel
+   `tauri.conf.json` base. Motivo: il build-script di Tauri (`generate_context!`)
+   valida `externalBin` ed esige che il binario (con suffisso target-triple)
+   esista già a check/build time — tenerlo nel config base romperebbe
+   `cargo check` e `pnpm tauri dev` perché il binario non è committato. A runtime
+   il bundler colloca il sidecar **accanto all'eseguibile** dell'app (senza il
+   suffisso del target-triple).
 
 2. **Risoluzione a runtime con fallback.** `sidecar::opencode_bin()` preferisce
    il binario bundlato accanto a `current_exe()`; se non c'è (sviluppo) ricade su
