@@ -15,6 +15,60 @@
 
 ---
 
+## 2026-06-26 · Fase 11 — Packaging & release (11.1–11.3)
+
+**Fase:** 11.1–11.3 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (vari)
+
+### Cosa è cambiato
+
+**11.1 — Bundling del sidecar (D4)**
+- `src-tauri/tauri.conf.json`: `bundle.externalBin = ["binaries/opencode"]`
+- `src-tauri/src/sidecar/mod.rs`: `opencode_bin()` → preferisce il binario accanto a
+  `current_exe()` (dove Tauri colloca l'externalBin a runtime, senza suffisso triple),
+  fallback su `opencode` nel PATH per lo sviluppo; usato in `Command::new(...)`
+- `src-tauri/binaries/README.md` (convenzione naming target-triple) + `.gitignore`
+  (binario non versionato — grande e per-piattaforma, fetch a build time)
+- `.github/workflows/release.yml`: build Windows su tag `v*`/manuale; scarica opencode,
+  lo rinomina `opencode-x86_64-pc-windows-msvc.exe`, poi `tauri-action` (release draft)
+- `docs/06-adr-sidecar-bundling.md`: ADR della decisione D4
+
+**11.2 — Onboarding primo avvio**
+- `src/stores/onboarding.store.ts`: flag `completed` persistito (zustand/persist) + `reset()`
+- `src/features/onboarding/OnboardingWizard.tsx`: modale 3 step con progress dots
+  - **welcome**: intro firmata (anvil + forge-glow)
+  - **provider**: lista provider che richiedono key; input password + save (`useSetAuth`);
+    se `config.model` è vuoto adotta automaticamente il primo modello del provider salvato
+  - **tour**: Plan mode / Build mode / Context Inspector ⭐
+  - Skip sempre disponibile; Motion gated da `useReducedMotion`; `role="dialog"`
+- `src/App.tsx`: `showOnboarding = !completed && sidecarStatus === "ready"` → monta il wizard
+- `src/features/commandpalette/CommandPalette.tsx`: azione "Replay Intro" (`reset()`)
+
+**11.3 — Docs**
+- `README.md`: overview, differenziatori, architettura, stack, dev setup, packaging, status
+- `CHANGELOG.md`: formato Keep a Changelog, sezione `Unreleased` con tutte le feature 1–11
+
+### Perché / decisione
+
+- **Fallback su PATH in dev**: così `pnpm tauri dev` funziona con un opencode di sistema
+  senza dover copiare un binario in `binaries/`; il pacchetto release resta self-contained.
+- **Binario non in git**: pesante e per-OS; versionarlo gonfierebbe il repo. Si scarica per
+  target in CI (pin/asset-name nel workflow).
+- **Onboarding gated su engine ready**: lo step provider deve poter parlare col server
+  locale (lista provider, set key), quindi il wizard appare solo dopo `opencode-ready`.
+
+### Gotcha / attenzione
+
+- **Bundle non verificabile in web-env**: niente opencode binary, niente Windows, e cargo non
+  può scaricare i crate (policy blocca `static.crates.io`). Config/Rust/workflow verificati per
+  ispezione; il bundle reale va provato su Windows con un opencode scaricato.
+- L'**asset-name** del download opencode in `release.yml` è best-effort
+  (`opencode-windows-x64.zip` da `sst/opencode` releases) → da verificare contro il naming
+  upstream corrente prima di affidarvisi.
+- Tauri externalBin: file sorgente con suffisso target-triple, ma a runtime senza suffisso
+  accanto all'eseguibile — `opencode_bin()` cerca proprio quel nome.
+
+---
+
 ## 2026-06-26 · Fase 10 — Hardening (COMPLETA)
 
 **Fase:** 10.1–10.4 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (vari)
