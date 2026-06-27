@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { Compass, Bug, FileSearch, Sparkles, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChamferPanel } from "@/components/ChamferPanel";
 import type { AgentMode } from "@/features/chat/ChatInput";
 
 interface Suggestion {
@@ -65,65 +66,71 @@ export function WelcomeScreen({ onPrompt }: WelcomeScreenProps) {
         variants={container}
         initial="hidden"
         animate="show"
-        className="glass glass-border w-full max-w-xl rounded-3xl p-8 shadow-2xl sm:p-10"
+        className="w-full max-w-xl"
       >
-        {/* Icon badge */}
-        <motion.div variants={item}>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--primary)] to-amber-600 shadow-lg">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
-        </motion.div>
+        <ChamferPanel notch={24} className="shadow-2xl" innerClassName="p-8 sm:p-10">
+          {/* Icon badge */}
+          <motion.div variants={item}>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--primary)]/15 text-[var(--primary)] ring-1 ring-[var(--primary)]/25">
+              <Sparkles className="h-6 w-6" />
+            </div>
+          </motion.div>
 
-        <motion.h1
-          variants={item}
-          className="mt-5 text-2xl font-semibold tracking-tight text-[var(--foreground)]"
-        >
-          Welcome to Forgia
-        </motion.h1>
-        <motion.p
-          variants={item}
-          className="mt-2 max-w-md text-sm leading-relaxed text-[var(--muted-foreground)]"
-        >
-          A calm, elegant shell over the OpenCode engine. Ask anything below, or start
-          from one of these.
-        </motion.p>
+          <motion.h1
+            variants={item}
+            className="mt-5 text-2xl font-semibold tracking-tight text-[var(--foreground)]"
+          >
+            Welcome to Forgia
+          </motion.h1>
+          <motion.p
+            variants={item}
+            className="mt-2 max-w-md text-sm leading-relaxed text-[var(--muted-foreground)]"
+          >
+            A calm, elegant shell over the OpenCode engine. Ask anything below, or start
+            from one of these.
+          </motion.p>
 
-        {/* Suggestions */}
-        <motion.div variants={item} className="mt-6 flex flex-col gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s.label}
-              onClick={() => onPrompt?.(s.prompt, s.mode)}
-              disabled={!onPrompt}
-              className={cn(
-                "group flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3 text-left transition-all",
-                "hover:border-[var(--primary)]/40 hover:bg-white/[0.06] disabled:opacity-50",
-              )}
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)]/10 text-[var(--primary)]">
-                {s.icon}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-[var(--foreground)]">
-                  {s.label}
+          {/* Suggestions */}
+          <motion.div variants={item} className="mt-6 flex flex-col gap-2">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s.label}
+                onClick={() => onPrompt?.(s.prompt, s.mode)}
+                disabled={!onPrompt}
+                className={cn(
+                  "notch-tr group flex items-center gap-3 bg-white/[0.04] px-4 py-3 text-left transition-all",
+                  "hover:bg-white/[0.08] disabled:opacity-50",
+                )}
+                style={{ ["--notch" as string]: "12px" } as React.CSSProperties}
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]">
+                  {s.icon}
                 </span>
-                <span className="block truncate text-xs text-[var(--muted-foreground)]">
-                  {s.hint}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-[var(--foreground)]">
+                    {s.label}
+                  </span>
+                  <span className="block truncate text-xs text-[var(--muted-foreground)]">
+                    {s.hint}
+                  </span>
                 </span>
-              </span>
-              <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100" />
-            </button>
-          ))}
-        </motion.div>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100" />
+              </button>
+            ))}
+          </motion.div>
 
-        {/* Footer hint */}
-        <motion.p variants={item} className="mt-6 text-xs text-[var(--muted-foreground)]">
-          Press{" "}
-          <kbd className="rounded-md border border-[var(--border)] bg-white/5 px-1.5 py-0.5 font-mono text-[10px]">
-            Ctrl K
-          </kbd>{" "}
-          to open the command palette.
-        </motion.p>
+          {/* Footer hint */}
+          <motion.p
+            variants={item}
+            className="mt-6 text-xs text-[var(--muted-foreground)]"
+          >
+            Press{" "}
+            <kbd className="rounded-md border border-[var(--border)] bg-white/5 px-1.5 py-0.5 font-mono text-[10px]">
+              Ctrl K
+            </kbd>{" "}
+            to open the command palette.
+          </motion.p>
+        </ChamferPanel>
       </motion.div>
     </div>
   );

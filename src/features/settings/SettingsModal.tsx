@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChamferPanel } from "@/components/ChamferPanel";
 import { useAgents, useMcpStatus, useConfig, useUpdateConfig } from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
 
@@ -351,11 +352,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onMouseDown={(e) => e.target === overlayRef.current && onClose()}
     >
-      <div
+      <ChamferPanel
+        strong
+        notch={22}
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
-        className="glass-strong glass-border flex h-[70vh] w-[520px] flex-col rounded-2xl shadow-2xl"
+        className="h-[70vh] w-[520px] shadow-2xl"
+        innerClassName="flex flex-col overflow-hidden"
       >
         {/* Modal header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
@@ -392,7 +396,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           {tab === "skills" && <SkillsTab />}
           {tab === "mcp" && <McpTab />}
         </div>
-      </div>
+      </ChamferPanel>
     </div>
   );
 }

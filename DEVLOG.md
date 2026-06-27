@@ -15,6 +15,30 @@
 
 ---
 
+## 2026-06-27 · Restyle → dark OpenCode + glass trasparente + chamfer (pivot 2)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
+
+L'utente ha rifiutato il gradiente pastello → vuole **tutto dark stile OpenCode**, pannelli
+**trasparenti/frosted neutri**, e gli **angoli smussati verso l'interno** (chamfer top-right)
+come motivo-firma. (Nessuna "skill" UI/UX dedicata disponibile in env → applicati criteri
+di design a mano.)
+
+- **`index.css`**: sfondo near-black neutro (#0a0a0b) con un soffio di luce in alto + vignette,
+  **niente colore**; light theme neutro (no orb). `.glass` ora frosted neutro su white/3.5%,
+  `.glass-strong` dark; `--notch` default 18px.
+- **`src/components/ChamferPanel.tsx`** (nuovo): pannello glass con un angolo smussato e
+  **bordo che segue anche la diagonale** (tecnica a due strati: outer = colore bordo clippato,
+  inner = glass a +1px). Props: notch, corner (tr/tl), strong, className/innerClassName, spread
+  di props DOM (role/aria per i dialog).
+- **Applicato il chamfer** a: WelcomeScreen (card + righe suggerimento), ChatInput (composer),
+  CommandPalette, SettingsModal, OnboardingWizard — motivo coerente top-right.
+- Header/sidebar/status restano full-bleed (no chamfer, toccano i bordi).
+
+Build verde, 22 test ok, prettier pulito. Screenshot verificati (dark welcome, composer, palette).
+
+---
+
 ## 2026-06-27 · Restyle → Codex-clean + glassmorphism (pivot)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)

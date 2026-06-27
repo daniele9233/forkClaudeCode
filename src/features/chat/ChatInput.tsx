@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from "react";
 import { SendHorizontal, Square, Hammer, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChamferPanel } from "@/components/ChamferPanel";
 
 export type AgentMode = "build" | "plan";
 
@@ -57,12 +58,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   };
 
   return (
-    <div
-      className={cn(
-        "glass glass-border overflow-hidden rounded-3xl shadow-lg transition-colors",
-        "focus-within:border-[var(--primary)]/50",
-        disabled && "opacity-50",
-      )}
+    <ChamferPanel
+      notch={20}
+      className={cn("shadow-lg transition-opacity", disabled && "opacity-50")}
     >
       {/* Mode toggle row */}
       <div className="flex items-center gap-1 px-3 pt-2.5">
@@ -135,6 +133,6 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           </button>
         )}
       </div>
-    </div>
+    </ChamferPanel>
   );
 }

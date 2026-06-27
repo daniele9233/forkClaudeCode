@@ -180,23 +180,19 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism backdrop — soft, colourful gradient orbs behind frosted panels */
+/* Dark, OpenCode-like backdrop — near-black, neutral, no colour.
+   A whisper of cool light at the top adds depth without tinting. */
 body {
-  background-color: #0a0b12;
+  background-color: #0a0a0b;
   background-image:
-    radial-gradient(42% 38% at 14% 16%, rgba(245, 158, 11, 0.18), transparent 60%),
-    radial-gradient(48% 42% at 86% 22%, rgba(99, 102, 241, 0.20), transparent 62%),
-    radial-gradient(55% 50% at 72% 96%, rgba(20, 184, 166, 0.14), transparent 62%),
-    radial-gradient(42% 40% at 28% 88%, rgba(236, 72, 153, 0.12), transparent 60%);
+    radial-gradient(90% 55% at 50% -8%, rgba(255, 255, 255, 0.035), transparent 60%),
+    radial-gradient(70% 70% at 50% 120%, rgba(0, 0, 0, 0.5), transparent 60%);
   background-attachment: fixed;
 }
 .light body {
-  background-color: #eaedefff;
+  background-color: #f3f4f6;
   background-image:
-    radial-gradient(42% 38% at 14% 16%, rgba(245, 158, 11, 0.22), transparent 60%),
-    radial-gradient(48% 42% at 86% 22%, rgba(99, 102, 241, 0.20), transparent 62%),
-    radial-gradient(55% 50% at 72% 96%, rgba(20, 184, 166, 0.18), transparent 62%),
-    radial-gradient(42% 40% at 28% 88%, rgba(236, 72, 153, 0.14), transparent 60%);
+    radial-gradient(90% 55% at 50% -8%, rgba(255, 255, 255, 0.8), transparent 60%);
 }
 
 #root {
@@ -270,36 +266,37 @@ code, pre, kbd, samp {
   font-variant-numeric: tabular-nums;
 }
 
-/* Pannello glass: superficie frosted translucida con blur.
-   Da abbinare a un bordo sottile chiaro (es. border-white/10). */
+/* Pannello glass: superficie frosted dark e neutra (stile OpenCode).
+   Bordo sottile chiaro a parte (.glass-border o classe Tailwind). */
 .glass {
-  background-color: rgba(18, 20, 28, 0.5);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  background-color: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
 }
 .glass-strong {
-  background-color: rgba(16, 18, 26, 0.72);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  background-color: rgba(20, 20, 23, 0.66);
+  backdrop-filter: blur(28px) saturate(1.2);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2);
 }
 .light .glass {
   background-color: rgba(255, 255, 255, 0.55);
 }
 .light .glass-strong {
-  background-color: rgba(255, 255, 255, 0.78);
+  background-color: rgba(255, 255, 255, 0.82);
 }
 
 /* Bordo "vetro" sottile e luminoso */
 .glass-border {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .light .glass-border {
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-/* Smussatura singolo angolo (mantenuta per usi puntuali) */
+/* Smussatura di un singolo angolo (motivo-firma).
+   Default top-right "verso l'interno"; size via --notch. */
 .notch-tr {
-  --notch: 14px;
+  --notch: 18px;
   clip-path: polygon(
     0 0,
     calc(100% - var(--notch)) 0,
@@ -309,6 +306,6 @@ code, pre, kbd, samp {
   );
 }
 .notch-tl {
-  --notch: 14px;
+  --notch: 18px;
   clip-path: polygon(var(--notch) 0, 100% 0, 100% 100%, 0 100%, 0 var(--notch));
 }

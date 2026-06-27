@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChamferPanel } from "@/components/ChamferPanel";
 import { useUIStore } from "@/stores/ui.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePreviewStore } from "@/stores/preview.store";
@@ -236,11 +237,14 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
         if (e.target === e.currentTarget) closeCommandPalette();
       }}
     >
-      <div
+      <ChamferPanel
+        strong
+        notch={22}
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="glass-strong glass-border w-[560px] overflow-hidden rounded-2xl shadow-2xl"
+        className="w-[560px] shadow-2xl"
+        innerClassName="overflow-hidden"
       >
         {/* Search input */}
         <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-3">
@@ -324,7 +328,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
             <kbd className="rounded bg-[var(--muted)] px-1 py-0.5">Ctrl K</kbd> toggle
           </span>
         </div>
-      </div>
+      </ChamferPanel>
     </div>
   );
 }
