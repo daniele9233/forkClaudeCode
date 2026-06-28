@@ -1,9 +1,9 @@
-# Forgia
+# kikkoCode
 
 > A calm, elegant desktop shell over the [OpenCode](https://opencode.ai) engine —
 > Windows-first.
 
-Forgia doesn't reinvent the agentic engine: OpenCode is the "kitchen", Forgia is
+kikkoCode doesn't reinvent the agentic engine: OpenCode is the "kitchen", kikkoCode is
 the "dining room". It runs `opencode serve` as a local sidecar and puts a new,
 disciplined GUI on top — with two differentiators a plain CLI doesn't have:
 
@@ -79,7 +79,7 @@ macOS/Linux packaging is planned (see `CHECKLIST.md` Fase 11.4).
 
 ## Project status
 
-Forgia is in active development. Progress and the next step live in
+kikkoCode is in active development. Progress and the next step live in
 `CHECKLIST.md`; a surgical change history is in `DEVLOG.md`. Release notes are in
 [`CHANGELOG.md`](./CHANGELOG.md).
 

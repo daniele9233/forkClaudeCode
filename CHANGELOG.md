@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Forgia are documented here. The format is based on
+All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 

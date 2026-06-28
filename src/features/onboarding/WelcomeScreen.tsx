@@ -67,13 +67,13 @@ export function WelcomeScreen({ onPrompt }: WelcomeScreenProps) {
         className="w-full max-w-2xl"
       >
         <Panel className="shadow-2xl">
-          <PanelTab right="v0.1.0">forgia // agent shell</PanelTab>
+          <PanelTab right="v0.1.0">kikkocode // agent shell</PanelTab>
 
           <div className="p-7">
             <motion.div variants={item} className="flex items-center gap-3">
               <span className="h-6 w-6 shrink-0 bg-[var(--primary)]" />
               <h1 className="text-3xl font-bold uppercase tracking-[0.16em] text-[var(--foreground)]">
-                Forgia
+                kikkoCode
               </h1>
             </motion.div>
 

@@ -16,6 +16,6 @@ export const useOnboardingStore = create<OnboardingState>()(
       complete: () => set({ completed: true }),
       reset: () => set({ completed: false }),
     }),
-    { name: "forgia-onboarding" },
+    { name: "kikkocode-onboarding" },
   ),
 );

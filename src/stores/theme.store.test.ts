@@ -10,11 +10,11 @@ describe("theme.store", () => {
   it("setTheme toggles the .light class on <html> and persists", () => {
     useThemeStore.getState().setTheme("light");
     expect(document.documentElement.classList.contains("light")).toBe(true);
-    expect(localStorage.getItem("forgia.theme")).toBe("light");
+    expect(localStorage.getItem("kikkocode.theme")).toBe("light");
 
     useThemeStore.getState().setTheme("dark");
     expect(document.documentElement.classList.contains("light")).toBe(false);
-    expect(localStorage.getItem("forgia.theme")).toBe("dark");
+    expect(localStorage.getItem("kikkocode.theme")).toBe("dark");
   });
 
   it("toggleTheme flips between dark and light", () => {

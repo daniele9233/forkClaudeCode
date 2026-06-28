@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  Design tokens — "Forgia" (officina digitale, dark-first)
+  Design tokens — "kikkoCode" (officina digitale, dark-first)
   Palette: acciaio scuro + rame/ambra per accenti + bianco caldo per testo
   Tutti i token sono CSS custom properties per shadcn/ui e la GUI.
 */
@@ -74,7 +74,7 @@
 }
 
 /*
-  Variabili shadcn/ui — mappate sui token Forgia.
+  Variabili shadcn/ui — mappate sui token kikkoCode.
   shadcn le legge da :root tramite questi nomi standard.
 */
 :root {

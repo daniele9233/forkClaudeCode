@@ -31,7 +31,7 @@ export function StatusBar() {
     return (
       <div className="glass flex h-6 shrink-0 items-center border-t border-[var(--border)] px-3">
         <span className="hud-label opacity-40">no active session</span>
-        <span className="hud-label ml-auto opacity-40">forgia v0.1.0</span>
+        <span className="hud-label ml-auto opacity-40">kikkocode v0.1.0</span>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export function StatusBar() {
         </span>
       </Cell>
       <Cell label="cost">${totalCost.toFixed(3)}</Cell>
-      <span className="hud-label ml-auto px-3 opacity-60">forgia v0.1.0</span>
+      <span className="hud-label ml-auto px-3 opacity-60">kikkocode v0.1.0</span>
     </div>
   );
 }

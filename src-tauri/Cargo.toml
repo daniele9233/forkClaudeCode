@@ -1,12 +1,12 @@
 [package]
-name = "forgia"
+name = "kikkocode"
 version = "0.1.0"
-description = "Forgia — GUI desktop for OpenCode"
+description = "kikkoCode — GUI desktop for OpenCode"
 authors = []
 edition = "2021"
 
 [lib]
-name = "forgia_lib"
+name = "kikkocode_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

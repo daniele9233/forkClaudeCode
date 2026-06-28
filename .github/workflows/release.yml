@@ -1,6 +1,6 @@
 name: Release (Windows)
 
-# Builds the Forgia Windows installer with the opencode sidecar bundled.
+# Builds the kikkoCode Windows installer with the opencode sidecar bundled.
 # Triggered by pushing a version tag (e.g. v0.1.0) or manually.
 on:
   push:
@@ -83,7 +83,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "Forgia ${{ github.ref_name }}"
+          releaseName: "kikkoCode ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false
           # Merge the release-only overlay that adds the opencode sidecar

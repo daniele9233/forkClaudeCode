@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 export type Theme = "dark" | "light";
 
-const STORAGE_KEY = "forgia.theme";
+const STORAGE_KEY = "kikkocode.theme";
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";

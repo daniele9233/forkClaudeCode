@@ -1,6 +1,6 @@
 # Sidecar binaries — `opencode`
 
-This directory holds the **bundled `opencode` engine** that Forgia ships as a
+This directory holds the **bundled `opencode` engine** that kikkoCode ships as a
 Tauri *sidecar*. `externalBin` is declared in the release-only overlay
 `src-tauri/tauri.release.conf.json` (merged at build time with
 `tauri build --config …`), **not** in the base `tauri.conf.json` — otherwise

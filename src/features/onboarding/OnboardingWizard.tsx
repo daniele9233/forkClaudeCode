@@ -37,7 +37,7 @@ export function OnboardingWizard() {
         strong
         role="dialog"
         aria-modal="true"
-        aria-label="Welcome to Forgia"
+        aria-label="Welcome to kikkoCode"
         className="relative flex max-h-[80vh] w-[560px] flex-col overflow-hidden shadow-2xl"
       >
         {/* Progress dots */}
@@ -70,12 +70,12 @@ export function OnboardingWizard() {
                 </div>
               </div>
               <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-                Welcome to Forgia
+                Welcome to kikkoCode
               </h2>
               <p className="max-w-md text-sm text-[var(--muted-foreground)]">
                 A calm, elegant desktop shell over the OpenCode engine. Let's get you set
                 up in two quick steps — connect a model provider, then a short tour of
-                what makes Forgia different.
+                what makes kikkoCode different.
               </p>
             </motion.div>
           )}
@@ -90,7 +90,7 @@ export function OnboardingWizard() {
               <TourItem
                 icon={<Compass className="h-4 w-4" />}
                 title="Plan mode"
-                body="Ask Forgia to think and propose before touching files — great for scoping a change."
+                body="Ask kikkoCode to think and propose before touching files — great for scoping a change."
               />
               <TourItem
                 icon={<Wrench className="h-4 w-4" />}
@@ -100,7 +100,7 @@ export function OnboardingWizard() {
               <TourItem
                 icon={<Gauge className="h-4 w-4" />}
                 title="Context Inspector ⭐"
-                body="Forgia's signature panel: see exactly what the agent sees — tokens, % of the budget, cost. Open it from the bottom panel."
+                body="kikkoCode's signature panel: see exactly what the agent sees — tokens, % of the budget, cost. Open it from the bottom panel."
               />
             </motion.div>
           )}
@@ -121,7 +121,7 @@ export function OnboardingWizard() {
             <NextButton label="Next" onClick={() => setStep("tour")} />
           )}
           {step === "tour" && (
-            <NextButton label="Start using Forgia" onClick={complete} />
+            <NextButton label="Start using kikkoCode" onClick={complete} />
           )}
         </div>
       </Panel>

@@ -32,7 +32,7 @@ export const useSessionStore = create<SessionState>()(
         set({ sidecarStatus: status, sidecarError: error ?? null }),
     }),
     {
-      name: "forgia-session",
+      name: "kikkocode-session",
       // Don't persist transient sidecar state across restarts.
       partialize: (state) => ({ activeSessionId: state.activeSessionId }),
     },

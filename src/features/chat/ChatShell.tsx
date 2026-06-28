@@ -57,7 +57,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         <div className="flex items-center gap-2.5">
           <span className="h-3 w-3 bg-[var(--primary)]" aria-hidden />
           <span className="text-sm font-bold uppercase tracking-[0.18em] text-[var(--foreground)]">
-            Forgia
+            kikkoCode
           </span>
           <span className="hidden items-center gap-1.5 sm:flex">
             <span className="text-[var(--muted-foreground)]/30">·</span>

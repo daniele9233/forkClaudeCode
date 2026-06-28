@@ -62,7 +62,7 @@ export const usePermissionStore = create<PermissionState>()(
       },
     }),
     {
-      name: "forgia-permissions",
+      name: "kikkocode-permissions",
       // Only persist the allow-list — pending permissions are session-lived
       partialize: (s) => ({ allowList: s.allowList }),
       // Zustand persist doesn't handle Set natively — convert to/from array
