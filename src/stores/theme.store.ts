@@ -8,9 +8,8 @@ function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark") return stored;
-  // Default to dark (officina digitale), but honor an explicit OS light preference.
-  const prefersLight = window.matchMedia?.("(prefers-color-scheme: light)").matches;
-  return prefersLight ? "light" : "dark";
+  // Always default to dark; the OS preference is ignored (user can still toggle).
+  return "dark";
 }
 
 /** Apply the theme to <html> by toggling the `.light` class (see index.css). */

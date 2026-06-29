@@ -107,7 +107,9 @@ impl Sidecar {
         let Some(state) = self.state() else {
             return false;
         };
-        let url = format!("{}/health", state.base_url);
+        // `/config` is a real GET endpoint that returns 200 once the server is
+        // up (opencode serve does not expose a dedicated `/health`).
+        let url = format!("{}/config", state.base_url);
         matches!(
             reqwest::Client::new()
                 .get(&url)
@@ -194,21 +196,25 @@ async fn free_port() -> Result<u16, String> {
         .map_err(|e| format!("port addr error: {e}"))
 }
 
-/// Poll GET /health until 200 or timeout.
+/// Poll the server until it answers, then consider it ready. Uses `/config`
+/// (a real opencode endpoint) — there is no dedicated `/health` route.
 async fn wait_healthy(base_url: &str, timeout_secs: u64) -> Result<(), String> {
-    let url = format!("{base_url}/health");
+    let url = format!("{base_url}/config");
     let client = reqwest::Client::new();
     let deadline = tokio::time::Instant::now() + Duration::from_secs(timeout_secs);
 
     loop {
         if tokio::time::Instant::now() > deadline {
             return Err(format!(
-                "opencode serve did not become healthy within {timeout_secs}s"
+                "opencode serve did not respond on {url} within {timeout_secs}s"
             ));
         }
         match client.get(&url).send().await {
-            Ok(r) if r.status().is_success() => return Ok(()),
-            _ => sleep(Duration::from_millis(200)).await,
+            // Any HTTP answer means the server is listening and routing.
+            Ok(r) if r.status().is_success() || r.status().is_client_error() => {
+                return Ok(())
+            }
+            _ => sleep(Duration::from_millis(250)).await,
         }
     }
 }

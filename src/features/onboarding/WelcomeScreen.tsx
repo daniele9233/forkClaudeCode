@@ -59,12 +59,12 @@ export function WelcomeScreen({ onPrompt }: WelcomeScreenProps) {
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center p-8">
+    <div className="flex flex-1 items-start justify-start overflow-auto p-4">
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="w-full max-w-2xl"
+        className="w-full max-w-md"
       >
         <Panel className="shadow-2xl">
           <PanelTab right="v0.1.0">kikkocode // agent shell</PanelTab>
