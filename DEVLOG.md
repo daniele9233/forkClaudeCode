@@ -15,6 +15,31 @@
 
 ---
 
+## 2026-06-30 · Fix race "opencode-ready" (resta su CONNECTING anche se il motore è su)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Anche con `OPENCODE_BASE_URL` impostata e l'aggancio al server riuscito lato
+Rust (`[kikkocode] attaching to external engine…`), l'app restava su
+"CONNECTING TO ENGINE…". **Causa: race condition.** Il setup hook in `lib.rs`
+emette `opencode-ready` appena `start()` ritorna. Agganciandosi a un server
+**già attivo**, `wait_healthy` ritorna in pochi ms → l'evento parte **prima**
+che la webview/JS abbia registrato il listener `listen("opencode-ready")`.
+L'evento è fire-and-forget → perso → frontend bloccato per sempre.
+
+Fix in `src/opencode/OpencodeProvider.tsx`:
+- Estratto `onReady(url)` con guardia `ready` (init una sola volta, da evento
+  o da poll).
+- Oltre al listener, **poll di `get_opencode_url`** al mount (fino a 20 tentativi
+  × 500ms = 10s) così se il sidecar è già pronto recuperiamo l'URL comunque.
+  Copre sia l'aggancio istantaneo (OPENCODE_BASE_URL) sia la finestra di
+  auto-spawn. Il command `get_opencode_url` esisteva già in `lib.rs` ma il
+  frontend non lo interrogava mai.
+
+Lint verde, 22 test ok.
+
+---
+
 ## 2026-06-30 · Fix connessione motore su Windows ("CONNECTING TO ENGINE…")
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
