@@ -15,6 +15,32 @@
 
 ---
 
+## 2026-06-30 · "Add provider API key" nella GUI (no terminale, alla auth login)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+L'utente vuole connettere la propria chiave (es. DeepSeek) **dalla GUI**, non
+da `opencode auth login`. Problema: `/config/providers` ritorna solo i provider
+**già configurati** (da qui si vedeva solo "OpenCode Zen", il gateway a
+pagamento). Il catalogo completo (DeepSeek, OpenAI, …) che mostra `auth login`
+è bundle locale di opencode, non esposto via HTTP/SDK.
+
+Soluzione: `auth.set({id:"deepseek", body:{type:"api", key}})` registra la
+credenziale; dopo, il motore include DeepSeek (coi suoi modelli) in
+`/config/providers`. Quindi basta poter impostare la chiave per un id noto.
+
+- Nuovo `features/settings/AddProviderKey.tsx`: sezione in cima al dropdown del
+  ModelSwitcher con un `<select>` di provider noti (DeepSeek, OpenAI, Anthropic,
+  Google, OpenRouter, Groq, xAI, Mistral) + "Other…" a testo libero, campo
+  chiave, salva → `useSetAuth` (che invalida providers+config) → il provider e i
+  suoi modelli compaiono sotto. Equivalente GUI di `auth login`.
+- Dropdown reso `flex flex-col max-h-[70vh]` con la lista modelli scrollabile,
+  così la nuova sezione non sfora.
+
+Lint verde, 22 test ok.
+
+---
+
 ## 2026-06-30 · Fix crash impostazioni (schermo nero) + mutazioni silenziose
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
