@@ -15,6 +15,37 @@
 
 ---
 
+## 2026-06-30 · Health check robusto (proxy, timeout per-richiesta, fallback)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+L'app restava su "CONNECTING": il log si fermava a `attaching to external
+engine` senza mai arrivare a `attached`, cioè `wait_healthy` non tornava mai.
+Cause probabili e fix in `src-tauri/src/sidecar/mod.rs`:
+
+- **Proxy di sistema** (`health_client` con `.no_proxy()`): reqwest di default
+  onora `HTTP(S)_PROXY`/proxy di sistema e su macchine con VPN/proxy instrada
+  **anche `127.0.0.1`** → ogni probe locale fallisce. Ora i probe bypassano il
+  proxy.
+- **Nessun timeout per-richiesta** (ora `.timeout(3s)`): il vecchio client non
+  aveva timeout sulla singola GET; se il server accettava la connessione ma non
+  rispondeva, `send().await` si bloccava **all'infinito** dentro il loop e il
+  deadline non veniva mai ricontrollato. Ora ogni richiesta scade in 3s, il
+  loop ritenta e alla fine restituisce un errore chiaro.
+- **Accetta qualunque risposta HTTP** (non solo 2xx/4xx): un 3xx/5xx prova
+  comunque che il processo è vivo; stiamo testando la liveness, non autorizzando.
+- **`OPENCODE_BASE_URL` ora è un hint morbido**: se non risponde entro 5s,
+  logghiamo e **ripieghiamo sull'auto-spawn** invece di fallire → una env var
+  stantia non può più bloccare l'app.
+- **Spawn più tollerante**: passiamo solo `--port` (opencode serve fa già bind
+  su 127.0.0.1) per evitare mismatch sul nome flag tra versioni.
+- Log `[kikkocode] health ok: …/config → HTTP <status>` per confermare il
+  collegamento.
+
+Lint verde, 22 test ok. (Rust → CI / build locale dell'utente.)
+
+---
+
 ## 2026-06-30 · Fix race "opencode-ready" (resta su CONNECTING anche se il motore è su)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

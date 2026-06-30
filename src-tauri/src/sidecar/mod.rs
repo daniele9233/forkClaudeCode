@@ -32,12 +32,11 @@ impl Sidecar {
     /// Retries on a fresh port if the chosen one is taken between the probe and
     /// opencode binding it (TOCTOU), or if the server is briefly slow to come up.
     ///
-    /// Escape hatch: if `OPENCODE_BASE_URL` is set, the app does **not** spawn
-    /// its own engine. It health-checks the given URL and attaches to a server
-    /// the user started manually (`opencode serve --port <p>`). This unblocks
-    /// environments where auto-spawn fails (e.g. a Windows `.cmd` PATH shim or a
-    /// CLI-flag change in a newer opencode) — run the engine by hand and point
-    /// the app at it.
+    /// Soft hint: if `OPENCODE_BASE_URL` is set and a server is actually
+    /// reachable there, the app attaches to it instead of spawning its own
+    /// engine (useful to point at a manually-run `opencode serve`). If nothing
+    /// answers at that URL, we log it and **fall back to auto-spawning** our own
+    /// engine rather than failing — so a stale env var can never wedge the app.
     pub async fn start(&self) -> Result<SidecarState, String> {
         // A previous instance may still be around (restart path).
         self.stop();
@@ -45,19 +44,25 @@ impl Sidecar {
         if let Ok(external) = std::env::var("OPENCODE_BASE_URL") {
             let base_url = external.trim().trim_end_matches('/').to_string();
             if !base_url.is_empty() {
-                eprintln!("[kikkocode] OPENCODE_BASE_URL set → attaching to external engine at {base_url}");
-                wait_healthy(&base_url, 15).await.map_err(|e| {
-                    format!("OPENCODE_BASE_URL={base_url} is set but the engine did not respond: {e}")
-                })?;
-                let port = port_from_url(&base_url).unwrap_or(0);
-                let state = SidecarState {
-                    port,
-                    base_url: base_url.clone(),
-                };
-                *self.state.lock().unwrap() = Some(state.clone());
-                *self.generation.lock().unwrap() += 1;
-                eprintln!("[kikkocode] attached to external engine at {base_url}");
-                return Ok(state);
+                eprintln!("[kikkocode] OPENCODE_BASE_URL set → trying external engine at {base_url}");
+                match wait_healthy(&base_url, 5).await {
+                    Ok(()) => {
+                        let port = port_from_url(&base_url).unwrap_or(0);
+                        let state = SidecarState {
+                            port,
+                            base_url: base_url.clone(),
+                        };
+                        *self.state.lock().unwrap() = Some(state.clone());
+                        *self.generation.lock().unwrap() += 1;
+                        eprintln!("[kikkocode] attached to external engine at {base_url}");
+                        return Ok(state);
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "[kikkocode] external engine at {base_url} not reachable ({e}); falling back to auto-spawn"
+                        );
+                    }
+                }
             }
         }
 
@@ -69,14 +74,11 @@ impl Sidecar {
             let port = free_port().await?;
             let base_url = format!("http://127.0.0.1:{}", port);
 
+            // Only pass `--port`: opencode serve already binds 127.0.0.1 by
+            // default, so omitting `--hostname` avoids any flag-name mismatch
+            // across opencode versions that could make the engine exit on start.
             let spawn = engine_command(&bin)
-                .args([
-                    "serve",
-                    "--port",
-                    &port.to_string(),
-                    "--hostname",
-                    "127.0.0.1",
-                ])
+                .args(["serve", "--port", &port.to_string()])
                 // Inherit stdio so the engine's own logs (and any startup error)
                 // are visible in the `tauri dev` / app console while diagnosing.
                 .stdout(Stdio::inherit())
@@ -139,22 +141,16 @@ impl Sidecar {
     }
 
     /// Probe the health endpoint of the running sidecar. Returns `false` if no
-    /// sidecar is running or the endpoint does not respond with success.
+    /// sidecar is running or the server does not answer at all.
     pub async fn is_healthy(&self) -> bool {
         let Some(state) = self.state() else {
             return false;
         };
-        // `/config` is a real GET endpoint that returns 200 once the server is
-        // up (opencode serve does not expose a dedicated `/health`).
+        // Any HTTP answer means the server is listening and routing — a 4xx/5xx
+        // still proves the process is alive (we are not authorizing, just
+        // probing liveness). `/config` is a real GET route on opencode serve.
         let url = format!("{}/config", state.base_url);
-        matches!(
-            reqwest::Client::new()
-                .get(&url)
-                .timeout(Duration::from_secs(2))
-                .send()
-                .await,
-            Ok(r) if r.status().is_success()
-        )
+        matches!(health_client().get(&url).send().await, Ok(_))
     }
 
     /// Report the engine version by running `opencode --version`.
@@ -303,25 +299,45 @@ async fn free_port() -> Result<u16, String> {
         .map_err(|e| format!("port addr error: {e}"))
 }
 
-/// Poll the server until it answers, then consider it ready. Uses `/config`
-/// (a real opencode endpoint) — there is no dedicated `/health` route.
+/// An HTTP client for local health probes. Crucially it **disables proxies**:
+/// reqwest otherwise honors the system / `HTTP(S)_PROXY` settings, and on
+/// machines behind a VPN or corporate proxy that routes even `127.0.0.1`
+/// through the proxy — which makes every local probe fail. A short timeout
+/// keeps the poll loop responsive.
+fn health_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(3))
+        .build()
+        // The builder only fails on a bad TLS backend; fall back to default.
+        .unwrap_or_else(|_| reqwest::Client::new())
+}
+
+/// Poll the server until it answers *anything* over HTTP, then consider it
+/// ready. Any status (2xx/3xx/4xx/5xx) proves the process is up and routing;
+/// we are probing liveness, not authorizing. Uses `/config` (a real route).
 async fn wait_healthy(base_url: &str, timeout_secs: u64) -> Result<(), String> {
     let url = format!("{base_url}/config");
-    let client = reqwest::Client::new();
+    let client = health_client();
     let deadline = tokio::time::Instant::now() + Duration::from_secs(timeout_secs);
 
+    let mut last_err = String::from("no response");
     loop {
         if tokio::time::Instant::now() > deadline {
             return Err(format!(
-                "opencode serve did not respond on {url} within {timeout_secs}s"
+                "no HTTP response on {url} within {timeout_secs}s (last error: {last_err})"
             ));
         }
         match client.get(&url).send().await {
             // Any HTTP answer means the server is listening and routing.
-            Ok(r) if r.status().is_success() || r.status().is_client_error() => {
-                return Ok(())
+            Ok(r) => {
+                eprintln!("[kikkocode] health ok: {url} → HTTP {}", r.status());
+                return Ok(());
             }
-            _ => sleep(Duration::from_millis(250)).await,
+            Err(e) => {
+                last_err = e.to_string();
+                sleep(Duration::from_millis(250)).await;
+            }
         }
     }
 }
