@@ -33,3 +33,11 @@ Thumbs.db
 
 # OpenCode server password (if ever stored locally)
 opencode.env
+
+# OpenCode runtime artifacts written into the sidecar's working directory
+# (src-tauri during dev). These hold local provider keys — never commit them.
+src-tauri/config.json
+src-tauri/opencode.json
+src-tauri/auth.json
+src-tauri/.opencode/
+src-tauri/storage/

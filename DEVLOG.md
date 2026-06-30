@@ -15,6 +15,36 @@
 
 ---
 
+## 2026-06-30 · L'app si riavviava a ogni config change + invio senza modello
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+DeepSeek ora compare coi modelli (provider fix ok), ma: (1) salvando la chiave o
+selezionando un modello l'app si "riapriva" e non succedeva nulla; (2) "ciao" →
+"Invalid API key".
+
+Causa (1): in `tauri dev`, cargo gira con cwd = `src-tauri/`, quindi il sidecar
+opencode eredita quella cwd e **scrive lì il suo `config.json`** a ogni
+`config.update`. Il file-watcher di Tauri lo vede come modifica sorgente →
+**ricompila e riavvia l'app a metà azione** (log: "File src-tauri\config.json
+changed. Rebuilding"). Selezione modello/salvataggio chiave non si fissavano.
+- Fix: `src-tauri/.taurignore` che ignora gli artefatti runtime di opencode
+  (`config.json`, `opencode.json`, `auth.json`, `.opencode/`, `storage/`, log).
+  Più `.gitignore` per non committarli (contengono la chiave). Config-only →
+  niente ricompilazione Rust (basta riavviare `tauri dev`).
+
+Causa (2): `handleSend` inviava **senza modello esplicito** → opencode usava il
+default (il gateway Zen, senza chiave) → "Invalid API key". `ChatShell` ora
+legge `config.model` selezionato e passa `providerID`/`modelID` alla prompt
+(gestendo gli id con slash, es. `openrouter/openai/gpt-4o`).
+
+NB: con la selezione modello che ora "tiene", l'utente deve **scegliere un
+modello DeepSeek** e usare una **chiave valida** (quella vecchia è revocata).
+
+Lint+build verdi, 22 test ok.
+
+---
+
 ## 2026-06-30 · Fix crash "reading 'role'" — shape skew motore 1.17 vs SDK 0.15
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

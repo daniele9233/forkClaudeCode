@@ -3,6 +3,7 @@ import { TerminalSquare, Settings } from "lucide-react";
 import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
+import { useConfig } from "@/opencode/config";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const sendPrompt = useSendPrompt();
   const createSession = useCreateSession();
   const abortSession = useAbortSession();
+  const { data: config } = useConfig();
   const terminalActive = bottomOpen && bottomTab === "terminal";
 
   const handleSend = useCallback(
@@ -36,9 +38,18 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         setActiveSession(sessionId);
       }
 
-      sendPrompt.mutate({ sessionId, text, agent: mode });
+      // Send with the explicitly selected model so the request never falls back
+      // to the engine's default provider (e.g. the Zen gateway, which would
+      // return "Invalid API key" with no Zen key). Format is "provider/model";
+      // the model id itself may contain slashes (e.g. openrouter/openai/gpt-4o).
+      const selected = config?.model ?? "";
+      const slash = selected.indexOf("/");
+      const providerID = slash > 0 ? selected.slice(0, slash) : undefined;
+      const modelID = slash > 0 ? selected.slice(slash + 1) : undefined;
+
+      sendPrompt.mutate({ sessionId, text, agent: mode, providerID, modelID });
     },
-    [activeSessionId, createSession, sendPrompt, setActiveSession],
+    [activeSessionId, createSession, sendPrompt, setActiveSession, config?.model],
   );
 
   const handleAbort = useCallback(() => {

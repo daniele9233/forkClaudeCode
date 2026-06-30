@@ -1,0 +1,12 @@
+# During `tauri dev` the opencode sidecar inherits src-tauri/ as its working
+# directory and writes its runtime config/auth/state there. Without this, every
+# config change (selecting a model, saving a provider key) makes opencode write
+# a file here, which the dev watcher treats as a source change and rebuilds —
+# restarting the app mid-action. Ignore opencode's runtime artifacts.
+config.json
+opencode.json
+opencode.jsonc
+auth.json
+.opencode/
+storage/
+*.log
