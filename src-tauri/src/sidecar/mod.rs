@@ -31,16 +31,45 @@ impl Sidecar {
     ///
     /// Retries on a fresh port if the chosen one is taken between the probe and
     /// opencode binding it (TOCTOU), or if the server is briefly slow to come up.
+    ///
+    /// Escape hatch: if `OPENCODE_BASE_URL` is set, the app does **not** spawn
+    /// its own engine. It health-checks the given URL and attaches to a server
+    /// the user started manually (`opencode serve --port <p>`). This unblocks
+    /// environments where auto-spawn fails (e.g. a Windows `.cmd` PATH shim or a
+    /// CLI-flag change in a newer opencode) — run the engine by hand and point
+    /// the app at it.
     pub async fn start(&self) -> Result<SidecarState, String> {
         // A previous instance may still be around (restart path).
         self.stop();
+
+        if let Ok(external) = std::env::var("OPENCODE_BASE_URL") {
+            let base_url = external.trim().trim_end_matches('/').to_string();
+            if !base_url.is_empty() {
+                eprintln!("[kikkocode] OPENCODE_BASE_URL set → attaching to external engine at {base_url}");
+                wait_healthy(&base_url, 15).await.map_err(|e| {
+                    format!("OPENCODE_BASE_URL={base_url} is set but the engine did not respond: {e}")
+                })?;
+                let port = port_from_url(&base_url).unwrap_or(0);
+                let state = SidecarState {
+                    port,
+                    base_url: base_url.clone(),
+                };
+                *self.state.lock().unwrap() = Some(state.clone());
+                *self.generation.lock().unwrap() += 1;
+                eprintln!("[kikkocode] attached to external engine at {base_url}");
+                return Ok(state);
+            }
+        }
+
+        let bin = opencode_bin();
+        eprintln!("[kikkocode] spawning engine: {} serve", bin.display());
 
         let mut last_err = String::new();
         for attempt in 0..3u32 {
             let port = free_port().await?;
             let base_url = format!("http://127.0.0.1:{}", port);
 
-            let spawn = Command::new(opencode_bin())
+            let spawn = engine_command(&bin)
                 .args([
                     "serve",
                     "--port",
@@ -48,8 +77,10 @@ impl Sidecar {
                     "--hostname",
                     "127.0.0.1",
                 ])
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
+                // Inherit stdio so the engine's own logs (and any startup error)
+                // are visible in the `tauri dev` / app console while diagnosing.
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
                 .kill_on_drop(true)
                 .spawn();
 
@@ -57,7 +88,8 @@ impl Sidecar {
                 Ok(c) => c,
                 Err(e) => {
                     return Err(format!(
-                        "failed to spawn `opencode serve` (is opencode installed and on PATH?): {e}"
+                        "failed to spawn `{} serve` (is opencode installed and on PATH?): {e}",
+                        bin.display()
                     ));
                 }
             };
@@ -73,9 +105,14 @@ impl Sidecar {
                     };
                     *self.state.lock().unwrap() = Some(state.clone());
                     *self.generation.lock().unwrap() += 1;
+                    eprintln!("[kikkocode] engine healthy on {base_url}");
                     return Ok(state);
                 }
                 Err(e) => {
+                    eprintln!(
+                        "[kikkocode] attempt {} failed on {base_url}: {e}",
+                        attempt + 1
+                    );
                     last_err = e;
                     // Kill the unhealthy child before retrying on a new port.
                     self.stop();
@@ -123,7 +160,7 @@ impl Sidecar {
     /// Report the engine version by running `opencode --version`.
     /// Used by the UI to warn when the bundled engine and the pinned SDK diverge.
     pub async fn version(&self) -> Result<String, String> {
-        let out = Command::new(opencode_bin())
+        let out = engine_command(&opencode_bin())
             .arg("--version")
             .output()
             .await
@@ -170,6 +207,7 @@ impl Drop for Sidecar {
 /// `externalBin` is placed there at runtime, without the target-triple suffix);
 /// falls back to `opencode` on `PATH` for development.
 fn opencode_bin() -> std::path::PathBuf {
+    // 1. Bundled sidecar next to the app executable (release builds).
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             let name = if cfg!(windows) {
@@ -183,7 +221,76 @@ fn opencode_bin() -> std::path::PathBuf {
             }
         }
     }
+
+    // 2. On Windows the global CLI is usually a `.cmd`/`.ps1`/`.exe` shim that
+    //    `Command::new("opencode")` will NOT find — Rust does not apply PATHEXT
+    //    the way the shell does. Resolve the full path ourselves by scanning
+    //    PATH with the executable extensions so spawning works in dev too.
+    if cfg!(windows) {
+        if let Some(found) = which_on_path("opencode") {
+            return found;
+        }
+    }
+
+    // 3. Fall back to the bare name (resolved via PATH on Unix).
     std::path::PathBuf::from("opencode")
+}
+
+/// Build a `Command` that runs the resolved engine binary.
+///
+/// On Windows a `.cmd`/`.bat` shim (how npm installs the global `opencode` CLI)
+/// cannot be launched directly by `CreateProcess` — it must be run through
+/// `cmd.exe /C`. For real executables (and on Unix) we invoke the path directly.
+fn engine_command(bin: &std::path::Path) -> Command {
+    if cfg!(windows) {
+        let ext = bin
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_ascii_lowercase());
+        if matches!(ext.as_deref(), Some("cmd") | Some("bat")) {
+            let mut cmd = Command::new("cmd");
+            cmd.arg("/C").arg(bin);
+            return cmd;
+        }
+    }
+    Command::new(bin)
+}
+
+/// Locate an executable on `PATH`, applying Windows `PATHEXT` extensions.
+fn which_on_path(stem: &str) -> Option<std::path::PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    let exts: Vec<String> = if cfg!(windows) {
+        std::env::var("PATHEXT")
+            .unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".into())
+            .split(';')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_ascii_lowercase())
+            .collect()
+    } else {
+        vec![String::new()]
+    };
+    for dir in std::env::split_paths(&path) {
+        // Exact name first (covers an already-suffixed stem).
+        let exact = dir.join(stem);
+        if exact.is_file() {
+            return Some(exact);
+        }
+        for ext in &exts {
+            if ext.is_empty() {
+                continue;
+            }
+            let candidate = dir.join(format!("{stem}{ext}"));
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
+/// Best-effort parse of the port out of an `http://host:port` URL.
+fn port_from_url(url: &str) -> Option<u16> {
+    url.rsplit(':').next()?.trim_end_matches('/').parse().ok()
 }
 
 /// Find a free TCP port by binding to port 0.

@@ -15,6 +15,40 @@
 
 ---
 
+## 2026-06-30 · Fix connessione motore su Windows ("CONNECTING TO ENGINE…")
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+L'app su Windows restava bloccata su "CONNECTING TO ENGINE…" pur avendo un
+`opencode serve` funzionante a mano (opencode **1.17.11** sulla porta 4096).
+Diagnosi: lo spawn automatico del sidecar falliva e/o il check versione
+nagava a vuoto. Interventi in `src-tauri/src/sidecar/mod.rs` + `version.ts`:
+
+- **Risoluzione binario robusta su Windows** (`opencode_bin` + nuovo
+  `which_on_path`): la CLI globale installata via npm è uno shim
+  `.cmd`/`.ps1`/`.exe`, e `Command::new("opencode")` **non** applica `PATHEXT`
+  come la shell → spawn fallito. Ora scandiamo `PATH` con le estensioni di
+  `PATHEXT` e troviamo il file reale.
+- **Esecuzione shim `.cmd`/`.bat`** (nuovo `engine_command`): un `.cmd` non si
+  lancia con `CreateProcess` diretto → lo instradiamo via `cmd.exe /C`. Gli
+  `.exe` (e Unix) restano invocati direttamente. Il bundle di release usa
+  `opencode.exe` reale, quindi la produzione non passa mai dal wrapper `cmd`.
+- **Escape hatch `OPENCODE_BASE_URL`**: se impostata, l'app **non** lancia un
+  proprio motore ma si aggancia al server indicato (es. quello avviato a mano
+  su :4096). Sblocco immediato finché lo spawn automatico non è verificato.
+- **Stdio ereditato + log `[kikkocode] …`**: lo spawn ora eredita stdout/stderr
+  e logga i tentativi/health, così il terminale `tauri dev` mostra la causa
+  reale di un fallimento.
+- **Check versione corretto** (`version.ts`): SDK npm (0.x) e server opencode
+  (1.x) hanno **schemi di versione indipendenti** → il vecchio confronto
+  `major.minor == 0.15` nagava su ogni install. Ora avvisiamo **solo** se il
+  major del motore è sotto `MIN_ENGINE_MAJOR = 1` (motore troppo vecchio).
+
+Frontend lint verde, 22 test ok. (Rust verificato per ispezione — lo compila
+la CI; `static.crates.io` resta bloccato in web-env.)
+
+---
+
 ## 2026-06-27 · Hardening versioni motore ↔ SDK
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (vari)
