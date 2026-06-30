@@ -15,6 +15,33 @@
 
 ---
 
+## 2026-06-30 · ROOT CAUSE: risolveva lo shell-script `opencode` (no estensione)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Finalmente il log ha rivelato la causa:
+`[kikkocode] spawning engine: C:\Users\marce\AppData\Roaming\npm\opencode serve`
+→ risolveva il file **`opencode` senza estensione**, cioè lo **shell-script
+Unix** che npm installa accanto a `opencode.cmd`/`opencode.ps1`. Windows
+`CreateProcess` non può eseguire uno script di shell → il motore non partiva
+mai → "Connecting" infinito.
+
+Il bug era in `which_on_path`: controllava il **nome nudo prima** delle
+estensioni `PATHEXT`. Su Windows è esattamente al contrario: vanno provate
+prima `.cmd`/`.exe`/… e il nome nudo **solo** se lo stem ha già un'estensione.
+Fix: ordine invertito su Windows (Unix invariato). Ora risolve
+`...\opencode.cmd` e `engine_command` lo instrada via `cmd /C`.
+
+Log aggiunti (richiesti dall'utente):
+- `engine_command`: "launching shim via cmd /C: …" oppure "launching directly: …".
+- dopo lo spawn: "engine process started (pid …); polling health on … ".
+- `wait_healthy`: logga il **primo** errore del probe (connection refused vs
+  timeout vs proxy) e l'esito "health ok: … → HTTP <status>".
+
+Lint verde, 22 test ok. (Rust compilato dall'utente / CI.)
+
+---
+
 ## 2026-06-30 · Health check robusto (proxy, timeout per-richiesta, fallback)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

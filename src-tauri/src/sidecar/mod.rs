@@ -96,6 +96,10 @@ impl Sidecar {
                 }
             };
 
+            eprintln!(
+                "[kikkocode] engine process started (pid {:?}); polling health on {base_url} …",
+                child.id()
+            );
             *self.child.lock().unwrap() = Some(child);
 
             // Wait up to 10 seconds for the health endpoint to respond.
@@ -244,40 +248,58 @@ fn engine_command(bin: &std::path::Path) -> Command {
             .and_then(|e| e.to_str())
             .map(|e| e.to_ascii_lowercase());
         if matches!(ext.as_deref(), Some("cmd") | Some("bat")) {
+            eprintln!(
+                "[kikkocode] launching shim via cmd /C: {}",
+                bin.display()
+            );
             let mut cmd = Command::new("cmd");
             cmd.arg("/C").arg(bin);
             return cmd;
         }
     }
+    eprintln!("[kikkocode] launching directly: {}", bin.display());
     Command::new(bin)
 }
 
 /// Locate an executable on `PATH`, applying Windows `PATHEXT` extensions.
+///
+/// On Windows we try the `PATHEXT`-suffixed names (`.cmd`/`.exe`/…) **before**
+/// the bare stem: npm installs three files in its bin dir — `opencode` (a Unix
+/// shell script), `opencode.cmd`, and `opencode.ps1`. The extensionless one is
+/// NOT runnable by `CreateProcess`; we must pick `opencode.cmd`. Only if the
+/// stem already carries an extension do we accept it verbatim.
 fn which_on_path(stem: &str) -> Option<std::path::PathBuf> {
     let path = std::env::var_os("PATH")?;
-    let exts: Vec<String> = if cfg!(windows) {
-        std::env::var("PATHEXT")
+    let stem_has_ext = std::path::Path::new(stem).extension().is_some();
+
+    if cfg!(windows) {
+        let exts: Vec<String> = std::env::var("PATHEXT")
             .unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".into())
             .split(';')
             .filter(|s| !s.is_empty())
             .map(|s| s.to_ascii_lowercase())
-            .collect()
-    } else {
-        vec![String::new()]
-    };
-    for dir in std::env::split_paths(&path) {
-        // Exact name first (covers an already-suffixed stem).
-        let exact = dir.join(stem);
-        if exact.is_file() {
-            return Some(exact);
-        }
-        for ext in &exts {
-            if ext.is_empty() {
-                continue;
+            .collect();
+        for dir in std::env::split_paths(&path) {
+            // Suffixed executables first (the runnable shims).
+            for ext in &exts {
+                let candidate = dir.join(format!("{stem}{ext}"));
+                if candidate.is_file() {
+                    return Some(candidate);
+                }
             }
-            let candidate = dir.join(format!("{stem}{ext}"));
-            if candidate.is_file() {
-                return Some(candidate);
+            // Bare name only if the caller already gave an extension.
+            if stem_has_ext {
+                let exact = dir.join(stem);
+                if exact.is_file() {
+                    return Some(exact);
+                }
+            }
+        }
+    } else {
+        for dir in std::env::split_paths(&path) {
+            let exact = dir.join(stem);
+            if exact.is_file() {
+                return Some(exact);
             }
         }
     }
@@ -322,6 +344,7 @@ async fn wait_healthy(base_url: &str, timeout_secs: u64) -> Result<(), String> {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(timeout_secs);
 
     let mut last_err = String::from("no response");
+    let mut logged_first = false;
     loop {
         if tokio::time::Instant::now() > deadline {
             return Err(format!(
@@ -336,6 +359,12 @@ async fn wait_healthy(base_url: &str, timeout_secs: u64) -> Result<(), String> {
             }
             Err(e) => {
                 last_err = e.to_string();
+                // Log the first failure so the cause (connection refused vs.
+                // timeout vs. proxy) is visible without spamming every retry.
+                if !logged_first {
+                    logged_first = true;
+                    eprintln!("[kikkocode] health probe {url} not ready yet: {last_err}");
+                }
                 sleep(Duration::from_millis(250)).await;
             }
         }
