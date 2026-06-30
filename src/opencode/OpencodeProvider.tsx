@@ -34,18 +34,22 @@ export function OpencodeProvider({ children }: Props) {
 
 function SidecarBootstrap({ children }: { children: ReactNode }) {
   const { setOpencodeUrl, setSidecarStatus } = useSessionStore();
-  const started = useRef(false);
-
   const ready = useRef(false);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
+    // NOTE: no "run once" guard here on purpose. Under React.StrictMode (dev)
+    // the effect runs mount → cleanup → mount; a `started` ref guard would let
+    // the first mount register the listener/poll, the cleanup tear them down,
+    // and the second mount register nothing — leaving the app deaf to the
+    // engine. Instead we do a full setup/teardown each mount and reset `ready`.
+    ready.current = false;
+    let cancelled = false;
 
-    // Initialize once, whether triggered by the event or the startup poll.
+    // Initialize once per mount, whether triggered by the event or the poll.
     const onReady = (url: string) => {
-      if (ready.current) return;
+      if (ready.current || cancelled) return;
       ready.current = true;
+      console.info("[kikkocode] engine ready at", url);
       initClient(url);
       setOpencodeUrl(url);
       setSidecarStatus("ready");
@@ -68,20 +72,20 @@ function SidecarBootstrap({ children }: { children: ReactNode }) {
     });
 
     const unlistenError = listen<string>("opencode-error", (event) => {
+      if (cancelled || ready.current) return;
       setSidecarStatus("error", event.payload);
     });
 
     // The event above is fire-and-forget: if the sidecar became ready *before*
-    // this listener was registered (e.g. attaching to an already-running
-    // `opencode serve` via OPENCODE_BASE_URL, which is near-instant), the event
-    // is lost and we'd hang on "connecting" forever. So also poll the backend
-    // for the URL on mount, with a few retries to cover the auto-spawn window.
-    let cancelled = false;
+    // this listener was registered (the engine auto-spawns near-instantly when
+    // attaching to an already-running server), the event is lost and we'd hang
+    // on "connecting". So also poll the backend for the URL, which covers both
+    // the race and the normal auto-spawn window (~up to 30s of engine startup).
     (async () => {
-      for (let i = 0; i < 20 && !cancelled && !ready.current; i++) {
+      for (let i = 0; i < 60 && !cancelled && !ready.current; i++) {
         try {
           const url = await invoke<string>("get_opencode_url");
-          if (url) {
+          if (url && !cancelled) {
             onReady(url);
             return;
           }

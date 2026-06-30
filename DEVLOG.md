@@ -15,6 +15,34 @@
 
 ---
 
+## 2026-06-30 · ROOT CAUSE #2: StrictMode + guardia `started.current` → frontend sordo
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Col motore ormai **healthy** lato Rust (log: `opencode server listening …`,
+`health ok → HTTP 200`, `engine healthy`), l'app restava comunque su
+"Connecting to engine…". Il banner si nasconde solo se
+`sidecarStatus === "ready"`, quindi il frontend non riceveva mai il ready.
+
+**Causa:** `OpencodeProvider` aveva `const started = useRef(false)` con
+`if (started.current) return` in cima all'effect. Sotto `React.StrictMode`
+(dev) l'effect gira **mount → cleanup → mount**: il primo mount registra
+listener+poll, il cleanup li smonta, il secondo mount trova `started.current
+=== true` e **non registra niente** → nessun listener `opencode-ready`, nessun
+poll → l'app è sorda al motore (anche se è su).
+
+**Fix** (`src/opencode/OpencodeProvider.tsx`): rimossa la guardia `started`.
+Ora ogni mount fa setup/teardown completo e resetta `ready.current` in cima;
+il guard `ready` (idempotenza entro il mount) evita doppia init. `startEventStream`
+è già idempotente e `stopEventStream` è no-op se non attivo, quindi il ciclo
+StrictMode è gestito. Poll esteso a 60×500ms (30s) come backstop, più log
+`[kikkocode] engine ready at <url>` in console.
+
+Lint verde, 22 test ok. Questo è il pezzo mancante: Rust connetteva, ma il
+frontend buttava via i propri listener.
+
+---
+
 ## 2026-06-30 · ROOT CAUSE: risolveva lo shell-script `opencode` (no estensione)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
