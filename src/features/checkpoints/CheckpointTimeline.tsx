@@ -9,6 +9,7 @@ import {
   useUnrevertSession,
 } from "@/opencode/session";
 import { useChatStore } from "@/stores/chat.store";
+import { rowInfo, isAssistant, createdAt } from "@/opencode/messageShape";
 import type { AssistantMessage } from "@opencode-ai/sdk/client";
 
 function fmtCost(c: number): string {
@@ -47,13 +48,14 @@ export function CheckpointTimeline() {
 
   const checkpoints = useMemo((): AssistantMessage[] => {
     const byId = new Map<string, AssistantMessage>();
-    for (const { info } of sessionMsgsData) {
-      if (info.role === "assistant") byId.set(info.id, info as AssistantMessage);
+    for (const row of sessionMsgsData) {
+      const info = rowInfo(row);
+      if (isAssistant(info)) byId.set(info.id, info);
     }
     for (const [id, msg] of liveMessages) {
-      if (msg.role === "assistant") byId.set(id, msg as AssistantMessage);
+      if (isAssistant(msg)) byId.set(id, msg);
     }
-    return Array.from(byId.values()).sort((a, b) => a.time.created - b.time.created);
+    return Array.from(byId.values()).sort((a, b) => createdAt(a) - createdAt(b));
   }, [sessionMsgsData, liveMessages]);
 
   if (!activeSessionId) {

@@ -15,6 +15,30 @@
 
 ---
 
+## 2026-06-30 · Fix crash "reading 'role'" — shape skew motore 1.17 vs SDK 0.15
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Dopo aver aggiunto il provider, l'app mostrava "Something went wrong — Cannot
+read properties of undefined (reading 'role')" (catturato dall'ErrorBoundary,
+non più schermo nero). Causa: i componenti iteravano i messaggi di sessione
+assumendo la forma `{ info, parts }` dell'SDK 0.15 e accedevano a `info.role`,
+`msg.tokens.input`, `model.limit.context`, `time.created` senza guardie; il
+motore 1.17 può restituire forme leggermente diverse → `info` undefined →
+throw in render.
+
+- Nuovo `src/opencode/messageShape.ts`: `rowInfo(row)` (estrae il Message sia
+  da `{info,parts}` sia da forma piatta), `isAssistant(m)` (type-guard),
+  `createdAt(m)` (tollerante a `time` mancante).
+- Applicato a tutti i consumer di messaggi: `useSessionStats` (StatStrip +
+  ContextSparkline, sempre montati), `MessageList`/`MessageBubble` (render
+  chat), `ContextInspectorPanel`, `CheckpointTimeline`. Optional-chaining su
+  `tokens`/`cache`/`cost`/`limit`/`models`.
+
+Fix **solo frontend** → niente ricompilazione Rust. Lint+build verdi, 22 test ok.
+
+---
+
 ## 2026-06-30 · Provider funzionante davvero: scrive la config + persiste su disco
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

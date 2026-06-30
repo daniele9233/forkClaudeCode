@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { Part } from "@opencode-ai/sdk/client";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionMessages } from "@/opencode/session";
+import { rowInfo } from "@/opencode/messageShape";
 import { MessageBubble } from "./MessageBubble";
 
 interface Props {
@@ -43,7 +44,10 @@ export function MessageList({ sessionId, isRunning }: Props) {
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-      {messageRows.map(({ info, parts: historicParts }) => {
+      {messageRows.map((row) => {
+        const info = rowInfo(row);
+        if (!info) return null;
+        const historicParts = ((row as { parts?: Part[] }).parts ?? []) as Part[];
         // Prefer live (streaming) parts when available for this message
         const liveMsgParts = liveParts.get(info.id);
         const parts: Part[] = liveMsgParts
@@ -54,7 +58,7 @@ export function MessageList({ sessionId, isRunning }: Props) {
         const message = liveMsg ?? info;
 
         const msgIsStreaming =
-          isRunning && liveMsgParts !== undefined && message.role === "assistant";
+          isRunning && liveMsgParts !== undefined && message?.role === "assistant";
 
         return (
           <motion.div

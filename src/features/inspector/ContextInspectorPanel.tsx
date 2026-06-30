@@ -5,6 +5,7 @@ import { useSessionStore } from "@/stores/session.store";
 import { useSessionMessages } from "@/opencode/session";
 import { useChatStore } from "@/stores/chat.store";
 import { useContextMessages, useProviders } from "@/opencode/context";
+import { rowInfo, isAssistant, createdAt } from "@/opencode/messageShape";
 
 /* ── helpers ───────────────────────────────────────────────────── */
 
@@ -74,26 +75,27 @@ export function ContextInspectorPanel() {
   /* Merge historical + live assistant messages */
   const assistantMsgs = useMemo((): AssistantMessage[] => {
     const byId = new Map<string, AssistantMessage>();
-    for (const { info } of sessionMsgsData) {
-      if (info.role === "assistant") byId.set(info.id, info as AssistantMessage);
+    for (const row of sessionMsgsData) {
+      const info = rowInfo(row);
+      if (isAssistant(info)) byId.set(info.id, info);
     }
     for (const [id, msg] of liveMessages) {
-      if (msg.role === "assistant") byId.set(id, msg as AssistantMessage);
+      if (isAssistant(msg)) byId.set(id, msg);
     }
-    return Array.from(byId.values()).sort((a, b) => a.time.created - b.time.created);
+    return Array.from(byId.values()).sort((a, b) => createdAt(a) - createdAt(b));
   }, [sessionMsgsData, liveMessages]);
 
-  /* Aggregate session totals */
+  /* Aggregate session totals (tolerant of missing token fields) */
   const totals = useMemo(
     () =>
       assistantMsgs.reduce(
         (acc, msg) => ({
-          input: acc.input + msg.tokens.input,
-          output: acc.output + msg.tokens.output,
-          reasoning: acc.reasoning + msg.tokens.reasoning,
-          cacheRead: acc.cacheRead + msg.tokens.cache.read,
-          cacheWrite: acc.cacheWrite + msg.tokens.cache.write,
-          cost: acc.cost + msg.cost,
+          input: acc.input + (msg.tokens?.input ?? 0),
+          output: acc.output + (msg.tokens?.output ?? 0),
+          reasoning: acc.reasoning + (msg.tokens?.reasoning ?? 0),
+          cacheRead: acc.cacheRead + (msg.tokens?.cache?.read ?? 0),
+          cacheWrite: acc.cacheWrite + (msg.tokens?.cache?.write ?? 0),
+          cost: acc.cost + (msg.cost ?? 0),
         }),
         { input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, cost: 0 },
       ),
@@ -102,12 +104,12 @@ export function ContextInspectorPanel() {
 
   /* Last message → proxy for current context window usage */
   const lastMsg = assistantMsgs[assistantMsgs.length - 1];
-  const currentContextTokens = lastMsg?.tokens.input ?? 0;
+  const currentContextTokens = lastMsg?.tokens?.input ?? 0;
 
   /* Model context limit */
   const provider = providers.find((p) => p.id === lastMsg?.providerID);
-  const model = lastMsg ? provider?.models[lastMsg.modelID] : undefined;
-  const contextLimit = model?.limit.context ?? 0;
+  const model = lastMsg ? provider?.models?.[lastMsg.modelID] : undefined;
+  const contextLimit = model?.limit?.context ?? 0;
   const pct =
     contextLimit > 0 ? Math.min(100, (currentContextTokens / contextLimit) * 100) : 0;
 
@@ -115,7 +117,7 @@ export function ContextInspectorPanel() {
   const breakdown = useMemo(() => {
     const counts = new Map<string, number>();
     for (const entry of contextEntries) {
-      const role = entry.info.role;
+      const role = entry?.info?.role ?? "unknown";
       counts.set(role, (counts.get(role) ?? 0) + 1);
     }
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);

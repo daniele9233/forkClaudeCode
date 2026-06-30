@@ -4,6 +4,7 @@ import { useSessionStore } from "@/stores/session.store";
 import { useSessionMessages } from "@/opencode/session";
 import { useProviders } from "@/opencode/context";
 import { useChatStore } from "@/stores/chat.store";
+import { rowInfo, isAssistant, createdAt } from "@/opencode/messageShape";
 
 export interface SessionStats {
   activeSessionId: string | null;
@@ -27,13 +28,14 @@ export function useSessionStats(): SessionStats {
 
   const steps = useMemo((): AssistantMessage[] => {
     const byId = new Map<string, AssistantMessage>();
-    for (const { info } of rows) {
-      if (info.role === "assistant") byId.set(info.id, info as AssistantMessage);
+    for (const row of rows) {
+      const info = rowInfo(row);
+      if (isAssistant(info)) byId.set(info.id, info);
     }
     for (const [id, msg] of liveMessages) {
-      if (msg.role === "assistant") byId.set(id, msg as AssistantMessage);
+      if (isAssistant(msg)) byId.set(id, msg);
     }
-    return Array.from(byId.values()).sort((a, b) => a.time.created - b.time.created);
+    return Array.from(byId.values()).sort((a, b) => createdAt(a) - createdAt(b));
   }, [rows, liveMessages]);
 
   const lastMsg = steps[steps.length - 1];
@@ -48,8 +50,8 @@ export function useSessionStats(): SessionStats {
     const totalCost = steps.reduce((a, m) => a + (m.cost ?? 0), 0);
 
     const provider = providers.find((p) => p.id === lastMsg?.providerID);
-    const model = lastMsg ? provider?.models[lastMsg.modelID] : undefined;
-    const contextLimit = model?.limit.context ?? 0;
+    const model = lastMsg ? provider?.models?.[lastMsg.modelID] : undefined;
+    const contextLimit = model?.limit?.context ?? 0;
     const pct = contextLimit > 0 ? Math.min(100, (tokensIn / contextLimit) * 100) : 0;
 
     return {

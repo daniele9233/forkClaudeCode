@@ -123,6 +123,7 @@ function AssistantBubble({ parts, isStreaming, error }: AssistantBubbleProps) {
 }
 
 export function MessageBubble({ message, parts, isStreaming }: Props) {
+  if (!message) return null;
   if (message.role === "user") {
     return <UserBubble message={message} parts={parts} />;
   }
