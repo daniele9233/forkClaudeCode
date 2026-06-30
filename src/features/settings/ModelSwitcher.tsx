@@ -8,6 +8,8 @@ export function ModelSwitcher() {
   const [open, setOpen] = useState(false);
   const [keyInputs, setKeyInputs] = useState<Record<string, string>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [savedProvider, setSavedProvider] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const { data: config } = useConfig();
@@ -34,17 +36,31 @@ export function ModelSwitcher() {
   }, [open]);
 
   const handleSelect = (providerId: string, modelId: string) => {
-    updateConfig.mutate({ model: `${providerId}/${modelId}` });
+    setError(null);
+    updateConfig.mutate(
+      { model: `${providerId}/${modelId}` },
+      {
+        onError: (e) =>
+          setError(`Could not select model: ${e instanceof Error ? e.message : String(e)}`),
+      },
+    );
     setOpen(false);
   };
 
   const handleSaveKey = async (providerId: string) => {
     const key = keyInputs[providerId]?.trim();
     if (!key) return;
+    setError(null);
+    setSavedProvider(null);
     setSavingKey(providerId);
     try {
       await setAuth.mutateAsync({ providerId, key });
       setKeyInputs((prev) => ({ ...prev, [providerId]: "" }));
+      setSavedProvider(providerId);
+      // Clear the "saved" tick after a moment.
+      setTimeout(() => setSavedProvider((p) => (p === providerId ? null : p)), 2500);
+    } catch (e) {
+      setError(`Could not save key: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSavingKey(null);
     }
@@ -73,6 +89,11 @@ export function ModelSwitcher() {
 
       {open && (
         <div className="glass-strong glass-border absolute right-0 top-full z-50 mt-1.5 w-80 overflow-hidden rounded-2xl shadow-xl">
+          {error && (
+            <p className="border-b border-red-500/30 bg-red-500/10 px-3 py-2 text-[10px] text-red-300">
+              {error}
+            </p>
+          )}
           <div className="max-h-[60vh] overflow-y-auto py-1">
             {providers.length === 0 && (
               <p className="px-3 py-4 text-center text-xs text-[var(--muted-foreground)]">
@@ -123,6 +144,8 @@ export function ModelSwitcher() {
                       >
                         {savingKey === provider.id ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : savedProvider === provider.id ? (
+                          <Check className="h-3 w-3 text-[var(--color-online)]" />
                         ) : (
                           <Check className="h-3 w-3" />
                         )}

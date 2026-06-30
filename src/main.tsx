@@ -5,11 +5,14 @@ import "./index.css";
 import "./stores/theme.store";
 import App from "./App";
 import { OpencodeProvider } from "./opencode/OpencodeProvider";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <OpencodeProvider>
-      <App />
-    </OpencodeProvider>
+    <ErrorBoundary label="app">
+      <OpencodeProvider>
+        <App />
+      </OpencodeProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );

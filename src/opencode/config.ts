@@ -43,6 +43,7 @@ export function useUpdateConfig() {
 }
 
 export function useSetAuth() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ providerId, key }: { providerId: string; key: string }) => {
       await getClient().auth.set({
@@ -50,6 +51,11 @@ export function useSetAuth() {
         body: { type: "api", key },
         throwOnError: true,
       });
+    },
+    onSuccess: () => {
+      // Re-read providers/config so the UI reflects the now-authenticated state.
+      qc.invalidateQueries({ queryKey: ["config", "providers"] });
+      qc.invalidateQueries({ queryKey: configKeys.config() });
     },
   });
 }

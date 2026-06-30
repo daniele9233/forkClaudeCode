@@ -15,6 +15,30 @@
 
 ---
 
+## 2026-06-30 · Fix crash impostazioni (schermo nero) + mutazioni silenziose
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+App connessa e funzionante, ma: (1) aprendo le impostazioni l'app crashava a
+schermo nero; (2) selezionare un modello o salvare la chiave API non dava
+nessun feedback.
+
+- **Schermo nero:** `SettingsModal > SkillsTab` faceva `Object.keys(agent.tools)`
+  e leggeva campi dell'agente senza guardie. opencode **1.17** può restituire
+  una shape diversa dai tipi dell'SDK **0.15** (es. `tools` assente) → throw in
+  render, e **senza error boundary** l'intero albero React si smontava → nero.
+  Fix: nuovo `components/ErrorBoundary.tsx` che avvolge l'app (in `main.tsx`) e
+  il contenuto del modale; guardia `agent.tools ?? {}`.
+- **Mutazioni silenziose:** `useUpdateConfig`/`useSetAuth` non mostravano errori.
+  `ModelSwitcher` ora cattura e mostra l'errore (banner rosso nel dropdown) sia
+  per la selezione modello sia per il salvataggio chiave, con spunta verde
+  "salvato". `useSetAuth` ora invalida `providers`+`config` così la UI riflette
+  lo stato autenticato.
+
+Lint verde, 22 test ok.
+
+---
+
 ## 2026-06-30 · ROOT CAUSE #2: StrictMode + guardia `started.current` → frontend sordo
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

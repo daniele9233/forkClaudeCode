@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAgents, useMcpStatus, useConfig, useUpdateConfig } from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
 
@@ -84,10 +85,10 @@ function SkillsTab() {
             )}
           </div>
 
-          {/* Tools enabled for this agent */}
-          {Object.keys(agent.tools).length > 0 && (
+          {/* Tools enabled for this agent (guard: engine may omit `tools`) */}
+          {Object.keys(agent.tools ?? {}).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {Object.entries(agent.tools)
+              {Object.entries(agent.tools ?? {})
                 .filter(([, enabled]) => enabled)
                 .map(([tool]) => (
                   <span
@@ -389,10 +390,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           ))}
         </div>
 
-        {/* Tab content */}
+        {/* Tab content — boundary keeps a bad engine payload from blanking the app */}
         <div className="flex-1 overflow-y-auto p-4">
-          {tab === "skills" && <SkillsTab />}
-          {tab === "mcp" && <McpTab />}
+          <ErrorBoundary label="settings">
+            {tab === "skills" && <SkillsTab />}
+            {tab === "mcp" && <McpTab />}
+          </ErrorBoundary>
         </div>
       </Panel>
     </div>
