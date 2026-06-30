@@ -15,6 +15,33 @@
 
 ---
 
+## 2026-06-30 · Provider funzionante davvero: scrive la config + persiste su disco
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Il solo `auth.set` non bastava: salvava la chiave ("Key saved") ma DeepSeek non
+compariva in `/config/providers` e non si collegava. Su questa versione del
+motore serve una **voce di provider nella config**, non solo la credenziale.
+
+- `useAddProvider` (nuovo): scrive una **definizione completa** del provider
+  (`name`, `npm: @ai-sdk/openai-compatible`, `options.baseURL+apiKey`, `models`)
+  dentro `config.provider.<id>` via `config.update` → il motore lo espone subito
+  coi suoi modelli (no restart). Poi `auth.set` come extra.
+- **Persistenza su disco** (Rust): nuovo `src-tauri/src/config_store.rs` +
+  comando `persist_opencode_provider` che fonde la voce nel `opencode.json`
+  globale (`$XDG_CONFIG_HOME`/`~/.config/opencode/opencode.json`,
+  `%USERPROFILE%` su Windows). Così sopravvive ai riavvii anche se
+  `config.update` fosse solo runtime. Best-effort, non bloccante.
+- `AddProviderKey` riscritto con template OpenAI-compatibili (DeepSeek, OpenAI,
+  OpenRouter, Groq, xAI, Mistral) + "Other" (id/baseURL/model liberi).
+- `ModelSwitcher`: nasconde **OpenCode Zen** (`id==="opencode"`, gateway a
+  pagamento) — lista solo i provider connessi dall'utente; guardia su
+  `model.limit?.context` per non crashare su modelli custom senza limit.
+
+Lint+build verdi, 22 test ok. Rust → lo compila l'utente/CI.
+
+---
+
 ## 2026-06-30 · "Add provider API key" nella GUI (no terminale, alla auth login)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

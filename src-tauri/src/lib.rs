@@ -1,3 +1,4 @@
+mod config_store;
 mod sidecar;
 
 use sidecar::Sidecar;
@@ -31,6 +32,14 @@ async fn stop_opencode(state: tauri::State<'_, AppState>) -> Result<(), String> 
 #[tauri::command]
 async fn opencode_version(state: tauri::State<'_, AppState>) -> Result<String, String> {
     state.sidecar.version().await
+}
+
+/// Persist a provider definition (added from the GUI) into the global
+/// opencode config on disk, so it survives engine/app restarts. `entry_json`
+/// is the JSON for `provider.<id>`. Returns the written file path.
+#[tauri::command]
+fn persist_opencode_provider(id: String, entry_json: String) -> Result<String, String> {
+    config_store::persist_provider(&id, &entry_json)
 }
 
 /// Restart the sidecar (used by the UI's "Reconnect" action after a crash).
@@ -122,7 +131,8 @@ pub fn run() {
             get_opencode_url,
             stop_opencode,
             restart_opencode,
-            opencode_version
+            opencode_version,
+            persist_opencode_provider
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

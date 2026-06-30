@@ -18,6 +18,10 @@ export function ModelSwitcher() {
   const updateConfig = useUpdateConfig();
   const setAuth = useSetAuth();
 
+  // Hide the built-in "OpenCode Zen" gateway (paid, needs its own key); show
+  // only providers the user connects with their own key via "Add provider".
+  const visibleProviders = providers.filter((p) => p.id !== "opencode");
+
   const currentModel = config?.model ?? "";
   const [currentProviderId, currentModelId] = currentModel.includes("/")
     ? currentModel.split("/").slice(0, 2)
@@ -100,12 +104,12 @@ export function ModelSwitcher() {
             <AddProviderKey />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto py-1">
-            {providers.length === 0 && (
+            {visibleProviders.length === 0 && (
               <p className="px-3 py-4 text-center text-xs text-[var(--muted-foreground)]">
-                No providers available — add a provider key above to get started.
+                No providers connected yet — use “Add provider API key” above.
               </p>
             )}
-            {providers.map((provider) => {
+            {visibleProviders.map((provider) => {
               const modelEntries = Object.entries(provider.models);
               const needsKey = provider.env.length > 0;
 
@@ -175,7 +179,7 @@ export function ModelSwitcher() {
                       >
                         <span className="flex-1 truncate text-xs">{model.name}</span>
                         <span className="shrink-0 text-[9px] text-[var(--muted-foreground)]">
-                          {(model.limit.context / 1000).toFixed(0)}K
+                          {((model.limit?.context ?? 0) / 1000).toFixed(0)}K
                         </span>
                         {isActive && (
                           <Check className="h-3 w-3 shrink-0 text-[var(--primary)]" />

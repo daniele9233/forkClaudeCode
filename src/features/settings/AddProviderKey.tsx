@@ -1,57 +1,127 @@
 import { useState } from "react";
 import { Check, Loader2, Plus, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSetAuth } from "@/opencode/config";
+import { useAddProvider, type AddProviderInput } from "@/opencode/config";
 
 /**
- * Well-known providers and their canonical opencode ids. Setting a credential
- * for one of these makes the engine surface it (with its models) in the
- * provider list — the GUI equivalent of `opencode auth login`.
+ * Curated OpenAI-compatible providers. Each is fully self-describing (npm +
+ * baseURL + a couple of models) so writing it into the config — together with
+ * the user's key — makes the engine surface it with usable models. All of these
+ * speak the OpenAI wire format, so they share the same npm package.
  */
-const KNOWN_PROVIDERS: { id: string; label: string; env: string }[] = [
-  { id: "deepseek", label: "DeepSeek", env: "DEEPSEEK_API_KEY" },
-  { id: "openai", label: "OpenAI", env: "OPENAI_API_KEY" },
-  { id: "anthropic", label: "Anthropic (Claude)", env: "ANTHROPIC_API_KEY" },
-  { id: "google", label: "Google (Gemini)", env: "GEMINI_API_KEY" },
-  { id: "openrouter", label: "OpenRouter", env: "OPENROUTER_API_KEY" },
-  { id: "groq", label: "Groq", env: "GROQ_API_KEY" },
-  { id: "xai", label: "xAI (Grok)", env: "XAI_API_KEY" },
-  { id: "mistral", label: "Mistral", env: "MISTRAL_API_KEY" },
+interface Template extends Omit<AddProviderInput, "apiKey"> {
+  label: string;
+}
+
+const OPENAI_COMPAT = "@ai-sdk/openai-compatible";
+
+const TEMPLATES: Template[] = [
+  {
+    id: "deepseek",
+    label: "DeepSeek",
+    name: "DeepSeek",
+    npm: OPENAI_COMPAT,
+    baseURL: "https://api.deepseek.com/v1",
+    models: { "deepseek-chat": "DeepSeek Chat", "deepseek-reasoner": "DeepSeek Reasoner" },
+    contextLimit: 64_000,
+  },
+  {
+    id: "openai",
+    label: "OpenAI",
+    name: "OpenAI",
+    npm: OPENAI_COMPAT,
+    baseURL: "https://api.openai.com/v1",
+    models: { "gpt-4o": "GPT-4o", "gpt-4o-mini": "GPT-4o mini" },
+    contextLimit: 128_000,
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    name: "OpenRouter",
+    npm: OPENAI_COMPAT,
+    baseURL: "https://openrouter.ai/api/v1",
+    models: { "openai/gpt-4o": "GPT-4o", "deepseek/deepseek-chat": "DeepSeek Chat" },
+    contextLimit: 128_000,
+  },
+  {
+    id: "groq",
+    label: "Groq",
+    name: "Groq",
+    npm: OPENAI_COMPAT,
+    baseURL: "https://api.groq.com/openai/v1",
+    models: { "llama-3.3-70b-versatile": "Llama 3.3 70B" },
+    contextLimit: 128_000,
+  },
+  {
+    id: "xai",
+    label: "xAI (Grok)",
+    name: "xAI",
+    npm: OPENAI_COMPAT,
+    baseURL: "https://api.x.ai/v1",
+    models: { "grok-2-latest": "Grok 2" },
+    contextLimit: 128_000,
+  },
+  {
+    id: "mistral",
+    label: "Mistral",
+    name: "Mistral",
+    npm: OPENAI_COMPAT,
+    baseURL: "https://api.mistral.ai/v1",
+    models: { "mistral-large-latest": "Mistral Large" },
+    contextLimit: 128_000,
+  },
 ];
 
 const OTHER = "__other__";
 
 export function AddProviderKey() {
   const [expanded, setExpanded] = useState(false);
-  const [choice, setChoice] = useState(KNOWN_PROVIDERS[0].id);
+  const [choice, setChoice] = useState(TEMPLATES[0].id);
   const [customId, setCustomId] = useState("");
+  const [customBaseUrl, setCustomBaseUrl] = useState("");
+  const [customModel, setCustomModel] = useState("");
   const [key, setKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const setAuth = useSetAuth();
-
-  const providerId = choice === OTHER ? customId.trim().toLowerCase() : choice;
+  const addProvider = useAddProvider();
 
   const handleSave = async () => {
     setError(null);
     setSaved(false);
-    if (!providerId) {
-      setError("Pick or type a provider id.");
-      return;
-    }
     if (!key.trim()) {
       setError("Paste an API key.");
       return;
     }
+
+    let input: AddProviderInput;
+    if (choice === OTHER) {
+      const id = customId.trim().toLowerCase();
+      const baseURL = customBaseUrl.trim();
+      const model = customModel.trim();
+      if (!id || !baseURL || !model) {
+        setError("For a custom provider, fill id, base URL and a model id.");
+        return;
+      }
+      input = {
+        id,
+        name: id,
+        npm: OPENAI_COMPAT,
+        baseURL,
+        apiKey: key.trim(),
+        models: { [model]: model },
+      };
+    } else {
+      const t = TEMPLATES.find((x) => x.id === choice)!;
+      input = { ...t, apiKey: key.trim() };
+    }
+
     try {
-      await setAuth.mutateAsync({ providerId, key: key.trim() });
+      await addProvider.mutateAsync(input);
       setKey("");
       setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      setTimeout(() => setSaved(false), 4000);
     } catch (e) {
-      setError(
-        `Could not save key: ${e instanceof Error ? e.message : String(e)}`,
-      );
+      setError(`Could not add provider: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 
@@ -62,9 +132,7 @@ export function AddProviderKey() {
         className="flex w-full items-center gap-2 border-b border-[var(--border)] px-3 py-2.5 text-left text-[11px] text-[var(--muted-foreground)] transition-colors hover:bg-[var(--primary)]/[0.06] hover:text-[var(--foreground)]"
       >
         <Plus className="h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
-        <span className="font-medium uppercase tracking-wider">
-          Add provider API key
-        </span>
+        <span className="font-medium uppercase tracking-wider">Add provider API key</span>
         <KeyRound className="ml-auto h-3 w-3 shrink-0 opacity-50" />
       </button>
     );
@@ -79,22 +147,38 @@ export function AddProviderKey() {
         onChange={(e) => setChoice(e.target.value)}
         className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
       >
-        {KNOWN_PROVIDERS.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.label}
+        {TEMPLATES.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
           </option>
         ))}
-        <option value={OTHER}>Other…</option>
+        <option value={OTHER}>Other (OpenAI-compatible)…</option>
       </select>
 
       {choice === OTHER && (
-        <input
-          type="text"
-          placeholder="provider id (e.g. together, fireworks)"
-          value={customId}
-          onChange={(e) => setCustomId(e.target.value)}
-          className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-        />
+        <div className="space-y-1.5">
+          <input
+            type="text"
+            placeholder="provider id (e.g. together)"
+            value={customId}
+            onChange={(e) => setCustomId(e.target.value)}
+            className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+          />
+          <input
+            type="text"
+            placeholder="base URL (e.g. https://api.together.xyz/v1)"
+            value={customBaseUrl}
+            onChange={(e) => setCustomBaseUrl(e.target.value)}
+            className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+          />
+          <input
+            type="text"
+            placeholder="model id (e.g. meta-llama/Llama-3.3-70B)"
+            value={customModel}
+            onChange={(e) => setCustomModel(e.target.value)}
+            className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+          />
+        </div>
       )}
 
       <div className="flex items-center gap-1.5">
@@ -108,13 +192,13 @@ export function AddProviderKey() {
         />
         <button
           onClick={handleSave}
-          disabled={setAuth.isPending}
+          disabled={addProvider.isPending}
           className={cn(
             "flex h-7 items-center gap-1 rounded px-2.5 text-[10px] font-medium uppercase tracking-wider transition-colors",
             "bg-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/25 disabled:opacity-40",
           )}
         >
-          {setAuth.isPending ? (
+          {addProvider.isPending ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : saved ? (
             <Check className="h-3 w-3 text-[var(--color-online)]" />
@@ -128,7 +212,7 @@ export function AddProviderKey() {
       {error && <p className="text-[10px] text-red-300">{error}</p>}
       {saved && (
         <p className="text-[10px] text-[var(--color-online)]">
-          Key saved. The provider and its models should now appear below.
+          Provider added. Its models should appear below — pick one to start.
         </p>
       )}
     </div>
