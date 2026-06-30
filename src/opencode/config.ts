@@ -85,8 +85,10 @@ export function useAddProvider() {
   return useMutation({
     mutationFn: async (input: AddProviderInput) => {
       const ctx = input.contextLimit ?? 128_000;
-      const models: Record<string, { name: string; limit: { context: number; output: number } }> =
-        {};
+      const models: Record<
+        string,
+        { name: string; limit: { context: number; output: number } }
+      > = {};
       for (const [modelId, name] of Object.entries(input.models)) {
         models[modelId] = { name, limit: { context: ctx, output: 8192 } };
       }
@@ -100,8 +102,12 @@ export function useAddProvider() {
 
       const cur = (await getClient().config.get({ throwOnError: true })).data as Config;
       const provider = { ...(cur.provider ?? {}), [input.id]: entry };
+      // Auto-select this provider's first model as the active default, so the
+      // very next message uses it (instead of the engine's keyless default).
+      const firstModelId = Object.keys(input.models)[0];
+      const model = firstModelId ? `${input.id}/${firstModelId}` : cur.model;
       await getClient().config.update({
-        body: { ...cur, provider },
+        body: { ...cur, provider, model },
         throwOnError: true,
       });
 

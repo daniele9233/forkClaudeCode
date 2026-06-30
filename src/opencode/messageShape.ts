@@ -16,9 +16,7 @@ export function rowInfo(row: unknown): Message | undefined {
 
 /** Type guard: the message is an assistant step (has token/cost stats). */
 export function isAssistant(m: unknown): m is AssistantMessage {
-  return (
-    !!m && typeof m === "object" && (m as { role?: string }).role === "assistant"
-  );
+  return !!m && typeof m === "object" && (m as { role?: string }).role === "assistant";
 }
 
 /** Creation timestamp, tolerant of a missing `time` field. */

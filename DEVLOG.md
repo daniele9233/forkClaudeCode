@@ -15,6 +15,32 @@
 
 ---
 
+## 2026-06-30 · Dropdown minimale + verifica chiave + fix CI (prettier)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Richiesta utente: togliere la lista modelli, lasciare solo "Add provider API
+key", e **assicurarsi che la chiave funzioni**. Più: la CI era rossa.
+
+- **CI rossa**: lo step `prettier --check` falliva sui file nuovi. Formattati
+  tutti → verde.
+- **Dropdown minimale** (`ModelSwitcher` riscritto): il menu contiene **solo**
+  `AddProviderKey`; il bottone mostra il modello attivo. Nessuna lista modelli.
+- **Auto-select modello** (`useAddProvider`): aggiungendo un provider imposta
+  anche `config.model = "<id>/<primoModello>"`, così l'invio successivo usa
+  quello (non più il default Zen senza chiave).
+- **Verifica chiave reale** (nuovo comando Rust `test_provider_key`): prima di
+  salvare, l'app fa `GET {baseURL}/models` con Bearer (da Rust → niente CORS) e
+  dice chiaramente se il provider **accetta o rifiuta** la chiave. Se rifiutata:
+  messaggio esplicito "rigenera la chiave / controlla il saldo". Fine
+  dell'ambiguità "è l'app o è la chiave?".
+- `AddProviderKey` sempre espanso, stato "Checking…", messaggio "Key verified ✓".
+
+NB: include un comando Rust nuovo → l'utente ricompila (una volta).
+Lint+prettier+build verdi, 22 test ok.
+
+---
+
 ## 2026-06-30 · L'app si riavviava a ogni config change + invio senza modello
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

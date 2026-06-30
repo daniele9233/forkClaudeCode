@@ -42,6 +42,36 @@ fn persist_opencode_provider(id: String, entry_json: String) -> Result<String, S
     config_store::persist_provider(&id, &entry_json)
 }
 
+/// Verify an API key against an OpenAI-compatible provider by listing models
+/// (`GET {base_url}/models` with a Bearer token). Done from Rust so it bypasses
+/// webview CORS and the engine entirely — pure key validation. `Ok` means the
+/// provider accepted the key; `Err` carries the provider's rejection detail.
+#[tauri::command]
+async fn test_provider_key(base_url: String, api_key: String) -> Result<String, String> {
+    let base = base_url.trim().trim_end_matches('/');
+    let url = format!("{base}/models");
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| format!("http client error: {e}"))?;
+
+    let resp = client
+        .get(&url)
+        .bearer_auth(api_key.trim())
+        .send()
+        .await
+        .map_err(|e| format!("could not reach {base}: {e}"))?;
+
+    let status = resp.status();
+    if status.is_success() {
+        return Ok(format!("ok ({})", status.as_u16()));
+    }
+    let body = resp.text().await.unwrap_or_default();
+    let snippet: String = body.chars().take(180).collect();
+    Err(format!("HTTP {} — {}", status.as_u16(), snippet.trim()))
+}
+
 /// Restart the sidecar (used by the UI's "Reconnect" action after a crash).
 /// Re-emits `opencode-ready` / `opencode-error` so the frontend re-initializes.
 #[tauri::command]
@@ -132,7 +162,8 @@ pub fn run() {
             stop_opencode,
             restart_opencode,
             opencode_version,
-            persist_opencode_provider
+            persist_opencode_provider,
+            test_provider_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
