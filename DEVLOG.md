@@ -15,6 +15,30 @@
 
 ---
 
+## 2026-06-30 · ROOT CAUSE "Invalid API key": collisione id provider col nativo
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Sintomo decisivo: la verifica chiave diceva **"Key verified ✓"** (la chiave è
+valida verso `GET /v1/models`), ma la chat dava ancora **"Invalid API key"**.
+Quindi NON è la chiave: opencode mandava la richiesta chat con una chiave
+sbagliata/vuota.
+
+Causa: scrivevo il provider con id **`deepseek`**, che **collide con il provider
+DeepSeek nativo** di opencode (per questo comparivano modelli "V4 Flash/Pro" mai
+definiti da noi). opencode **fonde** la mia config con quella nativa e risolve la
+chiave dalla sorgente sbagliata → chat 401.
+
+Fix: id dei provider **prefissati `byok-`** (es. `byok-deepseek`) → provider
+OpenAI-compatible **pulito e self-contained**, che usa esattamente
+`options.apiKey` + `baseURL` (gli stessi che la verifica conferma funzionanti).
+Niente merge col nativo. `ModelSwitcher` toglie il prefisso `byok-` nel display.
+Anche i provider custom ("Other") vengono prefissati.
+
+Frontend-only → nessuna ricompilazione Rust. Lint+prettier+build verdi, 22 test.
+
+---
+
 ## 2026-06-30 · Dropdown minimale + verifica chiave + fix CI (prettier)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

@@ -16,9 +16,17 @@ interface Template extends Omit<AddProviderInput, "apiKey"> {
 
 const OPENAI_COMPAT = "@ai-sdk/openai-compatible";
 
+// Provider ids are deliberately prefixed so they do NOT collide with opencode's
+// built-in providers (e.g. its native "deepseek"). A collision makes opencode
+// merge our config with the built-in definition and resolve the key from the
+// wrong source — the key verifies but chat returns "Invalid API key". A unique
+// id gives a clean, self-contained OpenAI-compatible provider that uses exactly
+// the key + baseURL we set in options.
+const BYOK = "byok-";
+
 const TEMPLATES: Template[] = [
   {
-    id: "deepseek",
+    id: `${BYOK}deepseek`,
     label: "DeepSeek",
     name: "DeepSeek",
     npm: OPENAI_COMPAT,
@@ -30,7 +38,7 @@ const TEMPLATES: Template[] = [
     contextLimit: 64_000,
   },
   {
-    id: "openai",
+    id: `${BYOK}openai`,
     label: "OpenAI",
     name: "OpenAI",
     npm: OPENAI_COMPAT,
@@ -39,7 +47,7 @@ const TEMPLATES: Template[] = [
     contextLimit: 128_000,
   },
   {
-    id: "openrouter",
+    id: `${BYOK}openrouter`,
     label: "OpenRouter",
     name: "OpenRouter",
     npm: OPENAI_COMPAT,
@@ -48,7 +56,7 @@ const TEMPLATES: Template[] = [
     contextLimit: 128_000,
   },
   {
-    id: "groq",
+    id: `${BYOK}groq`,
     label: "Groq",
     name: "Groq",
     npm: OPENAI_COMPAT,
@@ -57,7 +65,7 @@ const TEMPLATES: Template[] = [
     contextLimit: 128_000,
   },
   {
-    id: "xai",
+    id: `${BYOK}xai`,
     label: "xAI (Grok)",
     name: "xAI",
     npm: OPENAI_COMPAT,
@@ -66,7 +74,7 @@ const TEMPLATES: Template[] = [
     contextLimit: 128_000,
   },
   {
-    id: "mistral",
+    id: `${BYOK}mistral`,
     label: "Mistral",
     name: "Mistral",
     npm: OPENAI_COMPAT,
@@ -111,7 +119,7 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
         return;
       }
       input = {
-        id,
+        id: `${BYOK}${id}`,
         name: id,
         npm: OPENAI_COMPAT,
         baseURL,

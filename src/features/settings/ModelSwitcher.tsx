@@ -16,7 +16,12 @@ export function ModelSwitcher() {
 
   const currentModel = config?.model ?? "";
   const slash = currentModel.indexOf("/");
-  const providerId = slash > 0 ? currentModel.slice(0, slash) : "";
+  // Strip the internal "byok-" prefix we use to avoid built-in provider id
+  // collisions, so the chip reads "deepseek" rather than "byok-deepseek".
+  const providerId = (slash > 0 ? currentModel.slice(0, slash) : "").replace(
+    /^byok-/,
+    "",
+  );
   const modelId = slash > 0 ? currentModel.slice(slash + 1) : currentModel;
   const displayModel = modelId || "Select model";
 
