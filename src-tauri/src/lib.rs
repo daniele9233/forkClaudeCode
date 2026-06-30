@@ -42,6 +42,32 @@ fn persist_opencode_provider(id: String, entry_json: String) -> Result<String, S
     config_store::persist_provider(&id, &entry_json)
 }
 
+/// Inject a provider API key into the engine's environment (e.g.
+/// `DEEPSEEK_API_KEY`) and restart the sidecar so the engine's native provider
+/// picks it up — this is opencode's primary, well-tested key mechanism.
+/// Re-emits `opencode-ready` with the new URL so the frontend re-initializes.
+#[tauri::command]
+async fn set_provider_key(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    env_var: String,
+    key: String,
+) -> Result<String, String> {
+    let sidecar = state.sidecar.clone();
+    sidecar.set_env(env_var.trim().to_string(), key.trim().to_string());
+    match sidecar.restart().await {
+        Ok(s) => {
+            let _ = app.emit("opencode-ready", s.base_url.clone());
+            spawn_health_monitor(app, sidecar);
+            Ok(s.base_url)
+        }
+        Err(e) => {
+            let _ = app.emit("opencode-error", e.clone());
+            Err(e)
+        }
+    }
+}
+
 /// Verify an API key against an OpenAI-compatible provider by listing models
 /// (`GET {base_url}/models` with a Bearer token). Done from Rust so it bypasses
 /// webview CORS and the engine entirely — pure key validation. `Ok` means the
@@ -163,7 +189,8 @@ pub fn run() {
             restart_opencode,
             opencode_version,
             persist_opencode_provider,
-            test_provider_key
+            test_provider_key,
+            set_provider_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

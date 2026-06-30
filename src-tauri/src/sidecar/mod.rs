@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -16,6 +17,10 @@ pub struct Sidecar {
     /// Bumped on every successful (re)start. A health monitor captures the
     /// generation it was started for and stops once a newer one supersedes it.
     generation: Arc<Mutex<u64>>,
+    /// Extra environment variables injected into every spawned engine process
+    /// (e.g. provider API keys like DEEPSEEK_API_KEY). Persisted across restarts
+    /// so a key added from the GUI survives a sidecar restart.
+    extra_env: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl Sidecar {
@@ -24,7 +29,15 @@ impl Sidecar {
             child: Arc::new(Mutex::new(None)),
             state: Arc::new(Mutex::new(None)),
             generation: Arc::new(Mutex::new(0)),
+            extra_env: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    /// Set an environment variable to inject into the engine on the next
+    /// (re)start. The engine reads provider keys from env at startup, so the
+    /// caller should restart the sidecar afterwards for it to take effect.
+    pub fn set_env(&self, key: String, value: String) {
+        self.extra_env.lock().unwrap().insert(key, value);
     }
 
     /// Spawn `opencode serve` on a free port and wait until healthy.
@@ -74,17 +87,30 @@ impl Sidecar {
             let port = free_port().await?;
             let base_url = format!("http://127.0.0.1:{}", port);
 
+            // Snapshot the injected env (provider keys) for this spawn.
+            let env_snapshot: Vec<(String, String)> = self
+                .extra_env
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect();
+
             // Only pass `--port`: opencode serve already binds 127.0.0.1 by
             // default, so omitting `--hostname` avoids any flag-name mismatch
             // across opencode versions that could make the engine exit on start.
-            let spawn = engine_command(&bin)
+            let mut command = engine_command(&bin);
+            command
                 .args(["serve", "--port", &port.to_string()])
                 // Inherit stdio so the engine's own logs (and any startup error)
                 // are visible in the `tauri dev` / app console while diagnosing.
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
-                .kill_on_drop(true)
-                .spawn();
+                .kill_on_drop(true);
+            for (k, v) in &env_snapshot {
+                command.env(k, v);
+            }
+            let spawn = command.spawn();
 
             let child = match spawn {
                 Ok(c) => c,

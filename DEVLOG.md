@@ -15,6 +15,32 @@
 
 ---
 
+## 2026-06-30 · Chiavi via ENV + restart motore (meccanismo nativo opencode)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+La chiave si verificava (✓) ma la chat dava ancora "Invalid API key": scrivere
+la chiave nella config provider (sia id nativo sia `byok-`) non bastava — il
+motore non la usava nella richiesta chat (config runtime non riapplicata /
+provider già istanziato). Cambio di strategia: usare il meccanismo **primario**
+di opencode → le **variabili d'ambiente** (lo screenshot mostrava
+`DEEPSEEK_API_KEY` come var attesa).
+
+- **Sidecar** (`extra_env: HashMap` + `set_env`): inietta env nel processo
+  motore a ogni spawn; persiste tra i restart nella sessione.
+- **Comando Rust `set_provider_key(env_var, key)`**: setta l'env e **riavvia** il
+  sidecar; il provider nativo carica la chiave all'avvio. Riemette
+  `opencode-ready` col nuovo URL.
+- **Frontend `useConnectProvider`**: verifica chiave → `set_provider_key` →
+  `initClient(newUrl)` + **riavvia lo stream SSE** (il vecchio muore col
+  processo e il ready-guard non lo rilancia) → poll providers → auto-seleziona
+  il primo modello nativo. `AddProviderKey`: provider noti = path ENV+restart;
+  "Other" custom = path byok config (openai-compatible) come prima.
+
+Include modifiche Rust → l'utente ricompila. Lint+prettier+build verdi, 22 test.
+
+---
+
 ## 2026-06-30 · ROOT CAUSE "Invalid API key": collisione id provider col nativo
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

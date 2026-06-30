@@ -6,7 +6,8 @@ import type {
   McpLocalConfig,
   McpRemoteConfig,
 } from "@opencode-ai/sdk/client";
-import { getClient } from "./client";
+import { getClient, initClient } from "./client";
+import { startEventStream, stopEventStream } from "./events";
 
 export type { Config, Agent, McpLocalConfig, McpRemoteConfig };
 
@@ -134,6 +135,64 @@ export function useAddProvider() {
       } catch {
         /* ignore — the config-embedded apiKey is sufficient */
       }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["config", "providers"] });
+      qc.invalidateQueries({ queryKey: configKeys.config() });
+    },
+  });
+}
+
+export interface ConnectProviderInput {
+  /** Native opencode provider id, e.g. "deepseek". */
+  providerId: string;
+  /** Env var the engine reads the key from, e.g. "DEEPSEEK_API_KEY". */
+  envVar: string;
+  apiKey: string;
+}
+
+/**
+ * Connect a built-in provider the way opencode is designed to receive keys:
+ * inject `<ENV_VAR>=<key>` into the engine's environment and restart it, so the
+ * engine's native provider loads the key at startup. After it comes back, point
+ * the SDK client at the new URL and auto-select the provider's first model.
+ *
+ * This avoids the config-merge pitfalls that make a key "verify" but still get
+ * rejected on chat — the engine's own provider does the request with the key.
+ */
+export function useConnectProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ providerId, envVar, apiKey }: ConnectProviderInput) => {
+      const newUrl = await invoke<string>("set_provider_key", { envVar, key: apiKey });
+      // Re-point the client at the restarted engine and restart the SSE stream
+      // (the old stream died with the old process; the provider's ready-guard
+      // won't restart it, so we do it here).
+      initClient(newUrl);
+      stopEventStream();
+      void startEventStream();
+
+      // Wait for the restarted engine to expose the provider, then select a model.
+      let firstModel: string | undefined;
+      for (let i = 0; i < 25 && !firstModel; i++) {
+        try {
+          const res = await getClient().config.providers({ throwOnError: true });
+          const p = (res.data?.providers ?? []).find((x) => x.id === providerId);
+          firstModel = p ? Object.keys(p.models ?? {})[0] : undefined;
+        } catch {
+          /* engine still restarting */
+        }
+        if (!firstModel) await new Promise((r) => setTimeout(r, 400));
+      }
+
+      if (firstModel) {
+        const cur = (await getClient().config.get({ throwOnError: true })).data as Config;
+        await getClient().config.update({
+          body: { ...cur, model: `${providerId}/${firstModel}` },
+          throwOnError: true,
+        });
+      }
+      return { providerId, firstModel };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["config", "providers"] });
