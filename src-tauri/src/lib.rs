@@ -275,7 +275,10 @@ async fn dev_command_info(state: tauri::State<'_, AppState>) -> Result<Option<St
 /// automatically whatever port/framework it uses. `exclude` lets the caller drop
 /// kikkoCode's own ports (UI dev server, engine, preview server).
 #[tauri::command]
-async fn find_dev_server(exclude: Vec<u16>) -> Result<Option<String>, String> {
+async fn find_dev_server(
+    state: tauri::State<'_, AppState>,
+    exclude: Vec<u16>,
+) -> Result<Option<String>, String> {
     // Preference order for tie-breaking: well-known dev ports first, then any
     // other listening port ascending.
     const COMMON: [u16; 14] = [
@@ -288,9 +291,16 @@ async fn find_dev_server(exclude: Vec<u16>) -> Result<Option<String>, String> {
             listening.push(p);
         }
     }
-    // The Vite dev server for kikkoCode's own UI runs on 1420 — never preview it.
-    let excluded: std::collections::HashSet<u16> =
+    // Never mistake kikkoCode's own servers for the user's site: the UI dev
+    // server (1420), the engine, and the built-in static preview server.
+    let mut excluded: std::collections::HashSet<u16> =
         exclude.into_iter().chain(std::iter::once(1420u16)).collect();
+    if let Some(s) = state.sidecar.state() {
+        excluded.insert(s.port);
+    }
+    if let Some(preview) = &state.preview {
+        excluded.insert(preview.port());
+    }
     let candidates: Vec<u16> = listening
         .into_iter()
         .filter(|p| *p >= 1000 && !excluded.contains(p))
@@ -306,11 +316,16 @@ async fn find_dev_server(exclude: Vec<u16>) -> Result<Option<String>, String> {
     for &port in &candidates {
         let client = client.clone();
         set.spawn(async move {
-            let url = format!("http://127.0.0.1:{port}/");
-            match client.get(&url).send().await {
-                Ok(_) => Some(port),
-                Err(_) => None,
+            // Probe BOTH IPv4 and IPv6 loopback: on Windows `localhost` often
+            // resolves to ::1, and Vite/Next bind there — an IPv4-only probe
+            // would miss a server that's actually up.
+            for host in ["127.0.0.1", "[::1]"] {
+                let url = format!("http://{host}:{port}/");
+                if client.get(&url).send().await.is_ok() {
+                    return Some(port);
+                }
             }
+            None
         });
     }
     let mut live = std::collections::HashSet::new();
@@ -333,7 +348,9 @@ async fn find_dev_server(exclude: Vec<u16>) -> Result<Option<String>, String> {
             v.sort_unstable();
             v.first().copied()
         });
-    Ok(chosen.map(|p| format!("http://127.0.0.1:{p}/")))
+    // Return the URL as `localhost` so the webview resolves it the same way the
+    // dev server expects (and passes any Host-header checks).
+    Ok(chosen.map(|p| format!("http://localhost:{p}/")))
 }
 
 /// Enumerate TCP ports in a LISTENING state on this machine, best-effort. Parses

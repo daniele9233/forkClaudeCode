@@ -15,6 +15,28 @@
 
 ---
 
+## 2026-07-01 · Fix cruciale anteprima: probe IPv4 **e** IPv6 (localhost/::1)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Sintomo: anteprima mostrava il server statico (`127.0.0.1:64510`, vuoto) mentre
+il dev server era vivo su `localhost:3000` (HTTP 200). Causa: `find_dev_server`
+probava solo `http://127.0.0.1:{port}`, ma su Windows `localhost` risolve spesso
+a **IPv6 `::1`** e Vite `dev`/`preview` bindano lì → il probe IPv4 falliva → si
+ricadeva sullo statico.
+
+Fix in `find_dev_server`:
+- prova **sia `127.0.0.1` sia `[::1]`** per ogni porta;
+- ritorna l'URL come `http://localhost:{port}/` (il webview lo risolve come il
+  server si aspetta, passa eventuali check dell'Host header);
+- ora prende anche lo `state`: **auto-esclude** le porte di kikkoCode (engine +
+  static preview server + UI 1420), così il probe non scambia il proprio server
+  statico per il sito dell'utente.
+
+Frontend invariato. Lint verde (Rust → CI).
+
+---
+
 ## 2026-07-01 · Auto-detect anteprima su QUALSIASI porta (enumerazione + retry)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
