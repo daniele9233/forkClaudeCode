@@ -9,6 +9,7 @@ interface UIState {
   bottomHeight: number;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
+  projectPickerOpen: boolean;
   /** Set when the running engine version doesn't match the pinned SDK. */
   engineWarning: string | null;
   engineWarningDismissed: boolean;
@@ -22,6 +23,8 @@ interface UIState {
   closeCommandPalette: () => void;
   openSettings: () => void;
   closeSettings: () => void;
+  openProjectPicker: () => void;
+  closeProjectPicker: () => void;
   setEngineWarning: (msg: string | null) => void;
   dismissEngineWarning: () => void;
 }
@@ -32,6 +35,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   bottomHeight: 340,
   commandPaletteOpen: false,
   settingsOpen: false,
+  projectPickerOpen: false,
   engineWarning: null,
   engineWarningDismissed: false,
 
@@ -51,6 +55,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   closeCommandPalette: () => set({ commandPaletteOpen: false }),
   openSettings: () => set({ settingsOpen: true }),
   closeSettings: () => set({ settingsOpen: false }),
+  openProjectPicker: () => set({ projectPickerOpen: true }),
+  closeProjectPicker: () => set({ projectPickerOpen: false }),
   setEngineWarning: (msg) => set({ engineWarning: msg }),
   dismissEngineWarning: () => set({ engineWarningDismissed: true }),
 }));

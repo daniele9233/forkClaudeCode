@@ -2,6 +2,8 @@ import { useEffect, useCallback } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { SessionSidebar } from "@/features/sessions/SessionSidebar";
+import { ProjectBar } from "@/features/project/ProjectBar";
+import { ProjectPicker } from "@/features/project/ProjectPicker";
 import { ChatShell } from "@/features/chat/ChatShell";
 import { FileTree } from "@/features/filetree/FileTree";
 import { FileDiffPanel } from "@/features/filetree/FileDiffPanel";
@@ -63,6 +65,8 @@ export default function App() {
     settingsOpen,
     openSettings,
     closeSettings,
+    projectPickerOpen,
+    closeProjectPicker,
   } = useUIStore();
   const selectedFilePath = useFileStore((s) => s.selectedFilePath);
   const previewUrl = usePreviewStore((s) => s.previewUrl);
@@ -139,6 +143,7 @@ export default function App() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Left sidebar: sessions (top) + file tree + context sparkline */}
         <div className="glass flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
+          <ProjectBar />
           <div className="shrink-0 overflow-hidden" style={{ maxHeight: "42%" }}>
             <SessionSidebar />
           </div>
@@ -257,6 +262,7 @@ export default function App() {
       {/* Global overlays */}
       {commandPaletteOpen && <CommandPalette onOpenSettings={openSettings} />}
       {settingsOpen && <SettingsModal onClose={closeSettings} />}
+      {projectPickerOpen && <ProjectPicker onClose={closeProjectPicker} />}
       {showOnboarding && <OnboardingWizard />}
     </motion.div>
   );

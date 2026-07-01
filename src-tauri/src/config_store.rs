@@ -67,3 +67,45 @@ pub fn persist_provider(id: &str, entry_json: &str) -> Result<String, String> {
     fs::write(&path, pretty).map_err(|e| format!("write {}: {e}", path.display()))?;
     Ok(path.display().to_string())
 }
+
+/// Path to kikkoCode's own tiny state file (separate from opencode's config),
+/// used to remember which project folder was open so it reopens on launch.
+/// Lives next to opencode's config dir: `<config>/opencode/kikkocode.json`.
+fn kikko_state_path() -> Option<PathBuf> {
+    let cfg = global_config_path()?;
+    cfg.parent().map(|dir| dir.join("kikkocode.json"))
+}
+
+/// Remember the last project directory the user had open.
+pub fn save_last_project(dir: &str) -> Result<(), String> {
+    let path = kikko_state_path().ok_or("could not resolve state dir")?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
+    }
+    let mut root: Value = if path.exists() {
+        let text = fs::read_to_string(&path).unwrap_or_default();
+        serde_json::from_str(&text).unwrap_or_else(|_| Value::Object(Map::new()))
+    } else {
+        Value::Object(Map::new())
+    };
+    if let Some(obj) = root.as_object_mut() {
+        obj.insert("lastProject".to_string(), Value::String(dir.to_string()));
+    }
+    let pretty = serde_json::to_string_pretty(&root).map_err(|e| format!("serialize: {e}"))?;
+    fs::write(&path, pretty).map_err(|e| format!("write {}: {e}", path.display()))?;
+    Ok(())
+}
+
+/// Load the last project directory, if one was saved and still exists on disk.
+pub fn load_last_project() -> Option<PathBuf> {
+    let path = kikko_state_path()?;
+    let text = fs::read_to_string(&path).ok()?;
+    let root: Value = serde_json::from_str(&text).ok()?;
+    let dir = root.get("lastProject")?.as_str()?;
+    let p = PathBuf::from(dir);
+    if p.is_dir() {
+        Some(p)
+    } else {
+        None
+    }
+}

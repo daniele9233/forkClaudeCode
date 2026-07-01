@@ -2,6 +2,7 @@ mod config_store;
 mod sidecar;
 
 use sidecar::Sidecar;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
@@ -98,6 +99,122 @@ async fn test_provider_key(base_url: String, api_key: String) -> Result<String, 
     Err(format!("HTTP {} — {}", status.as_u16(), snippet.trim()))
 }
 
+/// The project directory the engine is currently running in (its cwd). Falls
+/// back to the app's launch cwd when no project was explicitly opened.
+#[tauri::command]
+async fn get_working_dir(state: tauri::State<'_, AppState>) -> Result<String, String> {
+    if let Some(dir) = state.sidecar.working_dir() {
+        return Ok(dir.display().to_string());
+    }
+    std::env::current_dir()
+        .map(|d| d.display().to_string())
+        .map_err(|e| format!("cwd error: {e}"))
+}
+
+/// Switch the project: point the engine at `path`, restart it there, remember
+/// it for next launch, and re-emit `opencode-ready` with the new URL.
+#[tauri::command]
+async fn set_working_dir(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<String, String> {
+    let dir = PathBuf::from(path.trim());
+    if !dir.is_dir() {
+        return Err(format!("not a folder: {}", dir.display()));
+    }
+    let sidecar = state.sidecar.clone();
+    sidecar.set_working_dir(Some(dir.clone()));
+    let _ = config_store::save_last_project(&dir.display().to_string());
+    match sidecar.restart().await {
+        Ok(s) => {
+            let _ = app.emit("opencode-ready", s.base_url.clone());
+            spawn_health_monitor(app, sidecar);
+            Ok(s.base_url)
+        }
+        Err(e) => {
+            let _ = app.emit("opencode-error", e.clone());
+            Err(e)
+        }
+    }
+}
+
+/// Derive the destination folder name from a git URL
+/// (`…/foo.git` or `…/foo` → `foo`).
+fn repo_dir_name(url: &str) -> String {
+    let trimmed = url.trim().trim_end_matches('/');
+    let last = trimmed.rsplit('/').next().unwrap_or("repo");
+    last.strip_suffix(".git").unwrap_or(last).to_string()
+}
+
+/// Clone a git repository into `parent_dir`. Uses the system `git` (so it reuses
+/// whatever credentials git already has for private repos). Returns the absolute
+/// path of the cloned folder; the caller then opens it via `set_working_dir`.
+#[tauri::command]
+async fn clone_repo(url: String, parent_dir: String) -> Result<String, String> {
+    let url = url.trim().to_string();
+    if url.is_empty() {
+        return Err("empty repository URL".into());
+    }
+    let parent = PathBuf::from(parent_dir.trim());
+    if !parent.is_dir() {
+        return Err(format!("not a folder: {}", parent.display()));
+    }
+    let name = repo_dir_name(&url);
+    let dest = parent.join(&name);
+    if dest.exists() {
+        return Err(format!("'{name}' already exists in that folder"));
+    }
+    let out = tokio::process::Command::new("git")
+        .arg("clone")
+        .arg(&url)
+        .arg(&dest)
+        .output()
+        .await
+        .map_err(|e| format!("could not run git (is it installed?): {e}"))?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr);
+        return Err(format!("git clone failed: {}", err.trim()));
+    }
+    Ok(dest.display().to_string())
+}
+
+/// Create a new empty project folder under `parent_dir`, optionally running
+/// `git init`. Returns the absolute path; the caller opens it via `set_working_dir`.
+#[tauri::command]
+async fn create_project(
+    parent_dir: String,
+    name: String,
+    git_init: bool,
+) -> Result<String, String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("empty project name".into());
+    }
+    let parent = PathBuf::from(parent_dir.trim());
+    if !parent.is_dir() {
+        return Err(format!("not a folder: {}", parent.display()));
+    }
+    let dest = parent.join(name);
+    if dest.exists() {
+        return Err(format!("'{name}' already exists in that folder"));
+    }
+    std::fs::create_dir_all(&dest).map_err(|e| format!("mkdir {}: {e}", dest.display()))?;
+    if git_init {
+        let out = tokio::process::Command::new("git")
+            .arg("init")
+            .current_dir(&dest)
+            .output()
+            .await
+            .map_err(|e| format!("could not run git init: {e}"))?;
+        if !out.status.success() {
+            let err = String::from_utf8_lossy(&out.stderr);
+            return Err(format!("git init failed: {}", err.trim()));
+        }
+    }
+    Ok(dest.display().to_string())
+}
+
 /// Restart the sidecar (used by the UI's "Reconnect" action after a crash).
 /// Re-emits `opencode-ready` / `opencode-error` so the frontend re-initializes.
 #[tauri::command]
@@ -159,10 +276,16 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState { sidecar })
         .setup(move |app| {
             let sidecar = sidecar_clone.clone();
             let handle = app.handle().clone();
+            // Reopen the last project (if it still exists) so the engine starts
+            // in the folder the user was working on, not the app's launch dir.
+            if let Some(dir) = config_store::load_last_project() {
+                sidecar.set_working_dir(Some(dir));
+            }
             tauri::async_runtime::spawn(async move {
                 match sidecar.start().await {
                     Ok(state) => {
@@ -190,7 +313,11 @@ pub fn run() {
             opencode_version,
             persist_opencode_provider,
             test_provider_key,
-            set_provider_key
+            set_provider_key,
+            get_working_dir,
+            set_working_dir,
+            clone_repo,
+            create_project
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -15,6 +15,57 @@
 
 ---
 
+## 2026-07-01 · Project/workspace picker — apri cartella / clona repo GitHub / crea progetto
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Mancava il pezzo fondamentale: scegliere **su quale cartella** lavorare. In
+opencode il "progetto" **è** la cwd di `opencode serve`, che finora non veniva
+mai impostata (l'engine girava nella cartella di lancio dell'app). Quindi
+aprire una cartella / clonare un repo / crearne uno si riducono a: **imposta la
+cwd dell'engine e riavvialo** (stesso meccanismo del key-injection provider).
+
+### Cosa è cambiato
+**Rust (`src-tauri`)**
+- `sidecar/mod.rs`: nuovo campo `working_dir: Arc<Mutex<Option<PathBuf>>>` +
+  `set_working_dir()`/`working_dir()`; nello spawn `command.current_dir(dir)`.
+- `lib.rs`: comandi `get_working_dir`, `set_working_dir` (imposta cwd, riavvia,
+  ri-emette `opencode-ready`, salva last-project), `clone_repo` (git clone via
+  git di sistema → riusa le credenziali per i private), `create_project`
+  (mkdir + `git init` opzionale). Plugin `tauri-plugin-dialog` registrato.
+  All'avvio ricarica l'ultimo progetto (`config_store::load_last_project`).
+- `config_store.rs`: `save_last_project`/`load_last_project` in
+  `<config>/opencode/kikkocode.json` (stato nostro, separato da opencode).
+- `Cargo.toml` + `capabilities/default.json`: dialog plugin + `dialog:default`.
+
+**Frontend**
+- `stores/workspace.store.ts` (persistito): `currentDir` + `recents[]`.
+- `opencode/workspace.ts` `useProjectActions()`: `pickDirectory` (dialog nativo),
+  `openProject` (invoke set_working_dir → `initClient(newUrl)` + restart event
+  stream + reset sessione attiva + `invalidateQueries`), `cloneRepo`,
+  `createProject`. Ri-init client come `useConnectProvider` (nuova porta ad ogni
+  restart).
+- `features/project/ProjectPicker.tsx`: modale 3 tab (Open folder / Clone from
+  GitHub / New project) + lista **recenti** (riapri/rimuovi).
+- `features/project/ProjectBar.tsx`: barra in cima alla sidebar col nome del
+  progetto corrente → apre il picker; sincronizza `currentDir` con la cwd reale
+  dell'engine via `get_working_dir` quando pronto.
+- `ui.store`: `projectPickerOpen` + open/close. `App.tsx`: `<ProjectBar/>` in
+  cima alla sidebar + `<ProjectPicker/>` tra gli overlay globali.
+
+### Gotcha
+- Cambio progetto = riavvio engine su **nuova porta** → bisogna `initClient` col
+  nuovo URL a mano (l'onReady dell'OpencodeProvider è guardato da `ready.current`
+  e ignorerebbe il nuovo evento). Stesso pattern del provider-connect.
+- Le sessioni sono **per-progetto**: allo switch resetto `activeSessionId` e
+  invalido tutte le query così la lista sessioni si ricarica per la nuova cartella.
+- Repo privati: si affida al `git` di sistema (credential manager/gh già
+  configurati). Nessun token gestito in-app per ora.
+- Rust non compila in web-env (proxy blocca crates.io) → verificato per
+  ispezione, compila la CI. Frontend: lint/build/22 test verdi, prettier pulito.
+
+---
+
 ## 2026-07-01 · Pannello inferiore ridimensionabile + tasto anteprima in-app
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -21,6 +22,10 @@ pub struct Sidecar {
     /// (e.g. provider API keys like DEEPSEEK_API_KEY). Persisted across restarts
     /// so a key added from the GUI survives a sidecar restart.
     extra_env: Arc<Mutex<HashMap<String, String>>>,
+    /// Working directory the engine runs in — this IS the "project" opencode
+    /// operates on. Changing it (and restarting) switches project. `None` means
+    /// inherit the app's launch cwd.
+    working_dir: Arc<Mutex<Option<PathBuf>>>,
 }
 
 impl Sidecar {
@@ -30,7 +35,19 @@ impl Sidecar {
             state: Arc::new(Mutex::new(None)),
             generation: Arc::new(Mutex::new(0)),
             extra_env: Arc::new(Mutex::new(HashMap::new())),
+            working_dir: Arc::new(Mutex::new(None)),
         }
+    }
+
+    /// Set the project directory the engine runs in. Takes effect on the next
+    /// (re)start — the caller should restart the sidecar afterwards.
+    pub fn set_working_dir(&self, dir: Option<PathBuf>) {
+        *self.working_dir.lock().unwrap() = dir;
+    }
+
+    /// The current project directory (the engine's cwd), if one was set.
+    pub fn working_dir(&self) -> Option<PathBuf> {
+        self.working_dir.lock().unwrap().clone()
     }
 
     /// Set an environment variable to inject into the engine on the next
@@ -107,6 +124,11 @@ impl Sidecar {
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .kill_on_drop(true);
+            // Run the engine in the selected project directory. This is what
+            // makes opencode operate on that folder (its "project" == its cwd).
+            if let Some(dir) = self.working_dir.lock().unwrap().clone() {
+                command.current_dir(dir);
+            }
             for (k, v) in &env_snapshot {
                 command.env(k, v);
             }
