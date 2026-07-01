@@ -15,6 +15,41 @@
 
 ---
 
+## 2026-07-01 · Server statico integrato + anteprima automatica
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Obiettivo utente: "chiedi una pagina → la vedi subito", senza lanciare comandi.
+
+### Rust
+- `preview_server.rs`: mini HTTP server statico (`tiny_http`) che serve la
+  cartella del progetto. Bind di una porta fissa all'avvio; la root segue il
+  progetto aperto (`set_root`). MIME per estensione, dir → `index.html`,
+  anti-path-traversal (canonicalize + prefix check), percent-decode dei path
+  (nomi cartella Windows con spazi/accenti).
+- `lib.rs`: `AppState.preview: Option<Arc<PreviewServer>>`; root impostata
+  all'avvio (ultimo progetto) e ad ogni `set_working_dir`. Comando `preview_url`
+  → `Some(url)` **solo se** il progetto ha un `index.html` servibile, altrimenti
+  `None` (così la UI mostra lo stato vuoto invece di una root vuota).
+
+### Frontend
+- `opencode/preview.ts`: `getStaticPreviewUrl` (invoke `preview_url`),
+  `openBestPreview` (dev server rilevato › server statico › vuoto),
+  `syncStaticPreviewOnIdle` (a fine run: se c'è una pagina la **apre in
+  automatico**, o la ricarica se già mostrata; il dev server reale ha priorità;
+  rispetta l'utente che ha chiuso l'anteprima).
+- `useChatEvents` `session.idle` → chiama `syncStaticPreviewOnIdle()`.
+- `preview.store`: `closedByUser` (no auto-open dopo chiusura manuale) +
+  `reloadNonce`/`bumpReload` (rinfresca l'iframe quando l'agente modifica i file,
+  il server statico non ha HMR). `PreviewPanel` usa il nonce nella `key`.
+- `ChatShell`: il tasto anteprima ora usa `openBestPreview`.
+
+Risultato: l'agente scrive `index.html` → a fine task l'anteprima si apre da
+sola e mostra la pagina; alle modifiche successive si ricarica. Lint/build/22
+test verdi.
+
+---
+
 ## 2026-07-01 · Fix "stuck on Working" + preview onesto (no più localhost:5173 rotto)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

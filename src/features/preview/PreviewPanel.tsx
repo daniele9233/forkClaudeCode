@@ -18,7 +18,8 @@ import { ElementCompose } from "./ElementCompose";
  * listens for them and drives the selection store + ElementCompose UI.
  */
 export function PreviewPanel() {
-  const { previewOpen, previewUrl, openPreview, closePreview } = usePreviewStore();
+  const { previewOpen, previewUrl, reloadNonce, openPreview, closePreview } =
+    usePreviewStore();
   const [urlInput, setUrlInput] = useState(previewUrl ?? "");
   const [reloadKey, setReloadKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -215,7 +216,7 @@ export function PreviewPanel() {
         >
           <iframe
             ref={iframeRef}
-            key={reloadKey}
+            key={`${reloadKey}-${reloadNonce}`}
             src={previewUrl}
             title="Web preview"
             className="h-full w-full border-0"

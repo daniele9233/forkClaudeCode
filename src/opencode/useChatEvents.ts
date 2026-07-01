@@ -15,6 +15,7 @@ import type {
 import { onEventType } from "./events";
 import { sessionKeys } from "./session";
 import { contextKeys } from "./context";
+import { syncStaticPreviewOnIdle } from "./preview";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePermissionStore } from "@/stores/permission.store";
@@ -64,6 +65,8 @@ export function useChatEvents() {
         setSessionRunning(sid, false);
         queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sid) });
         queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+        // If the agent produced a web page, auto-open/refresh it in the preview.
+        void syncStaticPreviewOnIdle();
       }),
 
       onEventType<EventSessionError>("session.error", (e) => {

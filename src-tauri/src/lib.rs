@@ -1,6 +1,8 @@
 mod config_store;
+mod preview_server;
 mod sidecar;
 
+use preview_server::PreviewServer;
 use sidecar::Sidecar;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -8,6 +10,9 @@ use tauri::{AppHandle, Emitter};
 
 pub struct AppState {
     pub sidecar: Arc<Sidecar>,
+    /// Built-in static file server for the web preview (None if it failed to
+    /// bind — preview is then unavailable but the app still works).
+    pub preview: Option<Arc<PreviewServer>>,
 }
 
 /// Returns the `base_url` of the running opencode sidecar.
@@ -125,6 +130,10 @@ async fn set_working_dir(
     }
     let sidecar = state.sidecar.clone();
     sidecar.set_working_dir(Some(dir.clone()));
+    // Point the static preview server at the new project too.
+    if let Some(preview) = &state.preview {
+        preview.set_root(Some(dir.clone()));
+    }
     let _ = config_store::save_last_project(&dir.display().to_string());
     match sidecar.restart().await {
         Ok(s) => {
@@ -215,6 +224,23 @@ async fn create_project(
     Ok(dest.display().to_string())
 }
 
+/// URL of the built-in static preview server for the current project — but only
+/// if the project actually has a servable entry page (`index.html`). Returns
+/// `null` otherwise, so the UI can show its "no page yet" state instead of an
+/// empty server root. This is what makes "ask for a page → see it" work with no
+/// dev server: the agent writes index.html, we serve it.
+#[tauri::command]
+async fn preview_url(state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
+    let Some(preview) = &state.preview else {
+        return Ok(None);
+    };
+    Ok(if preview.has_index() {
+        Some(format!("{}/", preview.base_url()))
+    } else {
+        None
+    })
+}
+
 /// Restart the sidecar (used by the UI's "Reconnect" action after a crash).
 /// Re-emits `opencode-ready` / `opencode-error` so the frontend re-initializes.
 #[tauri::command]
@@ -273,18 +299,24 @@ fn spawn_health_monitor(handle: AppHandle, sidecar: Arc<Sidecar>) {
 pub fn run() {
     let sidecar = Arc::new(Sidecar::new());
     let sidecar_clone = sidecar.clone();
+    // Built-in static preview server (best-effort; None if it can't bind).
+    let preview = PreviewServer::start().map(Arc::new);
+    let preview_clone = preview.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(AppState { sidecar })
+        .manage(AppState { sidecar, preview })
         .setup(move |app| {
             let sidecar = sidecar_clone.clone();
             let handle = app.handle().clone();
             // Reopen the last project (if it still exists) so the engine starts
             // in the folder the user was working on, not the app's launch dir.
             if let Some(dir) = config_store::load_last_project() {
-                sidecar.set_working_dir(Some(dir));
+                sidecar.set_working_dir(Some(dir.clone()));
+                if let Some(preview) = &preview_clone {
+                    preview.set_root(Some(dir));
+                }
             }
             tauri::async_runtime::spawn(async move {
                 match sidecar.start().await {
@@ -317,7 +349,8 @@ pub fn run() {
             get_working_dir,
             set_working_dir,
             clone_repo,
-            create_project
+            create_project,
+            preview_url
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

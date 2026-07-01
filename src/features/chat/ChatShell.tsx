@@ -9,6 +9,7 @@ import { matchSkills, injectSkills } from "@/skills/match";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { usePreviewStore } from "@/stores/preview.store";
+import { openBestPreview } from "@/opencode/preview";
 import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
 import { ModelSwitcher } from "@/features/settings/ModelSwitcher";
@@ -26,18 +27,16 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const { activeSessionId, sidecarStatus, setActiveSession } = useSessionStore();
   const { bottomOpen, bottomTab, toggleTerminal } = useUIStore();
   const previewOpen = usePreviewStore((s) => s.previewOpen);
-  const detectedUrl = usePreviewStore((s) => s.detectedUrl);
-  const openPreview = usePreviewStore((s) => s.openPreview);
   const closePreview = usePreviewStore((s) => s.closePreview);
   const togglePreview = useCallback(() => {
     if (previewOpen) {
       closePreview();
     } else {
-      // Open with the detected dev-server URL if we have one; otherwise open the
-      // panel empty so it shows guidance instead of a broken localhost page.
-      openPreview(detectedUrl ?? undefined);
+      // Prefer a detected dev server, else the built-in static server (serves
+      // the project's index.html), else an empty panel with guidance.
+      void openBestPreview();
     }
-  }, [previewOpen, closePreview, openPreview, detectedUrl]);
+  }, [previewOpen, closePreview]);
   const sendPrompt = useSendPrompt();
   const createSession = useCreateSession();
   const abortSession = useAbortSession();
