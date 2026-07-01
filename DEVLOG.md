@@ -15,6 +15,22 @@
 
 ---
 
+## 2026-07-01 · Tool-card "vive": timer, preview, spinner (idea da ruflo)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Task #7 delle integrazioni. `ToolCallCard` ora è viva:
+- **Timer live** che ticka (200ms) mentre il tool gira, poi si ferma sulla
+  durata finale a completamento/errore (da `ToolState.time.start/end`).
+- **Spinner** accanto a "running".
+- **Preview inline** di una riga (comando/path/query dall'input del tool) sotto
+  l'header quando è chiusa → si vede a colpo d'occhio cosa fa ogni tool; i tool
+  paralleli si impilano come card live separate.
+
+Lint+prettier+build+test verdi. Prossimo: Plan tree (task #8).
+
+---
+
 ## 2026-07-01 · Differenziatore: diagrammi Mermaid in chat (idea da jcode)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
