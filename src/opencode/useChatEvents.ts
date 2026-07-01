@@ -50,9 +50,12 @@ export function useChatEvents() {
         setMessage(e.properties.info);
       }),
 
-      // Session started running (prompt admitted)
-      onEventType<EventSessionUpdated>("session.updated", (e) => {
-        setSessionRunning(e.properties.info.id, true);
+      // Session metadata changed (title, revert, etc.). Note: this fires for
+      // many reasons — including title generation AFTER a run finishes — so it
+      // must NOT set the running flag, or the UI gets stuck on "Working". The
+      // running flag is set on send (useSendPrompt) and cleared on idle/error.
+      onEventType<EventSessionUpdated>("session.updated", () => {
+        queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
       }),
 
       // Session finished — clear running flag and refresh session list

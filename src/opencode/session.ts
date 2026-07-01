@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session, AssistantMessage } from "@opencode-ai/sdk/client";
 import { getClient } from "./client";
+import { useChatStore } from "@/stores/chat.store";
 
 export type { Session, AssistantMessage };
 
@@ -69,23 +70,34 @@ export function useCreateSession() {
   });
 }
 
+interface SendPromptInput {
+  sessionId: string;
+  text: string;
+  modelID?: string;
+  providerID?: string;
+  agent?: string;
+}
+
 /** Send a prompt to a session. */
 export function useSendPrompt() {
   const queryClient = useQueryClient();
   return useMutation({
+    // Mark the session running the moment we send. The "running" flag is owned
+    // by the send→idle window, NOT by session.updated (which also fires for
+    // title/metadata changes and would otherwise get the UI stuck on "Working").
+    onMutate: ({ sessionId }: SendPromptInput) => {
+      useChatStore.getState().setSessionRunning(sessionId, true);
+    },
+    onError: (_err, variables) => {
+      useChatStore.getState().setSessionRunning(variables.sessionId, false);
+    },
     mutationFn: async ({
       sessionId,
       text,
       modelID,
       providerID,
       agent,
-    }: {
-      sessionId: string;
-      text: string;
-      modelID?: string;
-      providerID?: string;
-      agent?: string;
-    }) => {
+    }: SendPromptInput) => {
       const res = await getClient().session.prompt({
         path: { id: sessionId },
         body: {

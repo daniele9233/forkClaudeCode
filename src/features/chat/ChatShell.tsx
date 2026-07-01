@@ -25,18 +25,19 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   useTerminalEvents();
   const { activeSessionId, sidecarStatus, setActiveSession } = useSessionStore();
   const { bottomOpen, bottomTab, toggleTerminal } = useUIStore();
-  const previewUrl = usePreviewStore((s) => s.previewUrl);
+  const previewOpen = usePreviewStore((s) => s.previewOpen);
   const detectedUrl = usePreviewStore((s) => s.detectedUrl);
   const openPreview = usePreviewStore((s) => s.openPreview);
   const closePreview = usePreviewStore((s) => s.closePreview);
-  const previewActive = previewUrl !== null;
   const togglePreview = useCallback(() => {
-    if (previewActive) {
+    if (previewOpen) {
       closePreview();
     } else {
-      openPreview(detectedUrl ?? "http://localhost:5173/");
+      // Open with the detected dev-server URL if we have one; otherwise open the
+      // panel empty so it shows guidance instead of a broken localhost page.
+      openPreview(detectedUrl ?? undefined);
     }
-  }, [previewActive, closePreview, openPreview, detectedUrl]);
+  }, [previewOpen, closePreview, openPreview, detectedUrl]);
   const sendPrompt = useSendPrompt();
   const createSession = useCreateSession();
   const abortSession = useAbortSession();
@@ -141,7 +142,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
             title="Toggle web preview (in-app)"
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
-              previewActive
+              previewOpen
                 ? "bg-[var(--primary)]/15 text-[var(--primary)]"
                 : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
             )}

@@ -15,6 +15,37 @@
 
 ---
 
+## 2026-07-01 · Fix "stuck on Working" + preview onesto (no più localhost:5173 rotto)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Due bug segnalati dopo il primo giro funzionante.
+
+### 1. La chat restava su "Working" a task finito
+Causa: in `useChatEvents` l'handler `session.updated` faceva **sempre**
+`setSessionRunning(id, true)`. Ma opencode emette `session.updated` per tanti
+motivi — incluso la **generazione del titolo alla FINE del run** — quindi subito
+dopo `session.idle` (running=false) arrivava un `session.updated` che rimetteva
+running=true → bloccato per sempre.
+Fix: il flag "running" ora è di proprietà della finestra **send→idle**:
+`useSendPrompt` lo mette `true` in `onMutate` (e `false` in `onError`), `session.idle`/`session.error` lo mettono `false`, e `session.updated` **non lo tocca più** (fa solo invalidate della lista).
+
+### 2. Anteprima "non funziona"
+Apriva sempre `http://localhost:5173/` anche senza dev server → pagina rotta
+(l'agente aveva creato un `index.html` statico, nessun server in ascolto).
+Fix: `preview.store` ora ha `previewOpen` separato da `previewUrl`. Il tasto
+anteprima apre il pannello; se non c'è un dev server rilevato mostra uno
+**stato vuoto onesto** ("No dev server detected — avvia `npm run dev`, lo
+rilevo da solo, oppure scrivi un URL") invece di un iframe rotto. La barra
+indirizzi resta usabile. `App` monta il pannello su `previewOpen`.
+
+**Nota:** per vedere un `index.html` **statico** serve comunque un server
+(HMR/preview vivono su un dev server). Prossimo possibile: mini static-server
+integrato che serve la cartella del progetto per l'anteprima 1-click dei siti
+statici. Lint/build/22 test verdi.
+
+---
+
 ## 2026-07-01 · Project/workspace picker — apri cartella / clona repo GitHub / crea progetto
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

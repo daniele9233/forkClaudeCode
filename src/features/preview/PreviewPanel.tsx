@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RotateCw, ExternalLink, X, Crosshair } from "lucide-react";
+import { RotateCw, ExternalLink, X, Crosshair, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useSelectionStore, type SelectedElement } from "@/stores/selection.store";
@@ -18,7 +18,7 @@ import { ElementCompose } from "./ElementCompose";
  * listens for them and drives the selection store + ElementCompose UI.
  */
 export function PreviewPanel() {
-  const { previewUrl, openPreview, closePreview } = usePreviewStore();
+  const { previewOpen, previewUrl, openPreview, closePreview } = usePreviewStore();
   const [urlInput, setUrlInput] = useState(previewUrl ?? "");
   const [reloadKey, setReloadKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -96,7 +96,7 @@ export function PreviewPanel() {
     sendToIframe({ type: selectionMode ? "forgia:enable" : "forgia:disable" });
   }, [selectionMode, inspectorReady, sendToIframe]);
 
-  if (!previewUrl) return null;
+  if (!previewOpen) return null;
 
   const navigate = () => {
     const url = urlInput.trim();
@@ -113,7 +113,7 @@ export function PreviewPanel() {
   };
 
   const openExternal = () => {
-    window.open(previewUrl, "_blank", "noopener,noreferrer");
+    if (previewUrl) window.open(previewUrl, "_blank", "noopener,noreferrer");
   };
 
   // After iframe loads a new page, ping the inspector script.
@@ -208,18 +208,35 @@ export function PreviewPanel() {
         </div>
       )}
 
-      {/* Iframe */}
-      <div className={cn("min-h-0 flex-1 bg-white", selectionMode && "cursor-crosshair")}>
-        <iframe
-          ref={iframeRef}
-          key={reloadKey}
-          src={previewUrl}
-          title="Web preview"
-          className="h-full w-full border-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-          onLoad={handleIframeLoad}
-        />
-      </div>
+      {/* Iframe (a URL is loaded) or empty-state guidance (no server yet) */}
+      {previewUrl ? (
+        <div
+          className={cn("min-h-0 flex-1 bg-white", selectionMode && "cursor-crosshair")}
+        >
+          <iframe
+            ref={iframeRef}
+            key={reloadKey}
+            src={previewUrl}
+            title="Web preview"
+            className="h-full w-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            onLoad={handleIframeLoad}
+          />
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+          <Globe className="h-10 w-10 text-[var(--muted-foreground)]/40" />
+          <p className="text-sm font-medium text-[var(--foreground)]">
+            No dev server detected
+          </p>
+          <p className="max-w-xs text-xs leading-relaxed text-[var(--muted-foreground)]">
+            Start your project&apos;s dev server in the Terminal (e.g.{" "}
+            <code className="rounded bg-[var(--muted)] px-1 font-mono">npm run dev</code>)
+            — kikkoCode detects it automatically and loads it here. Or type any URL in the
+            bar above and press Enter.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

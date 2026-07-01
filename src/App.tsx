@@ -69,7 +69,7 @@ export default function App() {
     closeProjectPicker,
   } = useUIStore();
   const selectedFilePath = useFileStore((s) => s.selectedFilePath);
-  const previewUrl = usePreviewStore((s) => s.previewUrl);
+  const previewOpen = usePreviewStore((s) => s.previewOpen);
   const reduce = useReducedMotion();
   const sidecarStatus = useSessionStore((s) => s.sidecarStatus);
   const onboardingDone = useOnboardingStore((s) => s.completed);
@@ -258,7 +258,7 @@ export default function App() {
         </main>
 
         {/* Right column: web preview */}
-        {previewUrl && <PreviewPanel />}
+        {previewOpen && <PreviewPanel />}
       </div>
 
       {/* Global overlays */}
