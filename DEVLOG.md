@@ -15,6 +15,44 @@
 
 ---
 
+## 2026-07-01 · Dev server gestito da kikkoCode (modello Claude Code) + guida agente
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Il port-scanning era un cerotto. Soluzione "alla Claude Code": kikkoCode
+**avvia e gestisce lui** il dev server come processo tracciato, cattura l'output
+in tempo reale e legge la porta **reale** da lì (niente indovinare, niente
+finestre separate). Scelta utente: **entrambi** (runner + guida all'agente).
+
+### Rust
+- `dev_runner.rs`: `DevRunner` avvia `<pm> run <script>` (pm da lockfile:
+  pnpm/yarn/bun/npm; script: dev›start›serve›preview da `package.json`) nel cwd
+  del progetto, stdout/stderr in pipe → stream come eventi `dev-server-log`,
+  watcher di uscita → `dev-server-exit`. `stop()` (kill), `status()`,
+  `detect_dev_command()` pub. Su Windows i comandi npm passano da `cmd /C`.
+- `lib.rs`: `AppState.dev`; comandi `start_dev_server`, `stop_dev_server`,
+  `dev_server_status`, `dev_command_info`.
+
+### Frontend
+- `devserver.store` (running/starting/command/logs capped).
+- `useDevServerEvents`: consuma `dev-server-log` → `detectDevServerUrl` (riuso)
+  → apre l'anteprima all'URL **vero**; capta i log per la vista "starting".
+- `opencode/preview.ts`: `startDevServer`/`stopDevServer`/`getDevCommand`;
+  `openBestPreview` e `syncStaticPreviewOnIdle` ora, se non c'è URL vivo né
+  pagina statica ma il progetto ha un dev script, **avviano il server** da soli.
+- `PreviewPanel`: tasto Run/Stop in toolbar, stato "Starting…" con log live,
+  empty-state con bottone "Run dev server (<cmd>)".
+
+### Guida all'agente (Entrambi)
+- `skills/previewPolicy.ts`: nota nascosta `[[kikko-note]]` iniettata sui prompt
+  web (keyword) che dice all'agente di NON avviare dev server in finestre
+  staccate né aprire il browser — ci pensa kikkoCode. `parseSkills` la strippa
+  dalla vista come i blocchi skill.
+
+Lint/build/22 test verdi.
+
+---
+
 ## 2026-07-01 · Anteprima: rilevamento attivo dei dev server (porte comuni)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

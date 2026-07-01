@@ -72,10 +72,17 @@ export function parseSkills(text: string): { clean: string; skillIds: string[] }
   const re = /\[\[kikko-skill:([a-z0-9-]+)\]\][\s\S]*?\[\[\/kikko-skill\]\]/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) ids.push(m[1]);
-  if (ids.length === 0) return { clean: text, skillIds: [] };
+
+  // Hidden policy notes (e.g. the preview/dev-server guidance) are also stripped
+  // from what the user sees, but are not skills.
+  const noteRe = /\[\[kikko-note\]\][\s\S]*?\[\[\/kikko-note\]\]/g;
+  const hasNote = noteRe.test(text);
+
+  if (ids.length === 0 && !hasNote) return { clean: text, skillIds: [] };
 
   const clean = text
     .replace(re, "")
+    .replace(/\[\[kikko-note\]\][\s\S]*?\[\[\/kikko-note\]\]/g, "")
     .replace(/^Apply the following expert playbook\(s\)[^\n]*\n*/, "")
     .replace(/^\s*---\s*\n*/, "")
     .trim();

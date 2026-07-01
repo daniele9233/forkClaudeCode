@@ -6,7 +6,9 @@ import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/ses
 import { useConfig } from "@/opencode/config";
 import { useSkillsStore } from "@/stores/skills.store";
 import { matchSkills, injectSkills } from "@/skills/match";
+import { injectPreviewPolicy } from "@/skills/previewPolicy";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
+import { useDevServerEvents } from "@/features/preview/useDevServerEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { usePreviewStore } from "@/stores/preview.store";
 import { openBestPreview } from "@/opencode/preview";
@@ -24,6 +26,7 @@ import { PlanTree } from "./PlanTree";
 export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = {}) {
   const { isRunning } = useChatEvents();
   useTerminalEvents();
+  useDevServerEvents();
   const { activeSessionId, sidecarStatus, setActiveSession } = useSessionStore();
   const { bottomOpen, bottomTab, toggleTerminal } = useUIStore();
   const previewOpen = usePreviewStore((s) => s.previewOpen);
@@ -60,7 +63,10 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       // user describes the goal, the matcher picks the skill). Markers let the
       // chat strip the injected text and show a badge instead.
       const skills = autoApplySkills ? matchSkills(text, skillsEnabled) : [];
-      const finalText = injectSkills(text, skills);
+      // Also inject the hidden preview/dev-server policy on web-related prompts,
+      // so the agent lets kikkoCode manage the preview instead of spawning
+      // detached servers or opening the browser.
+      const finalText = injectPreviewPolicy(injectSkills(text, skills));
 
       // Send with the explicitly selected model so the request never falls back
       // to the engine's default provider (e.g. the Zen gateway, which would

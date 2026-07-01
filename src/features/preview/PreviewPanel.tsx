@@ -1,8 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RotateCw, ExternalLink, X, Crosshair, Globe } from "lucide-react";
+import {
+  RotateCw,
+  ExternalLink,
+  X,
+  Crosshair,
+  Globe,
+  Play,
+  Square,
+  Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
+import { useDevServerStore } from "@/stores/devserver.store";
 import { useSelectionStore, type SelectedElement } from "@/stores/selection.store";
+import { startDevServer, stopDevServer, getDevCommand } from "@/opencode/preview";
 import { ElementCompose } from "./ElementCompose";
 
 /**
@@ -23,6 +34,24 @@ export function PreviewPanel() {
   const [urlInput, setUrlInput] = useState(previewUrl ?? "");
   const [reloadKey, setReloadKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const devRunning = useDevServerStore((s) => s.running);
+  const devStarting = useDevServerStore((s) => s.starting);
+  const devCommand = useDevServerStore((s) => s.command);
+  const devLogs = useDevServerStore((s) => s.logs);
+  const [availCommand, setAvailCommand] = useState<string | null>(null);
+
+  // Discover whether this project has a dev command we can run.
+  useEffect(() => {
+    if (!previewOpen) return;
+    let cancelled = false;
+    getDevCommand().then((c) => {
+      if (!cancelled) setAvailCommand(c);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [previewOpen, devRunning]);
 
   const {
     selectionMode,
@@ -162,6 +191,31 @@ export function PreviewPanel() {
           <Crosshair className="h-3.5 w-3.5" />
         </button>
 
+        {/* Dev server run/stop (kikkoCode-managed) */}
+        {devRunning || devStarting ? (
+          <button
+            onClick={() => void stopDevServer()}
+            className="shrink-0 rounded p-1 text-[var(--color-online)] transition-colors hover:bg-[var(--muted)]"
+            title={`Stop dev server${devCommand ? ` (${devCommand})` : ""}`}
+          >
+            {devStarting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Square className="h-3.5 w-3.5" />
+            )}
+          </button>
+        ) : (
+          availCommand && (
+            <button
+              onClick={() => void startDevServer()}
+              className="shrink-0 rounded p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--color-online)]"
+              title={`Run dev server (${availCommand})`}
+            >
+              <Play className="h-3.5 w-3.5" />
+            </button>
+          )
+        )}
+
         <input
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
@@ -224,18 +278,48 @@ export function PreviewPanel() {
             onLoad={handleIframeLoad}
           />
         </div>
+      ) : devStarting || devRunning ? (
+        // Dev server booting — show live output until the URL appears.
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex shrink-0 items-center gap-2 border-b border-[var(--border)] px-3 py-2">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--primary)]" />
+            <span className="text-xs text-[var(--foreground)]">
+              Starting dev server{devCommand ? ` · ${devCommand}` : ""}…
+            </span>
+          </div>
+          <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+            {devLogs.length ? devLogs.join("\n") : "waiting for output…"}
+          </pre>
+        </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
           <Globe className="h-10 w-10 text-[var(--muted-foreground)]/40" />
           <p className="text-sm font-medium text-[var(--foreground)]">
-            No dev server detected
+            No page to preview yet
           </p>
-          <p className="max-w-xs text-xs leading-relaxed text-[var(--muted-foreground)]">
-            Start your project&apos;s dev server in the Terminal (e.g.{" "}
-            <code className="rounded bg-[var(--muted)] px-1 font-mono">npm run dev</code>)
-            — kikkoCode detects it automatically and loads it here. Or type any URL in the
-            bar above and press Enter.
-          </p>
+          {availCommand ? (
+            <>
+              <p className="max-w-xs text-xs leading-relaxed text-[var(--muted-foreground)]">
+                This project has a dev server. Run it and kikkoCode will show the live
+                site here — no terminal needed.
+              </p>
+              <button
+                onClick={() => void startDevServer()}
+                className="flex items-center gap-2 rounded-lg border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--primary)]/20"
+              >
+                <Play className="h-4 w-4" />
+                Run dev server
+                <code className="rounded bg-[var(--muted)] px-1 font-mono text-[11px]">
+                  {availCommand}
+                </code>
+              </button>
+            </>
+          ) : (
+            <p className="max-w-xs text-xs leading-relaxed text-[var(--muted-foreground)]">
+              Ask the agent to build a page and kikkoCode will preview it automatically.
+              Or type any URL in the bar above and press Enter.
+            </p>
+          )}
         </div>
       )}
     </div>

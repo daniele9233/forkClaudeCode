@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { usePreviewStore } from "@/stores/preview.store";
+import { useDevServerStore } from "@/stores/devserver.store";
 
 /**
  * URL of the built-in static server for the current project — but only if the
@@ -49,9 +50,59 @@ async function resolvePreviewUrl(): Promise<string | undefined> {
  * Open the best available preview: a detected dev server if there is one, else
  * the built-in static server, else an empty panel with guidance.
  */
+/** The dev command kikkoCode would run for this project, or null. */
+export async function getDevCommand(): Promise<string | null> {
+  try {
+    return (await invoke<string | null>("dev_command_info")) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Start the kikkoCode-managed dev server. The real URL arrives via the
+ * `dev-server-log` stream (see useDevServerEvents), which opens the preview.
+ */
+export async function startDevServer(): Promise<void> {
+  const dev = useDevServerStore.getState();
+  dev.clearLogs();
+  dev.setStarting(true);
+  try {
+    const cmd = await invoke<string>("start_dev_server");
+    dev.setCommand(cmd);
+  } catch (e) {
+    dev.setStarting(false);
+    dev.appendLog(`[error] ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+export async function stopDevServer(): Promise<void> {
+  try {
+    await invoke("stop_dev_server");
+  } catch {
+    /* ignore */
+  }
+  const dev = useDevServerStore.getState();
+  dev.setRunning(false);
+  dev.setStarting(false);
+  dev.setCommand(null);
+}
+
 export async function openBestPreview(): Promise<void> {
+  const st = usePreviewStore.getState();
   const url = await resolvePreviewUrl();
-  usePreviewStore.getState().openPreview(url);
+  if (url) {
+    st.openPreview(url);
+    return;
+  }
+  // Nothing live and no static page — offer to run the dev server ourselves if
+  // the project has one. Open the panel so the user sees the "starting" state.
+  const dev = useDevServerStore.getState();
+  const cmd = await getDevCommand();
+  st.openPreview(undefined);
+  if (cmd && !dev.running && !dev.starting) {
+    void startDevServer();
+  }
 }
 
 /**
@@ -65,13 +116,22 @@ export async function syncStaticPreviewOnIdle(): Promise<void> {
   if (!st.previewOpen && st.closedByUser) return;
 
   const url = await resolvePreviewUrl();
-  if (!url) return;
+  if (url) {
+    if (!st.previewOpen || st.previewUrl !== url) {
+      st.openPreview(url); // auto-open / switch to the live page
+    } else {
+      st.bumpReload(); // already showing it → reflect the latest edits
+    }
+    return;
+  }
 
-  if (!st.previewOpen) {
-    st.openPreview(url); // auto-open the page the agent just produced
-  } else if (st.previewUrl === url) {
-    st.bumpReload(); // already showing it → reflect the latest edits
-  } else {
-    st.openPreview(url); // panel open on empty/other → load the right URL
+  // No live URL and no static page. If it's a web project with a dev server,
+  // start it ourselves so the preview appears automatically.
+  const dev = useDevServerStore.getState();
+  if (dev.running || dev.starting) return;
+  const cmd = await getDevCommand();
+  if (cmd) {
+    st.openPreview(undefined);
+    void startDevServer();
   }
 }

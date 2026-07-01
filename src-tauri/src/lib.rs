@@ -1,7 +1,9 @@
 mod config_store;
+mod dev_runner;
 mod preview_server;
 mod sidecar;
 
+use dev_runner::{DevRunner, DevStatus};
 use preview_server::PreviewServer;
 use sidecar::Sidecar;
 use std::path::PathBuf;
@@ -13,6 +15,8 @@ pub struct AppState {
     /// Built-in static file server for the web preview (None if it failed to
     /// bind — preview is then unavailable but the app still works).
     pub preview: Option<Arc<PreviewServer>>,
+    /// kikkoCode-managed dev server (runs the project's dev command).
+    pub dev: Arc<DevRunner>,
 }
 
 /// Returns the `base_url` of the running opencode sidecar.
@@ -224,6 +228,45 @@ async fn create_project(
     Ok(dest.display().to_string())
 }
 
+/// Start the project's dev server (managed by kikkoCode). Returns the command
+/// line being run. Output streams as `dev-server-log` events; the frontend reads
+/// the real URL from that output — no port guessing.
+#[tauri::command]
+async fn start_dev_server(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<String, String> {
+    let dir = state
+        .sidecar
+        .working_dir()
+        .ok_or("no project open — open a folder first")?;
+    state.dev.start(app, &dir).await
+}
+
+/// Stop the kikkoCode-managed dev server.
+#[tauri::command]
+async fn stop_dev_server(state: tauri::State<'_, AppState>) -> Result<(), String> {
+    state.dev.stop();
+    Ok(())
+}
+
+/// Current dev-server status (running + command line).
+#[tauri::command]
+async fn dev_server_status(state: tauri::State<'_, AppState>) -> Result<DevStatus, String> {
+    Ok(state.dev.status())
+}
+
+/// The dev command kikkoCode would run for the current project (e.g.
+/// "pnpm run dev"), or null if the project has no dev/start script. Lets the UI
+/// show a "Run dev server" button only when it makes sense.
+#[tauri::command]
+async fn dev_command_info(state: tauri::State<'_, AppState>) -> Result<Option<String>, String> {
+    let Some(dir) = state.sidecar.working_dir() else {
+        return Ok(None);
+    };
+    Ok(dev_runner::detect_dev_command(&dir).map(|(pm, script)| format!("{pm} run {script}")))
+}
+
 /// Actively probe the common local dev-server ports and return the first one
 /// answering HTTP. This makes the preview work even when the dev server was
 /// started outside kikkoCode's terminal (e.g. the agent ran it in a detached
@@ -344,11 +387,16 @@ pub fn run() {
     // Built-in static preview server (best-effort; None if it can't bind).
     let preview = PreviewServer::start().map(Arc::new);
     let preview_clone = preview.clone();
+    let dev = Arc::new(DevRunner::new());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(AppState { sidecar, preview })
+        .manage(AppState {
+            sidecar,
+            preview,
+            dev,
+        })
         .setup(move |app| {
             let sidecar = sidecar_clone.clone();
             let handle = app.handle().clone();
@@ -393,7 +441,11 @@ pub fn run() {
             clone_repo,
             create_project,
             preview_url,
-            probe_dev_server
+            probe_dev_server,
+            start_dev_server,
+            stop_dev_server,
+            dev_server_status,
+            dev_command_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
