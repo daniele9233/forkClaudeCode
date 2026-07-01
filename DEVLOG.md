@@ -15,6 +15,21 @@
 
 ---
 
+## 2026-07-01 · Selettore modelli (chat ↔ reasoner) nel dropdown
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Su richiesta: rimesso il **selettore di modello** nel dropdown, sotto "Add
+provider API key". Mostra i modelli **solo dei provider connessi** (Zen gateway
+nascosto), raggruppati per provider, con spunta sull'attivo e context-K.
+Cliccare un modello fa `updateConfig.mutate({ model })`; `ChatShell` legge
+`config.model` reattivamente, quindi il prossimo invio usa quello — così si
+passa da `deepseek-chat` (veloce) a `deepseek-reasoner` a piacere.
+
+Frontend-only. Lint+prettier+build verdi, 22 test.
+
+---
+
 ## 2026-07-01 · UX: streaming real-time, velocità percepita, prompt allargabile
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

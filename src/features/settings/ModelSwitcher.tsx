@@ -1,29 +1,34 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useConfig } from "@/opencode/config";
+import { useConfig, useUpdateConfig } from "@/opencode/config";
+import { useProviders } from "@/opencode/context";
 import { AddProviderKey } from "./AddProviderKey";
 
 /**
- * Compact model indicator + provider connector. The dropdown intentionally
- * contains ONLY "Add provider API key": connecting a provider auto-selects one
- * of its models, so there's no separate model list to wade through.
+ * Model indicator + provider connector. The dropdown has "Add provider API key"
+ * on top and, below it, the models of the providers you've connected (the
+ * built-in paid "OpenCode Zen" gateway is hidden) — so you can switch between
+ * e.g. a fast chat model and a slower reasoning model.
  */
 export function ModelSwitcher() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const { data: config } = useConfig();
+  const { data: providers = [] } = useProviders();
+  const updateConfig = useUpdateConfig();
 
   const currentModel = config?.model ?? "";
   const slash = currentModel.indexOf("/");
-  // Strip the internal "byok-" prefix we use to avoid built-in provider id
-  // collisions, so the chip reads "deepseek" rather than "byok-deepseek".
-  const providerId = (slash > 0 ? currentModel.slice(0, slash) : "").replace(
-    /^byok-/,
-    "",
-  );
-  const modelId = slash > 0 ? currentModel.slice(slash + 1) : currentModel;
-  const displayModel = modelId || "Select model";
+  const currentProviderId = slash > 0 ? currentModel.slice(0, slash) : "";
+  const currentModelId = slash > 0 ? currentModel.slice(slash + 1) : currentModel;
+  // Strip the internal "byok-" prefix so the chip reads "deepseek" not
+  // "byok-deepseek".
+  const displayProvider = currentProviderId.replace(/^byok-/, "");
+  const displayModel = currentModelId || "Select model";
+
+  // Only providers the user connected — hide the built-in Zen gateway.
+  const visibleProviders = providers.filter((p) => p.id !== "opencode");
 
   useEffect(() => {
     if (!open) return;
@@ -33,6 +38,11 @@ export function ModelSwitcher() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  const selectModel = (providerId: string, modelId: string) => {
+    updateConfig.mutate({ model: `${providerId}/${modelId}` });
+    setOpen(false);
+  };
 
   return (
     <div ref={panelRef} className="relative">
@@ -46,16 +56,67 @@ export function ModelSwitcher() {
         )}
         title="Model / providers"
       >
-        {providerId && (
-          <span className="text-[var(--muted-foreground)] opacity-70">{providerId}</span>
+        {displayProvider && (
+          <span className="text-[var(--muted-foreground)] opacity-70">
+            {displayProvider}
+          </span>
         )}
         <span className="max-w-[140px] truncate font-medium">{displayModel}</span>
         <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
       </button>
 
       {open && (
-        <div className="glass-strong glass-border absolute right-0 top-full z-50 mt-1.5 w-80 overflow-hidden rounded-2xl shadow-xl">
-          <AddProviderKey onConnected={() => setOpen(false)} />
+        <div className="glass-strong glass-border absolute right-0 top-full z-50 mt-1.5 flex max-h-[70vh] w-80 flex-col overflow-hidden rounded-2xl shadow-xl">
+          <div className="shrink-0">
+            <AddProviderKey onConnected={() => setOpen(false)} />
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--border)] py-1">
+            {visibleProviders.length === 0 && (
+              <p className="px-3 py-3 text-center text-[11px] text-[var(--muted-foreground)]">
+                No models yet — add a provider key above.
+              </p>
+            )}
+            {visibleProviders.map((provider) => {
+              const models = Object.entries(provider.models ?? {});
+              if (models.length === 0) return null;
+              return (
+                <div key={provider.id}>
+                  <div className="px-3 pb-0.5 pt-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                    {provider.name}
+                  </div>
+                  {models.map(([modelId, model]) => {
+                    const active =
+                      currentProviderId === provider.id && currentModelId === modelId;
+                    return (
+                      <button
+                        key={modelId}
+                        onClick={() => selectModel(provider.id, modelId)}
+                        className={cn(
+                          "flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
+                          active
+                            ? "bg-[var(--primary)]/10 text-[var(--foreground)]"
+                            : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]",
+                        )}
+                      >
+                        <span className="flex-1 truncate text-xs">
+                          {model.name || modelId}
+                        </span>
+                        {model.limit?.context ? (
+                          <span className="shrink-0 text-[9px] text-[var(--muted-foreground)]">
+                            {(model.limit.context / 1000).toFixed(0)}K
+                          </span>
+                        ) : null}
+                        {active && (
+                          <Check className="h-3 w-3 shrink-0 text-[var(--primary)]" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
