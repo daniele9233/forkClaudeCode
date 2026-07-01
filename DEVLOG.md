@@ -15,6 +15,33 @@
 
 ---
 
+## 2026-07-01 · UX: streaming real-time, velocità percepita, prompt allargabile
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Il motore ora funziona; tre problemi UX segnalati: (1) prompt non allargabile,
+(2) niente streaming real-time, (3) "estremamente lento". (2) e (3) avevano la
+stessa radice.
+
+- **Streaming + velocità** (`useChatEvents` + `MessageList`): `message.updated`
+  faceva `invalidateQueries` **a ogni token** → refetch completo della lista
+  messaggi in continuazione (jank + lentezza), e `MessageList` mostrava solo i
+  messaggi già presenti nel fetch → i token non comparivano finché non
+  arrivava un refetch. Fix: niente più invalidate per-token (reconcile solo su
+  `session.idle`); `MessageList` ora **fonde** history + `liveMessages`/
+  `liveParts` in `useMemo` e renderizza i token appena arrivano (incl. messaggi
+  live non ancora nella history). `isRunning` reso reattivo (era
+  `getState()` non sottoscritto).
+- **Modello veloce di default** (`useConnectProvider`): auto-seleziona un modello
+  **chat non-reasoning** (i reasoning tipo R1 sono molto più lenti) invece del
+  primo qualsiasi.
+- **Prompt allargabile** (`ChatInput`): auto-grow fino a 50vh + maniglia
+  `resize-y` per trascinare; guardia su `message.time`.
+
+Tutto frontend → nessuna ricompilazione Rust. Lint+prettier+build verdi, 22 test.
+
+---
+
 ## 2026-06-30 · Chiavi via ENV + restart motore (meccanismo nativo opencode)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

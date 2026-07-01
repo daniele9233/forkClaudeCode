@@ -40,12 +40,12 @@ export function useChatEvents() {
         removePart(e.properties.messageID, e.properties.partID);
       }),
 
-      // Full message metadata update (cost, tokens, error, finish)
+      // Full message metadata update (cost, tokens, error, finish).
+      // Store it live only — do NOT invalidate the messages query here: during
+      // streaming this fires on every token tick and a full refetch each time
+      // causes jank and lag. The final reconcile happens on session.idle.
       onEventType<EventMessageUpdated>("message.updated", (e) => {
         setMessage(e.properties.info);
-        queryClient.invalidateQueries({
-          queryKey: sessionKeys.messages(e.properties.info.sessionID),
-        });
       }),
 
       // Session started running (prompt admitted)
@@ -120,9 +120,9 @@ export function useChatEvents() {
     queryClient,
   ]);
 
-  const isRunning = activeSessionId
-    ? useChatStore.getState().runningSessions.has(activeSessionId)
-    : false;
+  // Subscribe reactively so the UI updates when the running state flips.
+  const runningSessions = useChatStore((s) => s.runningSessions);
+  const isRunning = activeSessionId ? runningSessions.has(activeSessionId) : false;
 
   return { isRunning };
 }

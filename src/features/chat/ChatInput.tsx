@@ -53,8 +53,11 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
     const el = e.target;
+    // Auto-grow up to half the viewport; the user can also drag the handle
+    // (resize-y) to make it larger for long prompts.
+    const cap = Math.round(window.innerHeight * 0.5);
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, cap)}px`;
   };
 
   return (
@@ -99,9 +102,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
               : `Message the agent in ${mode} mode (Enter to send)`
           }
           className={cn(
-            "flex-1 resize-none bg-transparent text-sm text-[var(--foreground)]",
+            "flex-1 resize-y bg-transparent text-sm text-[var(--foreground)]",
             "placeholder:text-[var(--muted-foreground)] focus:outline-none",
-            "max-h-[200px] overflow-y-auto",
+            "max-h-[50vh] min-h-[2.5rem] overflow-y-auto",
           )}
         />
         {isRunning ? (

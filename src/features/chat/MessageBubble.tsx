@@ -39,11 +39,14 @@ function UserBubble({ message, parts }: { message: Message; parts: Part[] }) {
     .map((p) => p.text)
     .join("\n");
 
-  const time = new Date(message.time.created * 1000).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  const created = message.time?.created;
+  const time = created
+    ? new Date(created * 1000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : "";
 
   return (
     <div className="border border-[var(--border)]">

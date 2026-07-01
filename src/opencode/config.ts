@@ -178,7 +178,15 @@ export function useConnectProvider() {
         try {
           const res = await getClient().config.providers({ throwOnError: true });
           const p = (res.data?.providers ?? []).find((x) => x.id === providerId);
-          firstModel = p ? Object.keys(p.models ?? {})[0] : undefined;
+          if (p) {
+            const ids = Object.keys(p.models ?? {});
+            // Prefer a fast non-reasoning chat model (reasoning models are much
+            // slower); fall back to the first available.
+            firstModel =
+              ids.find((m) => /chat/i.test(m) && !/reason/i.test(m)) ??
+              ids.find((m) => !/reason/i.test(m)) ??
+              ids[0];
+          }
         } catch {
           /* engine still restarting */
         }

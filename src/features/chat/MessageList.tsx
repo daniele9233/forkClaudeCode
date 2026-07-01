@@ -1,14 +1,20 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import type { Part } from "@opencode-ai/sdk/client";
+import type { Message, Part } from "@opencode-ai/sdk/client";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionMessages } from "@/opencode/session";
-import { rowInfo } from "@/opencode/messageShape";
+import { rowInfo, createdAt } from "@/opencode/messageShape";
 import { MessageBubble } from "./MessageBubble";
 
 interface Props {
   sessionId: string;
   isRunning: boolean;
+}
+
+interface RenderItem {
+  info: Message;
+  parts: Part[];
+  streaming: boolean;
 }
 
 export function MessageList({ sessionId, isRunning }: Props) {
@@ -18,12 +24,46 @@ export function MessageList({ sessionId, isRunning }: Props) {
   const liveParts = useChatStore((s) => s.liveParts);
   const liveMessages = useChatStore((s) => s.liveMessages);
 
-  // Auto-scroll to bottom when new content arrives
+  // Merge fetched history with live (streaming) messages/parts so tokens render
+  // the instant they arrive — without waiting for a network refetch.
+  const items = useMemo((): RenderItem[] => {
+    const out: RenderItem[] = [];
+    const seen = new Set<string>();
+
+    for (const row of messageRows ?? []) {
+      const info = rowInfo(row);
+      if (!info) continue;
+      seen.add(info.id);
+      const lp = liveParts.get(info.id);
+      const historic = ((row as { parts?: Part[] }).parts ?? []) as Part[];
+      const live = liveMessages.get(info.id);
+      out.push({
+        info: live ?? info,
+        parts: lp ? Array.from(lp.values()) : historic,
+        streaming: isRunning && lp !== undefined && (live ?? info).role === "assistant",
+      });
+    }
+
+    // Live-only messages (a streaming reply not yet in the fetched history).
+    for (const [id, msg] of liveMessages) {
+      if (!msg || seen.has(id)) continue;
+      const lp = liveParts.get(id);
+      out.push({
+        info: msg,
+        parts: lp ? Array.from(lp.values()) : [],
+        streaming: isRunning && msg.role === "assistant",
+      });
+    }
+
+    return out.sort((a, b) => createdAt(a.info) - createdAt(b.info));
+  }, [messageRows, liveParts, liveMessages, isRunning]);
+
+  // Auto-scroll to bottom as content streams in.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messageRows, liveParts]);
+  }, [items]);
 
-  if (isLoading) {
+  if (isLoading && items.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-[var(--muted-foreground)]">
         Loading…
@@ -31,7 +71,7 @@ export function MessageList({ sessionId, isRunning }: Props) {
     );
   }
 
-  if (!messageRows || messageRows.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
         <div className="text-4xl select-none">⚒️</div>
@@ -44,33 +84,16 @@ export function MessageList({ sessionId, isRunning }: Props) {
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-      {messageRows.map((row) => {
-        const info = rowInfo(row);
-        if (!info) return null;
-        const historicParts = ((row as { parts?: Part[] }).parts ?? []) as Part[];
-        // Prefer live (streaming) parts when available for this message
-        const liveMsgParts = liveParts.get(info.id);
-        const parts: Part[] = liveMsgParts
-          ? Array.from(liveMsgParts.values())
-          : historicParts;
-
-        const liveMsg = liveMessages.get(info.id);
-        const message = liveMsg ?? info;
-
-        const msgIsStreaming =
-          isRunning && liveMsgParts !== undefined && message?.role === "assistant";
-
-        return (
-          <motion.div
-            key={info.id}
-            initial={reduce ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <MessageBubble message={message} parts={parts} isStreaming={msgIsStreaming} />
-          </motion.div>
-        );
-      })}
+      {items.map(({ info, parts, streaming }) => (
+        <motion.div
+          key={info.id}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <MessageBubble message={info} parts={parts} isStreaming={streaming} />
+        </motion.div>
+      ))}
       <div ref={bottomRef} />
     </div>
   );
