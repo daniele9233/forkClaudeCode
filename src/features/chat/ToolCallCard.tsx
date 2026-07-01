@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -8,6 +8,7 @@ import {
   Globe,
   Wrench,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ToolPart } from "@opencode-ai/sdk/client";
@@ -15,6 +16,36 @@ import { useFileStore } from "@/stores/file.store";
 
 interface Props {
   part: ToolPart;
+}
+
+/** One-line summary of what a tool is doing, from its input. */
+function previewOf(input: unknown): string | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const o = input as Record<string, unknown>;
+  const first = (...keys: string[]) => {
+    for (const k of keys) if (typeof o[k] === "string" && o[k]) return o[k] as string;
+    return null;
+  };
+  return first(
+    "command",
+    "cmd",
+    "pattern",
+    "query",
+    "path",
+    "filePath",
+    "file_path",
+    "url",
+  );
+}
+
+/** Human duration between two epoch-ms timestamps. */
+function fmtDuration(ms: number): string {
+  if (ms < 0) return "";
+  if (ms < 1000) return `${ms}ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  return `${m}m${Math.round(s - m * 60)}s`;
 }
 
 const TOOL_ICONS: Array<[string, React.ReactNode]> = [
@@ -73,6 +104,20 @@ export function ToolCallCard({ part }: Props) {
       : undefined;
 
   const fileRef = extractFileRef(input);
+  const preview = previewOf(input);
+
+  // Timing: tick a live clock while running; show final duration when done.
+  const startedAt = "time" in state ? state.time.start : undefined;
+  const endedAt =
+    state.status === "completed" || state.status === "error" ? state.time.end : undefined;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isRunning) return;
+    const t = setInterval(() => setNow(Date.now()), 200);
+    return () => clearInterval(t);
+  }, [isRunning]);
+  const durationLabel =
+    startedAt !== undefined ? fmtDuration((endedAt ?? now) - startedAt) : "";
 
   return (
     <div
@@ -119,11 +164,22 @@ export function ToolCallCard({ part }: Props) {
         )}
 
         {isRunning && (
-          <span className="hud-label ml-2 shrink-0 animate-pulse text-[var(--primary)]">
+          <span className="hud-label ml-2 flex shrink-0 items-center gap-1 text-[var(--primary)]">
+            <Loader2 className="h-3 w-3 animate-spin" />
             running
           </span>
         )}
         {isError && <span className="hud-label ml-2 shrink-0 text-red-400">error</span>}
+        {durationLabel && (
+          <span
+            className={cn(
+              "ml-2 shrink-0 font-mono text-[10px] tabular-nums",
+              isRunning ? "text-[var(--primary)]/80" : "text-[var(--muted-foreground)]",
+            )}
+          >
+            {durationLabel}
+          </span>
+        )}
         <span className="ml-auto pr-2 text-[var(--muted-foreground)]">
           {open ? (
             <ChevronDown className="h-3 w-3" />
@@ -132,6 +188,14 @@ export function ToolCallCard({ part }: Props) {
           )}
         </span>
       </button>
+
+      {/* Inline one-line preview of the command / path being acted on */}
+      {preview && !open && (
+        <div className="truncate px-3 py-1 text-[11px] text-[var(--muted-foreground)]">
+          <span className="opacity-50">$ </span>
+          {preview}
+        </div>
+      )}
       {open && (
         <div className="space-y-2 border-t border-[var(--border)] px-3 py-2">
           {input !== undefined && (
