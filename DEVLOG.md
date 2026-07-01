@@ -15,6 +15,35 @@
 
 ---
 
+## 2026-07-01 · Pannello inferiore ridimensionabile + tasto anteprima in-app
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Due richieste utente:
+
+1. **Prompt abbassabile/alzabile.** Quando si aprivano Terminal/Inspector/Timeline
+   il pannello in basso aveva altezza fissa (`h-[42vh]`) e schiacciava la chat, senza
+   modo di riportare in basso il prompt. Ora il divisore sopra il pannello è una
+   **maniglia trascinabile** (`cursor-row-resize`): `ui.store` tiene `bottomHeight`
+   (default 340px), `App.tsx` applica `style={{ height: bottomHeight }}` e un handler
+   `startResize` (pointer events su `document`) calcola l'altezza da
+   `innerHeight - clientY - 28` (28px = status bar), clampata `[140, innerHeight*0.82]`.
+2. **Anteprima web dentro kikkoCode** (non Chrome). Il `PreviewPanel` già rendeva un
+   `<iframe>` in-app in colonna destra quando `previewUrl` è settato — mancava solo un
+   modo per aprirlo dall'header. Aggiunto tasto `MonitorPlay` in `ChatShell` che fa
+   toggle: `openPreview(detectedUrl ?? "http://localhost:5173/")` / `closePreview()`,
+   con stato attivo evidenziato come il tasto terminale.
+
+### Gotcha
+- La maniglia usa listener su `document` (non sul div) così il drag non "sfugge" se il
+  puntatore esce dal bordo; ripristina `userSelect`/`cursor` del body a `pointerup`.
+- Il tasto anteprima resta separato dall'`openExternal` (`window.open`) già presente nel
+  PreviewPanel: quello apre il browser esterno, questo è l'in-app che l'utente voleva.
+
+Lint verde, build verde (1050KB), 22 test ok, prettier pulito.
+
+---
+
 ## 2026-07-01 · Sistema Skills (auto-routing) — manager + badge + 12 skill design
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

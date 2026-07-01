@@ -5,6 +5,8 @@ export type BottomTab = "terminal" | "diff" | "inspector" | "timeline";
 interface UIState {
   bottomOpen: boolean;
   bottomTab: BottomTab;
+  /** Height (px) of the bottom panel — user-resizable via the drag handle. */
+  bottomHeight: number;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
   /** Set when the running engine version doesn't match the pinned SDK. */
@@ -14,6 +16,7 @@ interface UIState {
   openBottom: (tab: BottomTab) => void;
   closeBottom: () => void;
   setBottomTab: (tab: BottomTab) => void;
+  setBottomHeight: (h: number) => void;
   toggleTerminal: () => void;
   openCommandPalette: () => void;
   closeCommandPalette: () => void;
@@ -26,6 +29,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set, get) => ({
   bottomOpen: false,
   bottomTab: "terminal",
+  bottomHeight: 340,
   commandPaletteOpen: false,
   settingsOpen: false,
   engineWarning: null,
@@ -34,6 +38,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   openBottom: (tab) => set({ bottomOpen: true, bottomTab: tab }),
   closeBottom: () => set({ bottomOpen: false }),
   setBottomTab: (tab) => set({ bottomTab: tab }),
+  setBottomHeight: (h) => set({ bottomHeight: h }),
   toggleTerminal: () => {
     const { bottomOpen, bottomTab } = get();
     if (bottomOpen && bottomTab === "terminal") {

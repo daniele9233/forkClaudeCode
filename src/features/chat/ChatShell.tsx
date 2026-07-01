@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { TerminalSquare, Settings } from "lucide-react";
+import { TerminalSquare, Settings, MonitorPlay } from "lucide-react";
 import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
@@ -8,6 +8,7 @@ import { useSkillsStore } from "@/stores/skills.store";
 import { matchSkills, injectSkills } from "@/skills/match";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useUIStore } from "@/stores/ui.store";
+import { usePreviewStore } from "@/stores/preview.store";
 import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
 import { ModelSwitcher } from "@/features/settings/ModelSwitcher";
@@ -24,6 +25,18 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   useTerminalEvents();
   const { activeSessionId, sidecarStatus, setActiveSession } = useSessionStore();
   const { bottomOpen, bottomTab, toggleTerminal } = useUIStore();
+  const previewUrl = usePreviewStore((s) => s.previewUrl);
+  const detectedUrl = usePreviewStore((s) => s.detectedUrl);
+  const openPreview = usePreviewStore((s) => s.openPreview);
+  const closePreview = usePreviewStore((s) => s.closePreview);
+  const previewActive = previewUrl !== null;
+  const togglePreview = useCallback(() => {
+    if (previewActive) {
+      closePreview();
+    } else {
+      openPreview(detectedUrl ?? "http://localhost:5173/");
+    }
+  }, [previewActive, closePreview, openPreview, detectedUrl]);
   const sendPrompt = useSendPrompt();
   const createSession = useCreateSession();
   const abortSession = useAbortSession();
@@ -123,6 +136,18 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         <div className="flex items-center gap-1.5">
           <ModelSwitcher />
           <ThemeToggle />
+          <button
+            onClick={togglePreview}
+            title="Toggle web preview (in-app)"
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+              previewActive
+                ? "bg-[var(--primary)]/15 text-[var(--primary)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+            )}
+          >
+            <MonitorPlay className="h-4 w-4" />
+          </button>
           <button
             onClick={toggleTerminal}
             title="Toggle terminal"

@@ -55,6 +55,8 @@ export default function App() {
     bottomTab,
     setBottomTab,
     closeBottom,
+    bottomHeight,
+    setBottomHeight,
     commandPaletteOpen,
     openCommandPalette,
     closeCommandPalette,
@@ -98,6 +100,31 @@ export default function App() {
     return () => document.removeEventListener("keydown", handleGlobalKey);
   }, [handleGlobalKey]);
 
+  // Drag the divider above the bottom panel to raise/lower it. The panel is
+  // anchored to the bottom, so its height is the distance from the pointer up
+  // to just above the ~28px status bar; clamped so the chat always keeps room.
+  const startResize = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      const onMove = (ev: PointerEvent) => {
+        const next = window.innerHeight - ev.clientY - 28;
+        const max = window.innerHeight * 0.82;
+        setBottomHeight(Math.min(Math.max(next, 140), max));
+      };
+      const onUp = () => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.body.style.userSelect = "";
+        document.body.style.cursor = "";
+      };
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "row-resize";
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+    },
+    [setBottomHeight],
+  );
+
   return (
     <motion.div
       initial={reduce ? false : { opacity: 0 }}
@@ -130,8 +157,18 @@ export default function App() {
 
           {bottomOpen && (
             <>
-              <div className="h-px shrink-0 bg-[var(--border)]" />
-              <div className="glass flex h-[42vh] shrink-0 flex-col">
+              {/* Drag handle — raise/lower the bottom panel */}
+              <div
+                onPointerDown={startResize}
+                className="group relative h-1.5 shrink-0 cursor-row-resize bg-[var(--border)] transition-colors hover:bg-[var(--primary)]/40"
+                title="Drag to resize"
+              >
+                <span className="pointer-events-none absolute left-1/2 top-1/2 h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--muted-foreground)]/40 transition-colors group-hover:bg-[var(--primary)]" />
+              </div>
+              <div
+                className="glass flex shrink-0 flex-col"
+                style={{ height: bottomHeight }}
+              >
                 {/* Tab bar */}
                 <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] pr-2">
                   <div className="flex items-center">
