@@ -162,13 +162,15 @@ export default function App() {
 
           {bottomOpen && (
             <>
-              {/* Drag handle — raise/lower the bottom panel */}
+              {/* Drag handle — raise/lower the bottom panel. Tall, obvious grip
+                  with a generous hit area so it's easy to grab. */}
               <div
                 onPointerDown={startResize}
-                className="group relative h-1.5 shrink-0 cursor-row-resize bg-[var(--border)] transition-colors hover:bg-[var(--primary)]/40"
-                title="Drag to resize"
+                className="group relative flex h-3 shrink-0 touch-none select-none items-center justify-center bg-[var(--border)]/60 transition-colors hover:bg-[var(--primary)]/30"
+                style={{ cursor: "row-resize" }}
+                title="Drag to resize the panel"
               >
-                <span className="pointer-events-none absolute left-1/2 top-1/2 h-0.5 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--muted-foreground)]/40 transition-colors group-hover:bg-[var(--primary)]" />
+                <span className="pointer-events-none h-1 w-10 rounded-full bg-[var(--muted-foreground)]/50 transition-colors group-hover:bg-[var(--primary)]" />
               </div>
               <div
                 className="glass flex shrink-0 flex-col"
