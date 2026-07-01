@@ -54,6 +54,9 @@ function SidecarBootstrap({ children }: { children: ReactNode }) {
       setOpencodeUrl(url);
       setSidecarStatus("ready");
       startEventStream();
+      // Any queries that ran before the client existed are now stale/errored —
+      // refetch them now that the client is initialized.
+      queryClient.invalidateQueries();
 
       // Warn if the running engine doesn't match the SDK we built against.
       checkEngineVersion().then((info) => {

@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getClient } from "@/opencode/client";
 import { useTodoStore, type Todo } from "@/stores/todo.store";
+import { useSessionStore } from "@/stores/session.store";
 
 function statusIcon(status: string) {
   switch (status) {
@@ -38,10 +39,15 @@ const PRIORITY_COLOR: Record<string, string> = {
 export function PlanTree({ sessionId }: { sessionId: string }) {
   const todos = useTodoStore((s) => s.bySession.get(sessionId)) ?? [];
   const setTodos = useTodoStore((s) => s.setTodos);
+  // Only touch the SDK client once the engine is ready (opencodeUrl is set right
+  // after initClient) — otherwise a persisted session can mount this before the
+  // client exists and getClient() throws.
+  const opencodeUrl = useSessionStore((s) => s.opencodeUrl);
   const [collapsed, setCollapsed] = useState(false);
 
   // Seed from the server on mount (covers reloads / switching sessions).
   useEffect(() => {
+    if (!opencodeUrl) return;
     let cancelled = false;
     getClient()
       .session.todo({ path: { id: sessionId }, throwOnError: true })
@@ -55,7 +61,7 @@ export function PlanTree({ sessionId }: { sessionId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, setTodos]);
+  }, [sessionId, setTodos, opencodeUrl]);
 
   if (todos.length === 0) return null;
 
