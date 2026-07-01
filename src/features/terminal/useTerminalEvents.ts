@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { EventMessagePartUpdated } from "@opencode-ai/sdk/client";
 import { onEventType } from "@/opencode/events";
 import { useTerminalStore } from "@/stores/terminal.store";
-import { usePreviewStore } from "@/stores/preview.store";
+import { onDevUrlDetected } from "@/opencode/preview";
 import { detectDevServerUrl } from "./detectDevServer";
 
 /**
@@ -13,13 +13,13 @@ import { detectDevServerUrl } from "./detectDevServer";
  */
 export function useTerminalEvents() {
   const addEntry = useTerminalStore((s) => s.addEntry);
-  const setDetectedUrl = usePreviewStore((s) => s.setDetectedUrl);
 
   useEffect(() => {
     const scanForDevServer = (text: string | undefined) => {
       if (!text) return;
       const url = detectDevServerUrl(text);
-      if (url) setDetectedUrl(url);
+      // The URL the dev server printed is authoritative → show it in the preview.
+      if (url) onDevUrlDetected(url);
     };
 
     const unsub = onEventType<EventMessagePartUpdated>("message.part.updated", (e) => {
@@ -48,5 +48,5 @@ export function useTerminalEvents() {
       }
     });
     return unsub;
-  }, [addEntry, setDetectedUrl]);
+  }, [addEntry]);
 }

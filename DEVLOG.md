@@ -15,6 +15,36 @@
 
 ---
 
+## 2026-07-01 · Anteprima universale: URL dall'output = fonte di verità
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Caso reale: dev server su `localhost:3002` (Vite lo stampa), ma l'anteprima
+apriva `localhost:17600` → **404**. Tre problemi che si sommavano, ora risolti:
+
+1. **Il probe accettava qualsiasi risposta** (anche un 404) come "server". Ora
+   `find_dev_server` accetta solo una **pagina vera** (HTTP < 400) → una porta
+   con un servizio a caso che risponde 404 non viene più scelta.
+2. **L'URL stampato dal server non vinceva.** Ogni dev server stampa il suo URL
+   (`Local: http://localhost:3002/`): questa è la fonte autorevole, non lo scan.
+   Nuovo `onDevUrlDetected(url)` (frontend): quando l'URL compare nell'output
+   dell'agente (`useTerminalEvents`) o del nostro server gestito
+   (`useDevServerEvents`), lo registra come `detectedUrl` **e naviga l'anteprima
+   lì**, soppiantando qualsiasi tentativo di probe/statico.
+3. **Una volta mostrato l'URL sbagliato, non cambiava più.** Ora l'arrivo
+   dell'URL autorevole ri-naviga il pannello (rispettando l'utente che ha chiuso).
+
+In più, robustezza layout: `detect_dev_command` cerca lo script `dev` nella
+cartella aperta **e in un livello di sottocartelle** (salta node_modules/.git/
+dist/target/nascoste), così un repo aperto alla radice trova comunque l'app web
+in una subdir (es. `web/`, `frontend/`, `hero-demo/`); il runner parte in quella
+dir.
+
+Priorità finale: **URL dall'output** › probe (solo pagine <400, IPv4+IPv6) ›
+server statico. Lint/build/22 test verdi.
+
+---
+
 ## 2026-07-01 · Fix cruciale anteprima: probe IPv4 **e** IPv6 (localhost/::1)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

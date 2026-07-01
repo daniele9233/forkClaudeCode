@@ -60,13 +60,13 @@ impl DevRunner {
         // Replace any previous server.
         self.stop();
 
-        let (pm, script) =
+        let (workdir, pm, script) =
             detect_dev_command(dir).ok_or("no dev/start script found in package.json")?;
         let display = format!("{pm} run {script}");
 
         let mut command = build_command(&pm, &script);
         command
-            .current_dir(dir)
+            .current_dir(&workdir)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
@@ -95,7 +95,10 @@ impl DevRunner {
             self.command.clone(),
         );
 
-        eprintln!("[kikkocode] dev server started: {display} (cwd {})", dir.display());
+        eprintln!(
+            "[kikkocode] dev server started: {display} (cwd {})",
+            workdir.display()
+        );
         Ok(display)
     }
 }
@@ -167,9 +170,42 @@ fn build_command(pm: &str, script: &str) -> Command {
 }
 
 /// Inspect `package.json` for a runnable dev command. Returns
-/// `(package_manager, script_name)` or None. Public so the UI can show/enable a
-/// "Run dev server" button only when there's something to run.
-pub fn detect_dev_command(dir: &Path) -> Option<(String, String)> {
+/// `(project_dir, package_manager, script_name)` or None. Public so the UI can
+/// show/enable a "Run dev server" button only when there's something to run.
+///
+/// Searches the opened folder first, then one level of subdirectories — so a
+/// repo opened at its root still finds a web app living in a subfolder (e.g.
+/// `web/`, `app/`, `frontend/`). Common non-project dirs are skipped.
+pub fn detect_dev_command(dir: &Path) -> Option<(std::path::PathBuf, String, String)> {
+    if let Some((pm, script)) = dev_command_in(dir) {
+        return Some((dir.to_path_buf(), pm, script));
+    }
+    let mut subdirs: Vec<std::path::PathBuf> = std::fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+        .filter(|p| {
+            !matches!(
+                p.file_name().and_then(|n| n.to_str()),
+                Some("node_modules") | Some(".git") | Some("target") | Some("dist")
+            ) && !p
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with('.'))
+        })
+        .collect();
+    subdirs.sort();
+    for sub in subdirs {
+        if let Some((pm, script)) = dev_command_in(&sub) {
+            return Some((sub, pm, script));
+        }
+    }
+    None
+}
+
+/// Read a single directory's `package.json` for a runnable script.
+fn dev_command_in(dir: &Path) -> Option<(String, String)> {
     let text = std::fs::read_to_string(dir.join("package.json")).ok()?;
     let json: serde_json::Value = serde_json::from_str(&text).ok()?;
     let scripts = json.get("scripts")?.as_object()?;

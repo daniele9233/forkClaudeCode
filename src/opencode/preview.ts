@@ -62,6 +62,26 @@ async function resolvePreviewUrl(): Promise<string | undefined> {
   );
 }
 
+/**
+ * A real dev-server URL was seen in output (the agent's command output, or our
+ * managed server's log). The URL a server prints is authoritative — it beats any
+ * port-scan guess or the static fallback — so record it and navigate the preview
+ * to it. Respects a user who explicitly closed the panel.
+ */
+export function onDevUrlDetected(url: string): void {
+  const st = usePreviewStore.getState();
+  st.setDetectedUrl(url);
+  useDevServerStore.getState().setStarting(false);
+  useDevServerStore.getState().setRunning(true);
+  // Don't pop the panel back up if the user deliberately closed it.
+  if (!st.previewOpen && st.closedByUser) return;
+  if (st.previewUrl !== url) {
+    st.openPreview(url);
+  } else {
+    st.bumpReload();
+  }
+}
+
 /** The dev command kikkoCode would run for this project, or null. */
 export async function getDevCommand(): Promise<string | null> {
   try {

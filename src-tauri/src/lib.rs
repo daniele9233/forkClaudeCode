@@ -264,7 +264,7 @@ async fn dev_command_info(state: tauri::State<'_, AppState>) -> Result<Option<St
     let Some(dir) = state.sidecar.working_dir() else {
         return Ok(None);
     };
-    Ok(dev_runner::detect_dev_command(&dir).map(|(pm, script)| format!("{pm} run {script}")))
+    Ok(dev_runner::detect_dev_command(&dir).map(|(_dir, pm, script)| format!("{pm} run {script}")))
 }
 
 /// Find a running local dev server on ANY port — not just the common defaults.
@@ -318,11 +318,16 @@ async fn find_dev_server(
         set.spawn(async move {
             // Probe BOTH IPv4 and IPv6 loopback: on Windows `localhost` often
             // resolves to ::1, and Vite/Next bind there — an IPv4-only probe
-            // would miss a server that's actually up.
+            // would miss a server that's actually up. Only accept a real page
+            // (status < 400): a 404/500 means "something is listening" but it's
+            // not the site we want (this is how a stray service on some port
+            // used to get picked by mistake).
             for host in ["127.0.0.1", "[::1]"] {
                 let url = format!("http://{host}:{port}/");
-                if client.get(&url).send().await.is_ok() {
-                    return Some(port);
+                if let Ok(resp) = client.get(&url).send().await {
+                    if resp.status().as_u16() < 400 {
+                        return Some(port);
+                    }
                 }
             }
             None
