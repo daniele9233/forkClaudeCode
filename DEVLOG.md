@@ -15,6 +15,30 @@
 
 ---
 
+## 2026-07-01 · Anteprima: rilevamento attivo dei dev server (porte comuni)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Problema: su un progetto Vite l'anteprima non funzionava. L'agente aveva
+lanciato `pnpm run dev` (→ localhost:3000) in una **finestra PowerShell
+separata** (`Start-Process`), quindi kikkoCode non ne vedeva l'output nel suo
+terminale → `detectedUrl` restava null → ricaduta sul server statico che serve
+la radice (senza `index.html`, l'app Vite è tutta in `/src`) → pagina vuota.
+
+Fix: non dipendere più solo dall'output del terminale. Nuovo comando Rust
+`probe_dev_server` che **sonda in parallelo** le porte dev più comuni
+(3000, 5173, 5174, 4173, 4200, 4321, 8080, 3001, 8000, …) con timeout 500ms e
+ritorna la prima viva. Priorità unica in `resolvePreviewUrl` (frontend):
+`detectedUrl` (da terminale) › `probeDevServer` › server statico › vuoto.
+Usata sia dal tasto anteprima (`openBestPreview`) sia dall'auto-open a fine run
+(`syncStaticPreviewOnIdle`). Lint/build/22 test verdi.
+
+**Nota:** l'agente a volte apre anche il browser di sistema
+(`Start-Process http://localhost:3000`) — comportamento del modello, non della
+GUI; l'anteprima in-app ora comunque trova e mostra il server.
+
+---
+
 ## 2026-07-01 · Server statico integrato + anteprima automatica
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

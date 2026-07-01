@@ -224,6 +224,48 @@ async fn create_project(
     Ok(dest.display().to_string())
 }
 
+/// Actively probe the common local dev-server ports and return the first one
+/// answering HTTP. This makes the preview work even when the dev server was
+/// started outside kikkoCode's terminal (e.g. the agent ran it in a detached
+/// window), so we never saw its "listening on …" line. Probes run in parallel
+/// so the whole scan takes about one timeout regardless of how many ports.
+#[tauri::command]
+async fn probe_dev_server() -> Result<Option<String>, String> {
+    // Ordered by preference — the first live one in this list wins.
+    let candidates: Vec<u16> = vec![
+        3000, 5173, 5174, 4173, 4200, 4321, 8080, 3001, 8000, 8081, 1234, 5000, 3333, 8888,
+    ];
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(std::time::Duration::from_millis(500))
+        .build()
+        .map_err(|e| format!("http client error: {e}"))?;
+
+    let mut set = tokio::task::JoinSet::new();
+    for &port in &candidates {
+        let client = client.clone();
+        set.spawn(async move {
+            let url = format!("http://127.0.0.1:{port}/");
+            match client.get(&url).send().await {
+                Ok(_) => Some(port),
+                Err(_) => None,
+            }
+        });
+    }
+
+    let mut live = std::collections::HashSet::new();
+    while let Some(res) = set.join_next().await {
+        if let Ok(Some(port)) = res {
+            live.insert(port);
+        }
+    }
+
+    Ok(candidates
+        .into_iter()
+        .find(|p| live.contains(p))
+        .map(|p| format!("http://127.0.0.1:{p}/")))
+}
+
 /// URL of the built-in static preview server for the current project — but only
 /// if the project actually has a servable entry page (`index.html`). Returns
 /// `null` otherwise, so the UI can show its "no page yet" state instead of an
@@ -350,7 +392,8 @@ pub fn run() {
             set_working_dir,
             clone_repo,
             create_project,
-            preview_url
+            preview_url,
+            probe_dev_server
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
