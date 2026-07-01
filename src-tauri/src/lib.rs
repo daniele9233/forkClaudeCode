@@ -267,17 +267,35 @@ async fn dev_command_info(state: tauri::State<'_, AppState>) -> Result<Option<St
     Ok(dev_runner::detect_dev_command(&dir).map(|(pm, script)| format!("{pm} run {script}")))
 }
 
-/// Actively probe the common local dev-server ports and return the first one
-/// answering HTTP. This makes the preview work even when the dev server was
-/// started outside kikkoCode's terminal (e.g. the agent ran it in a detached
-/// window), so we never saw its "listening on …" line. Probes run in parallel
-/// so the whole scan takes about one timeout regardless of how many ports.
+/// Find a running local dev server on ANY port — not just the common defaults.
+///
+/// It enumerates the ports actually LISTENING on the machine (via `netstat`/`ss`)
+/// and HTTP-probes them (plus the well-known dev ports as a safety net), then
+/// returns the first that answers. This is what makes the preview find the site
+/// automatically whatever port/framework it uses. `exclude` lets the caller drop
+/// kikkoCode's own ports (UI dev server, engine, preview server).
 #[tauri::command]
-async fn probe_dev_server() -> Result<Option<String>, String> {
-    // Ordered by preference — the first live one in this list wins.
-    let candidates: Vec<u16> = vec![
+async fn find_dev_server(exclude: Vec<u16>) -> Result<Option<String>, String> {
+    // Preference order for tie-breaking: well-known dev ports first, then any
+    // other listening port ascending.
+    const COMMON: [u16; 14] = [
         3000, 5173, 5174, 4173, 4200, 4321, 8080, 3001, 8000, 8081, 1234, 5000, 3333, 8888,
     ];
+
+    let mut listening = listening_ports();
+    for &p in &COMMON {
+        if !listening.contains(&p) {
+            listening.push(p);
+        }
+    }
+    // The Vite dev server for kikkoCode's own UI runs on 1420 — never preview it.
+    let excluded: std::collections::HashSet<u16> =
+        exclude.into_iter().chain(std::iter::once(1420u16)).collect();
+    let candidates: Vec<u16> = listening
+        .into_iter()
+        .filter(|p| *p >= 1000 && !excluded.contains(p))
+        .collect();
+
     let client = reqwest::Client::builder()
         .no_proxy()
         .timeout(std::time::Duration::from_millis(500))
@@ -295,18 +313,65 @@ async fn probe_dev_server() -> Result<Option<String>, String> {
             }
         });
     }
-
     let mut live = std::collections::HashSet::new();
     while let Some(res) = set.join_next().await {
         if let Ok(Some(port)) = res {
             live.insert(port);
         }
     }
+    if live.is_empty() {
+        return Ok(None);
+    }
 
-    Ok(candidates
-        .into_iter()
+    // Prefer a well-known dev port; otherwise the lowest live port.
+    let chosen = COMMON
+        .iter()
+        .copied()
         .find(|p| live.contains(p))
-        .map(|p| format!("http://127.0.0.1:{p}/")))
+        .or_else(|| {
+            let mut v: Vec<u16> = live.iter().copied().collect();
+            v.sort_unstable();
+            v.first().copied()
+        });
+    Ok(chosen.map(|p| format!("http://127.0.0.1:{p}/")))
+}
+
+/// Enumerate TCP ports in a LISTENING state on this machine, best-effort. Parses
+/// `netstat` (Windows) or `ss`/`netstat` (unix); returns an empty vec if neither
+/// is available. We only keep the port number of each local listening socket.
+fn listening_ports() -> Vec<u16> {
+    let output = if cfg!(windows) {
+        std::process::Command::new("netstat")
+            .args(["-an", "-p", "TCP"])
+            .output()
+    } else {
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg("ss -ltn 2>/dev/null || netstat -an 2>/dev/null")
+            .output()
+    };
+
+    let Ok(out) = output else {
+        return Vec::new();
+    };
+    let text = String::from_utf8_lossy(&out.stdout);
+    let mut ports = std::collections::HashSet::new();
+    for line in text.lines() {
+        // Only listening sockets (Windows: "LISTENING", ss/netstat: "LISTEN").
+        if !line.contains("LISTEN") {
+            continue;
+        }
+        // On a LISTEN line the foreign address is `*:*` / `0.0.0.0:*`, so the
+        // only token ending in `:<digits>` is the local port we want.
+        for tok in line.split_whitespace() {
+            if let Some(idx) = tok.rfind(':') {
+                if let Ok(port) = tok[idx + 1..].parse::<u16>() {
+                    ports.insert(port);
+                }
+            }
+        }
+    }
+    ports.into_iter().collect()
 }
 
 /// URL of the built-in static preview server for the current project — but only
@@ -441,7 +506,7 @@ pub fn run() {
             clone_repo,
             create_project,
             preview_url,
-            probe_dev_server,
+            find_dev_server,
             start_dev_server,
             stop_dev_server,
             dev_server_status,

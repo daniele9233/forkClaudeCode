@@ -15,6 +15,33 @@
 
 ---
 
+## 2026-07-01 · Auto-detect anteprima su QUALSIASI porta (enumerazione + retry)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+L'utente ha dovuto scrivere `localhost:3000` a mano: il probe scansionava solo
+una lista fissa di porte, una volta sola → mancava porte insolite / server
+ancora in avvio.
+
+Fix: `find_dev_server(exclude)` (Rust) ora **enumera le porte realmente in
+ascolto** sulla macchina (`netstat -an -p TCP` su Windows, `ss -ltn`/`netstat`
+su unix; parse: righe con LISTEN → porta del socket locale), le HTTP-proba in
+parallelo (+ le porte dev note come rete di sicurezza), esclude le porte di
+kikkoCode (UI 1420, engine, static server passate da `exclude`), e ritorna la
+prima viva (preferendo le porte dev note, altrimenti la più bassa).
+
+Frontend: `probeDevServer` ora chiama `find_dev_server` con gli `ownPorts`
+(engine + static). Nuovo `watchForDevServer` (poll ~30s, apre l'anteprima appena
+un server compare — copre i server che tardano a bootare o avviati dall'agente).
+Chiamato da `openBestPreview`, `syncStaticPreviewOnIdle` e `startDevServer`.
+Rinominato il comando `probe_dev_server` → `find_dev_server`.
+
+**Nota selezione visuale:** l'errore "Add forgiaInspector()" è atteso — la
+selezione visuale richiede uno script iniettato nel sito (plugin nel progetto o
+un proxy che inietta). Da affrontare a parte. Lint/build/22 test verdi.
+
+---
+
 ## 2026-07-01 · Dev server gestito da kikkoCode (modello Claude Code) + guida agente
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
