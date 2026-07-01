@@ -10,6 +10,7 @@ import type {
   EventSessionCreated,
   EventPermissionUpdated,
   EventSessionCompacted,
+  EventTodoUpdated,
 } from "@opencode-ai/sdk/client";
 import { onEventType } from "./events";
 import { sessionKeys } from "./session";
@@ -17,6 +18,7 @@ import { contextKeys } from "./context";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePermissionStore } from "@/stores/permission.store";
+import { useTodoStore } from "@/stores/todo.store";
 import { getClient } from "./client";
 
 /**
@@ -78,6 +80,11 @@ export function useChatEvents() {
             queryKey: [...sessionKeys.detail(parentId), "children"],
           });
         }
+      }),
+
+      // The agent's plan (todo list) changed — update the live plan tree.
+      onEventType<EventTodoUpdated>("todo.updated", (e) => {
+        useTodoStore.getState().setTodos(e.properties.sessionID, e.properties.todos);
       }),
 
       // Compaction finished — context shrunk, re-fetch context messages

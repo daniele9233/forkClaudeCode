@@ -15,6 +15,7 @@ import { StatStrip } from "@/features/inspector/StatStrip";
 import { MessageList } from "./MessageList";
 import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
+import { PlanTree } from "./PlanTree";
 
 export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = {}) {
   const { isRunning } = useChatEvents();
@@ -119,6 +120,9 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
 
       {/* Token / cost dashboard (style D) */}
       <StatStrip />
+
+      {/* Live plan tree (agent's todo list) — shows only when a plan exists */}
+      {activeSessionId && <PlanTree sessionId={activeSessionId} />}
 
       {/* Message area */}
       {activeSessionId ? (

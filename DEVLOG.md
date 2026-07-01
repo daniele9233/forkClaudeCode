@@ -15,6 +15,27 @@
 
 ---
 
+## 2026-07-01 · Plan tree live (idea da ruflo/goal) — usa i todo di opencode
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Task #8. Scoperto che opencode ha un **sistema di todo strutturato** (tipo
+`Todo`, evento `todo.updated`, endpoint `GET /session/{id}/todo`). Lo
+visualizziamo (è il ruolo del guscio) invece di reinventarlo.
+
+- `stores/todo.store.ts`: todos per sessione.
+- `useChatEvents`: handler `todo.updated` → aggiorna lo store in tempo reale.
+- `features/chat/PlanTree.tsx`: checklist live con icone di stato (○ pending, ◐
+  in_progress con spinner, ✓ completed, ✗ cancelled), barra di progresso
+  done/total, badge priorità, collassabile. Seed iniziale via `session.todo` al
+  mount (per reload/switch sessione). Non mostra nulla finché non c'è un piano.
+- `ChatShell`: `<PlanTree>` sopra la MessageList quando c'è una sessione.
+
+Le task si spuntano da sole mentre l'agente lavora. Lint+prettier+build+test
+verdi. Prossimo: command center Agenti/Skill/MCP (task #9).
+
+---
+
 ## 2026-07-01 · Tool-card "vive": timer, preview, spinner (idea da ruflo)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
