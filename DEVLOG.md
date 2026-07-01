@@ -15,6 +15,24 @@
 
 ---
 
+## 2026-07-01 · Cost & Context Guard (pre-invio) + indicatore modello online
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Due richieste utente.
+
+- **Cost & Context Guard** (`usePromptCost` + strip in `ChatInput`): stima
+  **prima dell'invio**, live mentre scrivi, per il modello selezionato — token
+  della bozza (chars/4), **% contesto** proiettato dopo l'invio (color-coded
+  65/85%), e **costo input stimato** (`model.cost.input` per 1M token). Amplifica
+  il Context Inspector: non solo vedi il consumo, lo **anticipi**.
+- **Indicatore modello online** (`ChatShell`): il pallino verde "online" ora
+  mostra **il modello attivo** (es. `● online · deepseek-chat`), con glow.
+
+Frontend-only. Lint+prettier+build+test verdi.
+
+---
+
 ## 2026-07-01 · Command Center Agenti/Skill/MCP (idea da ECC)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

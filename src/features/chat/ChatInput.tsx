@@ -2,6 +2,8 @@ import { useRef, useState, useCallback } from "react";
 import { SendHorizontal, Square, Hammer, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
+import { usePromptCost } from "@/features/inspector/usePromptCost";
+import { fmtNum } from "@/features/inspector/useSessionStats";
 
 export type AgentMode = "build" | "plan";
 
@@ -32,6 +34,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<AgentMode>("build");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cost = usePromptCost(text);
 
   const submit = useCallback(() => {
     const trimmed = text.trim();
@@ -82,9 +85,37 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
             {m.label}
           </button>
         ))}
-        <span className="hud-label ml-auto pr-1 opacity-50">
-          {isRunning ? "● running" : "ready"}
-        </span>
+        {isRunning ? (
+          <span className="hud-label ml-auto pr-1 text-[var(--primary)]">● running</span>
+        ) : (
+          <span className="ml-auto flex items-center gap-2 pr-1 font-mono text-[10px] text-[var(--muted-foreground)] tabular-nums">
+            <span title="Estimated tokens for this prompt draft">
+              ≈{fmtNum(cost.draftTokens)} tok
+            </span>
+            {cost.contextLimit > 0 && (
+              <span
+                title="Context window used after sending this prompt"
+                className={cn(
+                  cost.contextPct > 85
+                    ? "text-red-400"
+                    : cost.contextPct > 65
+                      ? "text-amber-400"
+                      : "text-[var(--muted-foreground)]",
+                )}
+              >
+                ctx {cost.contextPct.toFixed(0)}%
+              </span>
+            )}
+            {cost.hasPricing && (
+              <span title="Estimated input cost to process this send">
+                ~$
+                {cost.estSendCost < 0.01
+                  ? cost.estSendCost.toFixed(4)
+                  : cost.estSendCost.toFixed(2)}
+              </span>
+            )}
+          </span>
+        )}
       </div>
 
       {/* Textarea + send button row */}

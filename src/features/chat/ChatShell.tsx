@@ -62,6 +62,13 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const isReady = sidecarStatus === "ready";
   const isDisabled = !isReady || sendPrompt.isPending || createSession.isPending;
 
+  // The model you're currently connected to (for the online indicator).
+  const activeModelId = (() => {
+    const m = config?.model ?? "";
+    const slash = m.indexOf("/");
+    return slash > 0 ? m.slice(slash + 1) : m;
+  })();
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -80,8 +87,13 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
               </span>
             ) : sidecarStatus === "ready" ? (
               <span className="hud-label flex items-center gap-1.5 text-[var(--color-online)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-online)]" />
-                Online
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-online)] shadow-[0_0_6px_var(--color-online)]" />
+                online
+                {activeModelId && (
+                  <span className="text-[var(--muted-foreground)]">
+                    · {activeModelId}
+                  </span>
+                )}
               </span>
             ) : (
               <span className="hud-label">
