@@ -1,12 +1,31 @@
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import { MermaidDiagram } from "./MermaidDiagram";
 
 interface Props {
   content: string;
   className?: string;
   streaming?: boolean;
 }
+
+/** Extract the language + text from a fenced code block's <code> child. */
+function fencedCode(children: unknown): { lang: string; text: string } | null {
+  const child = Array.isArray(children) ? children[0] : children;
+  const props = (child as { props?: { className?: string; children?: unknown } })?.props;
+  if (!props) return null;
+  const lang = /language-(\w+)/.exec(props.className ?? "")?.[1] ?? "";
+  return { lang, text: String(props.children ?? "") };
+}
+
+const markdownComponents: Components = {
+  // Render ```mermaid blocks as diagrams; everything else stays a normal <pre>.
+  pre({ children }) {
+    const fc = fencedCode(children);
+    if (fc?.lang === "mermaid") return <MermaidDiagram code={fc.text} />;
+    return <pre>{children}</pre>;
+  },
+};
 
 export function MarkdownContent({ content, className, streaming }: Props) {
   return (
@@ -38,7 +57,9 @@ export function MarkdownContent({ content, className, streaming }: Props) {
         className,
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        {content}
+      </ReactMarkdown>
       {streaming && (
         <span
           className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-[var(--primary)] align-text-bottom"

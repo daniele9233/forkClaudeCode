@@ -15,6 +15,25 @@
 
 ---
 
+## 2026-07-01 · Differenziatore: diagrammi Mermaid in chat (idea da jcode)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Prima delle 4 integrazioni scelte (ispirate a jcode/ruflo/ECC): rendering dei
+blocchi ```mermaid nella chat.
+
+- `MermaidDiagram.tsx`: mermaid **lazy-loaded** (chunk separato 621KB, caricato
+  solo al primo diagramma → bundle main invariato), `securityLevel: strict`
+  (contenuto dal modello), tema dark coi nostri colori. **Tollerante allo
+  streaming**: `parse` fallisce su input incompleto → tiene l'ultimo SVG buono e
+  mostra il sorgente come fallback finché non parsa.
+- `MarkdownContent`: override del componente `pre` → i blocchi mermaid diventano
+  diagrammi, gli altri restano `<pre>` normali (stile invariato).
+
+Lint+prettier+build+test verdi. Prossimo: tool-card live (task #7).
+
+---
+
 ## 2026-07-01 · Selettore modelli (chat ↔ reasoner) nel dropdown
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
