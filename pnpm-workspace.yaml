@@ -1,0 +1,9 @@
+# pnpm 11 reads settings from here (the package.json "pnpm" field is ignored).
+# Pin a transitive dependency to a version that predates strict supply-chain
+# release-age policies (package-manager-detector@1.7.0 is too new for some
+# minimumReleaseAge settings; 1.6.0 satisfies @antfu/install-pkg's ^1.1.0 range).
+onlyBuiltDependencies:
+  - esbuild
+
+overrides:
+  package-manager-detector: 1.6.0
