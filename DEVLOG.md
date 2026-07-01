@@ -15,6 +15,34 @@
 
 ---
 
+## 2026-07-01 · Sistema Skills (auto-routing) — manager + badge + 12 skill design
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Sistema di "skills" alla ECC, ma lato guscio e deterministico: una skill è un
+playbook (istruzioni) + un innesco in linguaggio naturale. Descrivi il fine, il
+matcher sceglie la skill — senza saperne il nome.
+
+- `skills/catalog.ts`: **12 skill** design/front-end curate dai progetti più
+  stellati 2025-26: UI/UX Pro Max, Hero Section, GSAP Motion, Motion (Framer),
+  Aceternity/Magic UI, Micro-interactions, Glass & Aurora, Bento Grid, Smooth
+  Scroll, A11y Guardian, Design System, Responsive Master.
+- `skills/match.ts`: matcher keyword+descrizione (top-2 sopra soglia) +
+  `injectSkills` (playbook nel prompt con marker nascosti) + `parseSkills`
+  (rimuove i marker, estrae gli id per il badge).
+- `stores/skills.store.ts`: enabled + autoApply, persistiti (tutto ON di
+  default → funziona subito).
+- Iniezione in `ChatShell.handleSend`; **badge "skill applicata"** sulla bolla
+  utente (`MessageBubble`); **chip live "will apply"** in `ChatInput` mentre
+  scrivi.
+- **Skills Manager**: nuovo tab in `SettingsModal` (Skills/Agents/MCP) con
+  toggle auto-apply, on/off per skill, anteprima del playbook, ricerca.
+
+Fonti idee/strumenti: Motion, GSAP, Aceternity UI, Magic UI, React Bits (~37k★),
+shadcn/ui, Lenis, Tailwind. Frontend-only. Lint+prettier+build+test verdi.
+
+---
+
 ## 2026-07-01 · Cost & Context Guard (pre-invio) + indicatore modello online
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

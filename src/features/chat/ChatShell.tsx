@@ -4,6 +4,8 @@ import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
 import { useConfig } from "@/opencode/config";
+import { useSkillsStore } from "@/stores/skills.store";
+import { matchSkills, injectSkills } from "@/skills/match";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { cn } from "@/lib/utils";
@@ -26,6 +28,8 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const createSession = useCreateSession();
   const abortSession = useAbortSession();
   const { data: config } = useConfig();
+  const skillsEnabled = useSkillsStore((s) => s.enabled);
+  const autoApplySkills = useSkillsStore((s) => s.autoApply);
   const terminalActive = bottomOpen && bottomTab === "terminal";
 
   const handleSend = useCallback(
@@ -39,6 +43,12 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         setActiveSession(sessionId);
       }
 
+      // Auto-apply matching skills: inject their playbooks into the prompt (the
+      // user describes the goal, the matcher picks the skill). Markers let the
+      // chat strip the injected text and show a badge instead.
+      const skills = autoApplySkills ? matchSkills(text, skillsEnabled) : [];
+      const finalText = injectSkills(text, skills);
+
       // Send with the explicitly selected model so the request never falls back
       // to the engine's default provider (e.g. the Zen gateway, which would
       // return "Invalid API key" with no Zen key). Format is "provider/model";
@@ -48,9 +58,17 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       const providerID = slash > 0 ? selected.slice(0, slash) : undefined;
       const modelID = slash > 0 ? selected.slice(slash + 1) : undefined;
 
-      sendPrompt.mutate({ sessionId, text, agent: mode, providerID, modelID });
+      sendPrompt.mutate({ sessionId, text: finalText, agent: mode, providerID, modelID });
     },
-    [activeSessionId, createSession, sendPrompt, setActiveSession, config?.model],
+    [
+      activeSessionId,
+      createSession,
+      sendPrompt,
+      setActiveSession,
+      config?.model,
+      autoApplySkills,
+      skillsEnabled,
+    ],
   );
 
   const handleAbort = useCallback(() => {

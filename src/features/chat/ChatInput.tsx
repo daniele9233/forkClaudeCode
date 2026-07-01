@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { usePromptCost } from "@/features/inspector/usePromptCost";
 import { fmtNum } from "@/features/inspector/useSessionStats";
+import { useSkillsStore } from "@/stores/skills.store";
+import { matchSkills } from "@/skills/match";
 
 export type AgentMode = "build" | "plan";
 
@@ -35,6 +37,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const [mode, setMode] = useState<AgentMode>("build");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cost = usePromptCost(text);
+  const skillsEnabled = useSkillsStore((s) => s.enabled);
+  const autoApplySkills = useSkillsStore((s) => s.autoApply);
+  const matched = autoApplySkills ? matchSkills(text, skillsEnabled) : [];
 
   const submit = useCallback(() => {
     const trimmed = text.trim();
@@ -117,6 +122,22 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           </span>
         )}
       </div>
+
+      {/* Live "skills that will auto-apply" chips */}
+      {!isRunning && matched.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border)] px-3 py-1.5">
+          <span className="hud-label text-[var(--muted-foreground)]/60">will apply</span>
+          {matched.map((s) => (
+            <span
+              key={s.id}
+              title={s.description}
+              className="flex items-center gap-1 rounded-sm bg-[var(--primary)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--primary)]"
+            >
+              {s.emoji} {s.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Textarea + send button row */}
       <div className="flex items-end gap-2 px-3 py-2.5">

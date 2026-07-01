@@ -9,14 +9,18 @@ import {
   Loader2,
   Trash2,
   Search as SearchIcon,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAgents, useMcpStatus, useConfig, useUpdateConfig } from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
+import { SKILLS } from "@/skills/catalog";
+import { useSkillsStore } from "@/stores/skills.store";
 
-type Tab = "skills" | "mcp";
+type Tab = "skills" | "agents" | "mcp";
 
 /* ── Skills tab ──────────────────────────────────────────────── */
 
@@ -352,6 +356,112 @@ function McpTab({ query }: { query: string }) {
   );
 }
 
+/* ── Skills tab (kikkoCode skill playbooks) ───────────────────── */
+
+function SkillManagerTab({ query }: { query: string }) {
+  const { enabled, autoApply, setEnabled, setAutoApply } = useSkillsStore();
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? SKILLS.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q) ||
+          s.keywords.some((k) => k.toLowerCase().includes(q)),
+      )
+    : SKILLS;
+
+  return (
+    <div className="space-y-2">
+      {/* Auto-apply master toggle */}
+      <button
+        onClick={() => setAutoApply(!autoApply)}
+        className="flex w-full items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3 text-left"
+      >
+        {autoApply ? (
+          <ToggleRight className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+        ) : (
+          <ToggleLeft className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-medium text-[var(--foreground)]">
+            Auto-apply skills
+          </div>
+          <div className="text-[10px] text-[var(--muted-foreground)]">
+            Describe your goal — the matching skill is injected automatically.
+          </div>
+        </div>
+      </button>
+
+      {filtered.length === 0 && (
+        <p className="py-6 text-center text-xs text-[var(--muted-foreground)]">
+          No skills match “{query}”
+        </p>
+      )}
+
+      {filtered.map((s) => {
+        const on = enabled.includes(s.id);
+        const isOpen = openId === s.id;
+        return (
+          <div
+            key={s.id}
+            className={cn(
+              "rounded-lg border p-3 transition-opacity",
+              on
+                ? "border-[var(--border)] bg-[var(--muted)]/20"
+                : "border-[var(--border)]/50 opacity-60",
+            )}
+          >
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 text-sm leading-none">{s.emoji}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-[var(--foreground)]">
+                    {s.name}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+                  {s.description}
+                </p>
+              </div>
+              <button
+                onClick={() => setEnabled(s.id, !on)}
+                title={on ? "Disable" : "Enable"}
+                className="shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              >
+                {on ? (
+                  <ToggleRight className="h-4 w-4 text-[var(--primary)]" />
+                ) : (
+                  <ToggleLeft className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+
+            <button
+              onClick={() => setOpenId(isOpen ? null : s.id)}
+              className="mt-2 flex items-center gap-1 text-[10px] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            >
+              {isOpen ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              Preview playbook
+              {s.source && <span className="opacity-50">· {s.source}</span>}
+            </button>
+            {isOpen && (
+              <pre className="mt-1.5 max-h-48 overflow-y-auto whitespace-pre-wrap rounded border border-[var(--border)] bg-[var(--color-forge-950)] p-2 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+                {s.body}
+              </pre>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ── Main modal ───────────────────────────────────────────────── */
 
 interface SettingsModalProps {
@@ -367,8 +477,19 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { data: agents = [] } = useAgents();
   const { data: config } = useConfig();
   const { data: mcpStatus = {} } = useMcpStatus();
+  const enabledSkills = useSkillsStore((s) => s.enabled);
   const mcpNames = Object.keys(config?.mcp ?? {});
   const mcpConnected = mcpNames.filter((n) => mcpStatus[n]?.connected).length;
+
+  const TABS: { id: Tab; label: string; count: string }[] = [
+    { id: "skills", label: "Skills", count: `${enabledSkills.length}/${SKILLS.length}` },
+    { id: "agents", label: "Agents", count: String(agents.length) },
+    {
+      id: "mcp",
+      label: "MCP",
+      count: mcpNames.length > 0 ? `${mcpConnected}/${mcpNames.length}` : "0",
+    },
+  ];
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -403,24 +524,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* Tabs */}
         <div className="flex shrink-0 items-center gap-0.5 border-b border-[var(--border)] px-4">
-          {(["skills", "mcp"] as const).map((t) => (
+          {TABS.map((t) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={t.id}
+              onClick={() => setTab(t.id)}
               className={cn(
                 "flex items-center gap-1.5 border-b-2 px-3 py-2 text-[10px] font-medium uppercase tracking-widest transition-colors",
-                tab === t
+                tab === t.id
                   ? "border-[var(--primary)] text-[var(--foreground)]"
                   : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
               )}
             >
-              {t === "skills" ? "Agents & Skills" : "MCP Servers"}
+              {t.label}
               <span className="rounded bg-[var(--muted)] px-1 text-[9px] tabular-nums text-[var(--muted-foreground)]">
-                {t === "skills"
-                  ? agents.length
-                  : mcpNames.length > 0
-                    ? `${mcpConnected}/${mcpNames.length}`
-                    : 0}
+                {t.count}
               </span>
             </button>
           ))}
@@ -435,7 +552,11 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={
-                tab === "skills" ? "Search agents, tools…" : "Search MCP servers…"
+                tab === "skills"
+                  ? "Search skills…"
+                  : tab === "agents"
+                    ? "Search agents, tools…"
+                    : "Search MCP servers…"
               }
               className="h-7 flex-1 bg-transparent text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
             />
@@ -454,7 +575,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         {/* Tab content — boundary keeps a bad engine payload from blanking the app */}
         <div className="flex-1 overflow-y-auto p-4">
           <ErrorBoundary label="settings">
-            {tab === "skills" && <SkillsTab query={query} />}
+            {tab === "skills" && <SkillManagerTab query={query} />}
+            {tab === "agents" && <SkillsTab query={query} />}
             {tab === "mcp" && <McpTab query={query} />}
           </ErrorBoundary>
         </div>

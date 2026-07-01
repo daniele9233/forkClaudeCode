@@ -8,6 +8,7 @@ import type {
 } from "@opencode-ai/sdk/client";
 import { MarkdownContent } from "./MarkdownContent";
 import { ToolCallCard } from "./ToolCallCard";
+import { parseSkills, skillById } from "@/skills/match";
 
 interface Props {
   message: Message;
@@ -34,10 +35,12 @@ function getErrorMessage(error: AssistantMessage["error"]): string {
 }
 
 function UserBubble({ message, parts }: { message: Message; parts: Part[] }) {
-  const text = parts
+  const rawText = parts
     .filter(isTextPart)
     .map((p) => p.text)
     .join("\n");
+  // Strip any injected skill playbooks and surface them as badges instead.
+  const { clean: text, skillIds } = parseSkills(rawText);
 
   const created = message.time?.created;
   const time = created
@@ -53,6 +56,22 @@ function UserBubble({ message, parts }: { message: Message; parts: Part[] }) {
       <div className="flex items-center border-b border-[var(--border)]">
         <span className="bp-tab">user · {time}</span>
       </div>
+      {skillIds.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 border-b border-[var(--border)] px-3.5 py-1.5">
+          {skillIds.map((id) => {
+            const s = skillById(id);
+            return (
+              <span
+                key={id}
+                title={s?.description}
+                className="flex items-center gap-1 rounded-sm bg-[var(--primary)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--primary)]"
+              >
+                {s?.emoji ?? "⚡"} {s?.name ?? id}
+              </span>
+            );
+          })}
+        </div>
+      )}
       <div className="whitespace-pre-wrap px-3.5 py-2.5 text-sm leading-relaxed text-[var(--foreground)]">
         {text}
       </div>
