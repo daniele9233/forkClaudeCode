@@ -15,6 +15,22 @@
 
 ---
 
+## 2026-07-01 · Command Center Agenti/Skill/MCP (idea da ECC)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Task #9, ultimo delle 4 integrazioni. Il `SettingsModal` diventa una plancia:
+- **Ricerca** in cima che filtra il tab attivo (agenti per nome/descrizione/
+  mode/tool; MCP per nome/tipo/url), con clear e autofocus.
+- **Badge conteggio** sui tab: numero agenti, e MCP `connessi/totali`.
+- Empty-state contestuale ("No agents match …").
+
+Query React-Query deduplicate (i conteggi riusano le stesse cache). Tutte e 4
+le integrazioni ispirate a jcode/ruflo/ECC completate: Mermaid, tool-card live,
+plan tree, command center. Lint+prettier+build+test verdi.
+
+---
+
 ## 2026-07-01 · Plan tree live (idea da ruflo/goal) — usa i todo di opencode
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

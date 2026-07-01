@@ -8,6 +8,7 @@ import {
   ToggleRight,
   Loader2,
   Trash2,
+  Search as SearchIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
@@ -19,8 +20,19 @@ type Tab = "skills" | "mcp";
 
 /* ── Skills tab ──────────────────────────────────────────────── */
 
-function SkillsTab() {
+function SkillsTab({ query }: { query: string }) {
   const { data: agents = [], isLoading } = useAgents();
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? agents.filter(
+        (a) =>
+          a.name.toLowerCase().includes(q) ||
+          (a.description ?? "").toLowerCase().includes(q) ||
+          (a.mode ?? "").toLowerCase().includes(q) ||
+          Object.keys(a.tools ?? {}).some((t) => t.toLowerCase().includes(q)),
+      )
+    : agents;
 
   if (isLoading) {
     return (
@@ -30,17 +42,17 @@ function SkillsTab() {
     );
   }
 
-  if (agents.length === 0) {
+  if (filtered.length === 0) {
     return (
       <p className="py-8 text-center text-xs text-[var(--muted-foreground)]">
-        No agents/skills configured
+        {q ? `No agents match “${query}”` : "No agents/skills configured"}
       </p>
     );
   }
 
   return (
     <div className="space-y-1.5">
-      {agents.map((agent) => (
+      {filtered.map((agent) => (
         <div
           key={agent.name}
           className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3"
@@ -110,7 +122,7 @@ function SkillsTab() {
 
 type AddMode = null | "local" | "remote";
 
-function McpTab() {
+function McpTab({ query }: { query: string }) {
   const { data: config } = useConfig();
   const { data: mcpStatus = {} } = useMcpStatus();
   const updateConfig = useUpdateConfig();
@@ -121,7 +133,16 @@ function McpTab() {
   const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const mcpEntries = Object.entries(config?.mcp ?? {});
+  const q = query.trim().toLowerCase();
+  const mcpEntries = Object.entries(config?.mcp ?? {}).filter(([name, entry]) => {
+    if (!q) return true;
+    const url = entry.type === "local" ? entry.command.join(" ") : entry.url;
+    return (
+      name.toLowerCase().includes(q) ||
+      entry.type.includes(q) ||
+      (url ?? "").toLowerCase().includes(q)
+    );
+  });
 
   const handleToggle = (name: string, entry: McpLocalConfig | McpRemoteConfig) => {
     const updated = { ...config?.mcp, [name]: { ...entry, enabled: !entry.enabled } };
@@ -339,7 +360,15 @@ interface SettingsModalProps {
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const [tab, setTab] = useState<Tab>("skills");
+  const [query, setQuery] = useState("");
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Counts for the tab badges (queries are deduped by React Query).
+  const { data: agents = [] } = useAgents();
+  const { data: config } = useConfig();
+  const { data: mcpStatus = {} } = useMcpStatus();
+  const mcpNames = Object.keys(config?.mcp ?? {});
+  const mcpConnected = mcpNames.filter((n) => mcpStatus[n]?.connected).length;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -379,22 +408,54 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                "border-b-2 px-3 py-2 text-[10px] font-medium uppercase tracking-widest transition-colors",
+                "flex items-center gap-1.5 border-b-2 px-3 py-2 text-[10px] font-medium uppercase tracking-widest transition-colors",
                 tab === t
                   ? "border-[var(--primary)] text-[var(--foreground)]"
                   : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
               )}
             >
               {t === "skills" ? "Agents & Skills" : "MCP Servers"}
+              <span className="rounded bg-[var(--muted)] px-1 text-[9px] tabular-nums text-[var(--muted-foreground)]">
+                {t === "skills"
+                  ? agents.length
+                  : mcpNames.length > 0
+                    ? `${mcpConnected}/${mcpNames.length}`
+                    : 0}
+              </span>
             </button>
           ))}
+        </div>
+
+        {/* Search */}
+        <div className="shrink-0 border-b border-[var(--border)] px-4 py-2">
+          <div className="flex items-center gap-2 rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2">
+            <SearchIcon className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={
+                tab === "skills" ? "Search agents, tools…" : "Search MCP servers…"
+              }
+              className="h-7 flex-1 bg-transparent text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                aria-label="Clear search"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tab content — boundary keeps a bad engine payload from blanking the app */}
         <div className="flex-1 overflow-y-auto p-4">
           <ErrorBoundary label="settings">
-            {tab === "skills" && <SkillsTab />}
-            {tab === "mcp" && <McpTab />}
+            {tab === "skills" && <SkillsTab query={query} />}
+            {tab === "mcp" && <McpTab query={query} />}
           </ErrorBoundary>
         </div>
       </Panel>
