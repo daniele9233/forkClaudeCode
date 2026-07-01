@@ -447,13 +447,35 @@ function SkillManagerTab({ query }: { query: string }) {
               ) : (
                 <ChevronRight className="h-3 w-3" />
               )}
-              Preview playbook
+              Triggers &amp; playbook
               {s.source && <span className="opacity-50">· {s.source}</span>}
             </button>
             {isOpen && (
-              <pre className="mt-1.5 max-h-48 overflow-y-auto whitespace-pre-wrap rounded border border-[var(--border)] bg-[var(--color-forge-950)] p-2 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
-                {s.body}
-              </pre>
+              <div className="mt-1.5 space-y-2">
+                <div>
+                  <div className="mb-1 text-[9px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+                    Trigger words ({s.keywords.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {s.keywords.map((k) => (
+                      <span
+                        key={k}
+                        className="rounded-sm bg-[var(--primary)]/10 px-1.5 py-0.5 font-mono text-[9px] text-[var(--primary)]"
+                      >
+                        {k}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 text-[9px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+                    Playbook
+                  </div>
+                  <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded border border-[var(--border)] bg-[var(--color-forge-950)] p-2 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+                    {s.body}
+                  </pre>
+                </div>
+              </div>
             )}
           </div>
         );
