@@ -28,9 +28,24 @@ export function MessageList({ sessionId, isRunning }: Props) {
   const liveParts = useChatStore((s) => s.liveParts);
   const liveMessages = useChatStore((s) => s.liveMessages);
 
+  // Stable Part[] per inner part-map: the store replaces only the touched
+  // message's inner Map on update, so caching by that reference keeps every
+  // OTHER bubble's `parts` prop identical → memoized bubbles skip re-render.
+  const partsCache = useRef(new WeakMap<Map<string, Part>, Part[]>());
+
   // Merge fetched history with live (streaming) messages/parts so tokens render
   // the instant they arrive — without waiting for a network refetch.
   const items = useMemo((): RenderItem[] => {
+    const cache = partsCache.current;
+    const liveArr = (lp: Map<string, Part>): Part[] => {
+      let arr = cache.get(lp);
+      if (!arr) {
+        arr = Array.from(lp.values());
+        cache.set(lp, arr);
+      }
+      return arr;
+    };
+
     const out: RenderItem[] = [];
     const seen = new Set<string>();
 
@@ -43,7 +58,7 @@ export function MessageList({ sessionId, isRunning }: Props) {
       const live = liveMessages.get(info.id);
       out.push({
         info: live ?? info,
-        parts: lp ? Array.from(lp.values()) : historic,
+        parts: lp ? liveArr(lp) : historic,
         streaming: isRunning && lp !== undefined && (live ?? info).role === "assistant",
       });
     }
@@ -54,7 +69,7 @@ export function MessageList({ sessionId, isRunning }: Props) {
       const lp = liveParts.get(id);
       out.push({
         info: msg,
-        parts: lp ? Array.from(lp.values()) : [],
+        parts: lp ? liveArr(lp) : [],
         streaming: isRunning && msg.role === "assistant",
       });
     }

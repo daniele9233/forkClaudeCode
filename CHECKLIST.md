@@ -12,6 +12,7 @@
 
 > Voce più recente in cima. Formato: `data — fatto — scoperto — riprendere da`.
 
+- _2026-07-02 — **Fase 12 COMPLETA: kill processi (12.18) + perf chat (12.19) + Autopilot (12.20).** `process::kill_child_tree` (taskkill /T /F) per Sidecar e DevRunner; MessageBubble memo + WeakMap parts stabili (in streaming si ridisegna solo il bubble attivo); Autopilot: toggle Auto nell'input ($ budget, × iter), controller su idle (marker AUTOPILOT_DONE, fuel gauge dai cost del motore, cap), AutopilotBar con stop, coda in attesa durante il run. **Riprendere da:** verifica completa su Windows (Rust toccato). Resta solo 11.4 macOS/Linux (futuro)._
 - _2026-07-02 — **Review per file (12.13) + coda di task (12.14) + notifiche (12.15).** `ReviewPanel` collassabile in chat: file toccati (git status motore) con A/M/D e +/−, click→diff Monaco, Discard 2-step (`discard_file_changes`: checkout HEAD / delete per nuovi). Coda: invio durante il run accoda (`queue.store` per sessione), drain automatico a idle con guardia prev-running, chip rimovibili sopra l'input. Notifiche `tauri-plugin-notification` solo a finestra non a fuoco. **Riprendere da:** verifica su Windows (Rust: comando discard + plugin notification). Restano: 12.18 kill processi, 12.19 virtualizzazione chat, 12.20 autopilot, 11.4 macOS/Linux._
 - _2026-07-02 — **HMR nel pannello (12.17) + l'agente vede la sua pagina (12.16).** WS della pagina ridirezionati dritti al dev server dallo script iniettato (`__kikko_ws_target__` + monkey-patch `WebSocket`) → HMR Vite/Next vivo nell'anteprima, live-edit senza reload. Bottone 📷: `capture_preview` (Edge/Chrome headless di sistema, timeout 45s) → PNG allegato via `useSendPrompt.files` a un prompt di critica visiva. **Riprendere da:** verifica su Windows (Rust toccato); serve modello con visione per il 📷; prossime: 12.13 review-diff / 12.14 coda task / 12.15 notifiche._
 - _2026-07-02 — **Checklist riallineata al lavoro reale:** spuntate D2–D5 e 1.2 (decisioni prese/superate), nuova **Fase 12** con tutto il post-roadmap di luglio (12.1–12.12 fatte) e le prossime candidate (12.13–12.20). **Riprendere da:** scegliere la prossima tra 12.13 (review-diff), 12.14 (coda task), 12.15 (notifiche)._
@@ -162,9 +163,9 @@
 - [x] **12.15** **Notifiche desktop** a fine task (`tauri-plugin-notification`; solo se la finestra non è a fuoco; permesso lazy)
 - [x] **12.16** **Screenshot → self-critique** (bottone 📷: `capture_preview` via Edge/Chrome headless → PNG allegato come FilePart a un prompt di critica visiva; `useSendPrompt.files`; richiede modello con visione — auto a fine task = futuro)
 - [x] **12.17** **HMR attraverso il proxy** (niente WS nel proxy: lo script iniettato ridireziona i WebSocket della pagina dritti al dev server via `__kikko_ws_target__` — Vite/Next HMR live nel pannello)
-- [ ] **12.18** **Kill pulito dei processi su Windows** (orphan del `cmd /C`: taskkill /T o job object per dev server e motore)
-- [ ] **12.19** **Virtualizzazione chat** (react-virtuoso / memo dei bubble per sessioni lunghe)
-- [ ] **12.20** **Autopilot con budget** (obiettivo + tetto $ + criterio di stop; itera da solo)
+- [x] **12.18** **Kill pulito dei processi su Windows** (`process::kill_child_tree`: `taskkill /T /F` sull'albero prima del kill diretto; usato da Sidecar e DevRunner — niente più node orfani con la porta occupata)
+- [x] **12.19** **Perf chat** (MessageBubble `memo` + WeakMap per `parts` stabili: in streaming si ri-renderizza solo il bubble attivo; windowing completo = futuro se servirà)
+- [x] **12.20** **Autopilot con budget** 🚀 (toggle Auto nell'input con `$ budget` e `× iter`; controller su session.idle: marker AUTOPILOT_DONE / fuel gauge dai cost del motore / cap iterazioni; AutopilotBar con stop; la coda attende)
 
 ---
 

@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { SendHorizontal, Square, Hammer, Map, ListPlus } from "lucide-react";
+import { SendHorizontal, Square, Hammer, Map, ListPlus, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { usePromptCost } from "@/features/inspector/usePromptCost";
@@ -9,8 +9,13 @@ import { matchSkills } from "@/skills/match";
 
 export type AgentMode = "build" | "plan";
 
+export interface SendOpts {
+  /** Start an autopilot run with the text as goal. */
+  autopilot?: { budgetUsd: number; maxIters: number };
+}
+
 interface Props {
-  onSend: (text: string, mode: AgentMode) => void;
+  onSend: (text: string, mode: AgentMode, opts?: SendOpts) => void;
   onAbort?: () => void;
   disabled?: boolean;
   isRunning?: boolean;
@@ -35,6 +40,11 @@ const MODES: { value: AgentMode; label: string; icon: React.ReactNode; title: st
 export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<AgentMode>("build");
+  // Autopilot launcher: when armed, sending starts an autonomous run with the
+  // text as goal, capped by budget ($) and iterations.
+  const [autoOn, setAutoOn] = useState(false);
+  const [budget, setBudget] = useState("1.00");
+  const [iters, setIters] = useState("10");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cost = usePromptCost(text);
   const skillsEnabled = useSkillsStore((s) => s.enabled);
@@ -46,12 +56,21 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
     // While the agent runs, sending is still allowed — the shell queues it
     // (NEXT queue) and fires it automatically when the agent goes idle.
     if (!trimmed || disabled) return;
-    onSend(trimmed, mode);
+    if (autoOn) {
+      // Autopilot needs an idle session to take over.
+      if (isRunning) return;
+      const budgetUsd = Math.max(0.05, parseFloat(budget) || 1);
+      const maxIters = Math.max(1, Math.min(50, parseInt(iters, 10) || 10));
+      onSend(trimmed, mode, { autopilot: { budgetUsd, maxIters } });
+      setAutoOn(false);
+    } else {
+      onSend(trimmed, mode);
+    }
     setText("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-  }, [text, disabled, mode, onSend]);
+  }, [text, disabled, mode, onSend, autoOn, isRunning, budget, iters]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -92,6 +111,40 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
             {m.label}
           </button>
         ))}
+        {/* Autopilot launcher: goal = the prompt text; caps below */}
+        <button
+          onClick={() => setAutoOn((v) => !v)}
+          disabled={disabled || isRunning}
+          title="Autopilot — the agent iterates on its own toward the goal, within a cost budget and an iteration cap"
+          className={cn(
+            "ml-1 flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-widest transition-colors",
+            autoOn
+              ? "bg-[var(--primary)]/15 text-[var(--primary)]"
+              : "text-[var(--muted-foreground)] hover:bg-white/5 hover:text-[var(--foreground)]",
+            (disabled || isRunning) && "cursor-not-allowed",
+          )}
+        >
+          <Rocket className="h-3 w-3" />
+          Auto
+        </button>
+        {autoOn && !isRunning && (
+          <span className="flex items-center gap-1 font-mono text-[10px] text-[var(--muted-foreground)]">
+            <span>$</span>
+            <input
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              className="w-12 rounded-sm border border-[var(--border)] bg-transparent px-1 py-0.5 text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
+              title="Cost budget (USD) for the autopilot run"
+            />
+            <span className="ml-1">×</span>
+            <input
+              value={iters}
+              onChange={(e) => setIters(e.target.value)}
+              className="w-8 rounded-sm border border-[var(--border)] bg-transparent px-1 py-0.5 text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
+              title="Max iterations"
+            />
+          </span>
+        )}
         {isRunning ? (
           <span className="hud-label ml-auto pr-1 text-[var(--primary)]">● running</span>
         ) : (
@@ -153,7 +206,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           placeholder={
             isRunning
               ? "Agent is working — Enter queues the next task"
-              : `Message the agent in ${mode} mode (Enter to send)`
+              : autoOn
+                ? "Describe the GOAL — Enter launches the autopilot 🚀"
+                : `Message the agent in ${mode} mode (Enter to send)`
           }
           className={cn(
             "flex-1 resize-y bg-transparent text-sm text-[var(--foreground)]",

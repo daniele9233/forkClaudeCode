@@ -42,11 +42,12 @@ impl DevRunner {
         }
     }
 
-    /// Kill the running dev server, if any.
+    /// Kill the running dev server, if any (whole tree — the Windows `cmd /C`
+    /// shim would otherwise leave node running and the port taken).
     pub fn stop(&self) {
         if let Ok(mut g) = self.child.lock() {
             if let Some(mut ch) = g.take() {
-                let _ = ch.start_kill();
+                crate::process::kill_child_tree(&mut ch);
             }
         }
         *self.running.lock().unwrap() = false;

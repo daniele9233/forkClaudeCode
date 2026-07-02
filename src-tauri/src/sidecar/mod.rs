@@ -225,12 +225,12 @@ impl Sidecar {
         })
     }
 
-    /// Kill the sidecar process if running.
+    /// Kill the sidecar process if running (whole tree — the Windows `cmd /C`
+    /// shim would otherwise leave the real engine orphaned on its port).
     pub fn stop(&self) {
         if let Ok(mut guard) = self.child.lock() {
             if let Some(mut child) = guard.take() {
-                // tokio Child: start_kill is non-blocking; ignore errors.
-                let _ = child.start_kill();
+                crate::process::kill_child_tree(&mut child);
             }
         }
         if let Ok(mut s) = self.state.lock() {

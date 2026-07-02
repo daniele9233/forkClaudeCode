@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type {
   Message,
   AssistantMessage,
@@ -144,7 +145,15 @@ function AssistantBubble({ parts, isStreaming, error }: AssistantBubbleProps) {
   );
 }
 
-export function MessageBubble({ message, parts, isStreaming }: Props) {
+// Memoized: during streaming only the message being updated gets new
+// `message`/`parts` references (MessageList keeps them stable via a WeakMap
+// cache), so every other bubble skips its re-render — no more full-list
+// re-paint on every token.
+export const MessageBubble = memo(function MessageBubble({
+  message,
+  parts,
+  isStreaming,
+}: Props) {
   if (!message) return null;
   if (message.role === "user") {
     return <UserBubble message={message} parts={parts} />;
@@ -153,4 +162,4 @@ export function MessageBubble({ message, parts, isStreaming }: Props) {
   return (
     <AssistantBubble parts={parts} isStreaming={isStreaming} error={message.error} />
   );
-}
+});

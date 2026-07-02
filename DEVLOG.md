@@ -15,6 +15,43 @@
 
 ---
 
+## 2026-07-02 · Kill processi Windows + perf chat + Autopilot (12.18 + 12.19 + 12.20)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### 12.18 — Kill pulito dei processi (Windows)
+Nuovo `src-tauri/src/process.rs`: `kill_child_tree` — su Windows
+`taskkill /PID <pid> /T /F` (CREATE_NO_WINDOW) prima dello `start_kill`,
+perché uccidere lo shim `cmd /C` lasciava orfano il vero node con la porta
+occupata. Usato da `Sidecar::stop` e `DevRunner::stop`. Su unix invariato.
+
+### 12.19 — Performance chat (memo + riferimenti stabili)
+`MessageBubble` ora è `memo(...)`. In `MessageList` una `WeakMap<innerPartMap,
+Part[]>` cache: lo store rimpiazza solo la inner-Map del messaggio toccato, così
+i `parts` degli ALTRI messaggi restano referenzialmente identici → durante lo
+streaming si ri-renderizza **solo il bubble attivo**, non tutta la lista.
+(Windowing vero con react-virtuoso rimandato: con il memo il collo di bottiglia
+per-token è eliminato.)
+
+### 12.20 — Autopilot con budget 🚀
+Toggle **Auto** nella riga modalità dell'input (+ input `$ budget` e `× iter`):
+il testo diventa il GOAL. `opencode/autopilot.ts`: preambolo con regole e
+marker `AUTOPILOT_DONE`; su ogni `session.idle` il controller (a) somma i
+`cost` dei messaggi assistant dal motore (fuel gauge, baseline all'avvio),
+(b) cerca il marker nell'ultimo messaggio → done, (c) controlla budget e cap
+iterazioni → stop con notifica, (d) altrimenti manda il prompt "continue" e
+incrementa. `autopilot.store` + `AutopilotBar` sopra l'input (goal, iter n/max,
+speso/budget con barra colorata, Stop = finish+abort). La coda 12.14 aspetta
+mentre l'autopilot possiede la sessione. Skills/policy injection saltate per il
+goal (arriva testuale).
+
+**Limiti onesti:** il "done" si fida del marker del modello (può dichiararlo
+troppo presto — i cap fanno da rete); il costo arriva dal motore per messaggio,
+quindi il controllo di budget avviene a fine iterazione, non a metà.
+Lint/build/30 test verdi. Rust toccato → `pnpm tauri dev`.
+
+---
+
 ## 2026-07-02 · Review-diff per file + coda di task + notifiche (12.13 + 12.14 + 12.15)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

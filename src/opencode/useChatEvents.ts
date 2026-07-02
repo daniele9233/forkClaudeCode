@@ -16,6 +16,7 @@ import { onEventType } from "./events";
 import { sessionKeys } from "./session";
 import { contextKeys } from "./context";
 import { syncStaticPreviewOnIdle } from "./preview";
+import { autopilotOnIdle } from "./autopilot";
 import { notifyWhenUnfocused } from "@/lib/notify";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
@@ -77,6 +78,8 @@ export function useChatEvents() {
           });
         // Refresh the review panel (files touched during the run).
         queryClient.invalidateQueries({ queryKey: ["files"] });
+        // Autopilot: decide continue / done / budget-hit for this session.
+        void autopilotOnIdle(sid);
         // If the agent produced a web page, auto-open/refresh it in the preview.
         void syncStaticPreviewOnIdle();
         // Desktop heads-up if the user is in another window.

@@ -20,7 +20,10 @@ import { ThemeToggle } from "@/features/settings/ThemeToggle";
 import { WelcomeScreen } from "@/features/onboarding/WelcomeScreen";
 import { StatStrip } from "@/features/inspector/StatStrip";
 import { MessageList } from "./MessageList";
-import { ChatInput, type AgentMode } from "./ChatInput";
+import { ChatInput, type AgentMode, type SendOpts } from "./ChatInput";
+import { AutopilotBar } from "./AutopilotBar";
+import { useAutopilotStore } from "@/stores/autopilot.store";
+import { startAutopilot } from "@/opencode/autopilot";
 import { PermissionBanner } from "./PermissionBanner";
 import { PlanTree } from "./PlanTree";
 import { ReviewPanel } from "@/features/review/ReviewPanel";
@@ -55,7 +58,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const removeQueued = useQueueStore((s) => s.remove);
 
   const handleSend = useCallback(
-    async (text: string, mode: AgentMode) => {
+    async (text: string, mode: AgentMode, opts?: SendOpts) => {
       let sessionId = activeSessionId;
 
       // Agent busy → queue the task instead; it auto-sends on idle (12.14).
@@ -69,6 +72,18 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         const session = await createSession.mutateAsync({});
         sessionId = session.id;
         setActiveSession(sessionId);
+      }
+
+      // Autopilot launch: the text is the GOAL; the controller drives from here
+      // (skills/policy injection skipped — the goal reaches the agent verbatim).
+      if (opts?.autopilot) {
+        await startAutopilot(
+          sessionId,
+          text,
+          opts.autopilot.budgetUsd,
+          opts.autopilot.maxIters,
+        );
+        return;
       }
 
       // Auto-apply matching skills: inject their playbooks into the prompt (the
@@ -106,12 +121,14 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
 
   // Drain the queue: when the agent goes from running → idle and there are
   // queued tasks for this session, fire the next one. The prev-running guard
-  // means a fresh mount never auto-sends (StrictMode-safe).
+  // means a fresh mount never auto-sends (StrictMode-safe). While an autopilot
+  // run owns the session, the autopilot controller drives — the queue waits.
   const prevRunning = useRef(false);
   useEffect(() => {
     const wasRunning = prevRunning.current;
     prevRunning.current = isRunning;
     if (!wasRunning || isRunning || !activeSessionId) return;
+    if (useAutopilotStore.getState().active) return;
     const next = useQueueStore.getState().takeNext(activeSessionId);
     if (next) void handleSend(next.text, next.mode);
   }, [isRunning, activeSessionId, handleSend]);
@@ -227,6 +244,8 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
 
       {/* Input area */}
       <div className="border-t border-[var(--border)] pt-2">
+        {/* Autopilot status: goal, iterations, fuel gauge, stop */}
+        <AutopilotBar />
         {/* NEXT queue — tasks waiting for the agent to go idle */}
         {sessionQueue.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
