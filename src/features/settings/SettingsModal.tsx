@@ -18,9 +18,13 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAgents, useMcpStatus, useConfig, useUpdateConfig } from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
 import { SKILLS } from "@/skills/catalog";
+import { activeCatalog } from "@/skills/match";
+import { importSkillFromUrl } from "@/skills/importSkill";
 import { useSkillsStore } from "@/stores/skills.store";
+import { useMemoryStore } from "@/stores/memory.store";
+import { RulesTab } from "./RulesTab";
 
-type Tab = "skills" | "agents" | "mcp";
+type Tab = "skills" | "agents" | "mcp" | "rules";
 
 /* ── Skills tab ──────────────────────────────────────────────── */
 
@@ -359,18 +363,47 @@ function McpTab({ query }: { query: string }) {
 /* ── Skills tab (kikkoCode skill playbooks) ───────────────────── */
 
 function SkillManagerTab({ query }: { query: string }) {
-  const { enabled, autoApply, setEnabled, setAutoApply } = useSkillsStore();
+  const {
+    enabled,
+    autoApply,
+    setEnabled,
+    setAutoApply,
+    custom,
+    addCustom,
+    removeCustom,
+  } = useSkillsStore();
   const [openId, setOpenId] = useState<string | null>(null);
 
+  // Import a community skill from a GitHub raw / https markdown URL.
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const handleImport = async () => {
+    if (!importUrl.trim() || importing) return;
+    setImporting(true);
+    setImportError(null);
+    try {
+      const skill = await importSkillFromUrl(importUrl);
+      addCustom(skill);
+      setImportUrl("");
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const all = activeCatalog();
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? SKILLS.filter(
+    ? all.filter(
         (s) =>
           s.name.toLowerCase().includes(q) ||
           s.description.toLowerCase().includes(q) ||
           s.keywords.some((k) => k.toLowerCase().includes(q)),
       )
-    : SKILLS;
+    : all;
+  void custom; // subscribed so imports re-render the list
 
   return (
     <div className="space-y-2">
@@ -393,6 +426,35 @@ function SkillManagerTab({ query }: { query: string }) {
           </div>
         </div>
       </button>
+
+      {/* Import from URL (GitHub raw / blob links are normalized) */}
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3">
+        <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+          Import skill from URL
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            value={importUrl}
+            onChange={(e) => setImportUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && void handleImport()}
+            placeholder="https://github.com/user/repo/blob/main/SKILL.md"
+            className="h-7 min-w-0 flex-1 rounded border border-[var(--border)] bg-transparent px-2 font-mono text-[10px] text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)]"
+          />
+          <button
+            onClick={() => void handleImport()}
+            disabled={!importUrl.trim() || importing}
+            className="flex h-7 shrink-0 items-center gap-1 rounded bg-[var(--primary)] px-2.5 text-[10px] font-bold uppercase tracking-wider text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-40"
+          >
+            {importing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Plus className="h-3 w-3" />
+            )}
+            Import
+          </button>
+        </div>
+        {importError && <p className="mt-1.5 text-[10px] text-red-400">{importError}</p>}
+      </div>
 
       {filtered.length === 0 && (
         <p className="py-6 text-center text-xs text-[var(--muted-foreground)]">
@@ -425,6 +487,15 @@ function SkillManagerTab({ query }: { query: string }) {
                   {s.description}
                 </p>
               </div>
+              {s.id.startsWith("custom-") && (
+                <button
+                  onClick={() => removeCustom(s.id)}
+                  title="Remove imported skill"
+                  className="shrink-0 rounded p-0.5 text-[var(--muted-foreground)] hover:bg-red-950/40 hover:text-red-400"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
               <button
                 onClick={() => setEnabled(s.id, !on)}
                 title={on ? "Disable" : "Enable"}
@@ -500,17 +571,24 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { data: config } = useConfig();
   const { data: mcpStatus = {} } = useMcpStatus();
   const enabledSkills = useSkillsStore((s) => s.enabled);
+  const customSkills = useSkillsStore((s) => s.custom);
   const mcpNames = Object.keys(config?.mcp ?? {});
   const mcpConnected = mcpNames.filter((n) => mcpStatus[n]?.connected).length;
+  const autoMemorize = useMemoryStore((s) => s.autoMemorize);
 
   const TABS: { id: Tab; label: string; count: string }[] = [
-    { id: "skills", label: "Skills", count: `${enabledSkills.length}/${SKILLS.length}` },
+    {
+      id: "skills",
+      label: "Skills",
+      count: `${enabledSkills.length}/${SKILLS.length + customSkills.length}`,
+    },
     { id: "agents", label: "Agents", count: String(agents.length) },
     {
       id: "mcp",
       label: "MCP",
       count: mcpNames.length > 0 ? `${mcpConnected}/${mcpNames.length}` : "0",
     },
+    { id: "rules", label: "Rules", count: autoMemorize ? "🧠" : "off" },
   ];
 
   useEffect(() => {
@@ -578,7 +656,9 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   ? "Search skills…"
                   : tab === "agents"
                     ? "Search agents, tools…"
-                    : "Search MCP servers…"
+                    : tab === "rules"
+                      ? "(search not used here)"
+                      : "Search MCP servers…"
               }
               className="h-7 flex-1 bg-transparent text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
             />
@@ -600,6 +680,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             {tab === "skills" && <SkillManagerTab query={query} />}
             {tab === "agents" && <SkillsTab query={query} />}
             {tab === "mcp" && <McpTab query={query} />}
+            {tab === "rules" && <RulesTab />}
           </ErrorBoundary>
         </div>
       </Panel>

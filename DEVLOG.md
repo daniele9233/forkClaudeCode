@@ -15,6 +15,48 @@
 
 ---
 
+## 2026-07-02 · Memoria persistente di progetto 🧠 + Rules tab + import skill (12.21 + 12.22)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### 12.21 — Memoria persistente (il design "migliore possibile" per questa architettura)
+Tre principi:
+1. **Storage = blocco marcato dentro `AGENTS.md`** (`<!-- kikko:memory:start/end -->`):
+   opencode inietta AGENTS.md nativamente in ogni sessione → iniezione a costo
+   zero; le regole umane fuori dai marker non vengono MAI toccate (merge
+   deterministico lato Rust, `update_agents_memory`); la memoria è versionata
+   col repo (compare pure nel review panel).
+2. **Distillazione via sessione nascosta usa-e-getta in plan mode** (read-only,
+   zero side effects): riceve memoria attuale + digest della conversazione
+   (solo testi user/agent, tail-capped 9K) e restituisce la memoria AGGIORNATA
+   (merge+dedupe+eviction, sezioni fisse Conventions/Decisions/Preferences/
+   Gotchas/Commands, cap 4K chars). kikkoCode scrive lui il file — il modello
+   non tocca mai il filesystem. Reply sanificata (fence/marker strip).
+3. **Igiene**: sessioni interne titolate `[kikko]`, filtrate dalla sidebar,
+   silenziate negli handler (`isSilentSession` → niente notifiche/preview/
+   autopilot/coda) e cancellate subito dopo l'uso.
+Trigger: auto su `session.idle` (throttle: ≥4 messaggi nuovi + ≥3 min
+dall'ultima distillazione) + **Memorize now** manuale; toggle auto in Settings.
+`memory.store` (autoMemorize persistito, distilling, lastAt/lastError).
+**Fix collaterale importante:** `MessageList` ora filtra i messaggi live per
+`sessionID` — prima lo streaming di ALTRE sessioni (subagenti/nascoste) poteva
+comparire nella chat aperta.
+
+### 12.22 — Rules tab + import skill da URL
+- Tab **Rules** in Settings: editor di `AGENTS.md` (load/save via comandi Rust
+  `read/write_agents_file`) + controlli memoria (toggle auto, Memorize now,
+  last update/errore).
+- **Import skill da URL** nella tab Skills: `fetch_text` (Rust, https-only,
+  cap 200KB, normalizza i link github blob→raw) + parser markdown
+  (`importSkill.ts`: frontmatter o heading/blockquote/keywords:, fallback
+  keywords derivate) → `skills.store.custom` (persistito, enabled subito,
+  rimovibile 🗑). Catalogo ora dinamico: `activeCatalog()` = built-in + custom
+  (gli import ombreggiano gli id uguali); matcher e badge usano quello.
+
+Lint/build/30 test verdi. Rust toccato (4 comandi nuovi) → `pnpm tauri dev`.
+
+---
+
 ## 2026-07-02 · Kill processi Windows + perf chat + Autopilot (12.18 + 12.19 + 12.20)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

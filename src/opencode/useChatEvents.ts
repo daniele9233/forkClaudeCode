@@ -17,6 +17,7 @@ import { sessionKeys } from "./session";
 import { contextKeys } from "./context";
 import { syncStaticPreviewOnIdle } from "./preview";
 import { autopilotOnIdle } from "./autopilot";
+import { memoryOnIdle, isSilentSession } from "./memory";
 import { notifyWhenUnfocused } from "@/lib/notify";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
@@ -65,6 +66,9 @@ export function useChatEvents() {
       onEventType<EventSessionIdle>("session.idle", (e) => {
         const sid = e.properties.sessionID;
         setSessionRunning(sid, false);
+        // kikkoCode-internal sessions (memory distiller): no notifications,
+        // no preview/autopilot/queue reactions — they are invisible plumbing.
+        if (isSilentSession(sid)) return;
         queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sid) });
         queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
         // Reconcile: refetch the authoritative history, THEN drop the live
@@ -80,6 +84,8 @@ export function useChatEvents() {
         queryClient.invalidateQueries({ queryKey: ["files"] });
         // Autopilot: decide continue / done / budget-hit for this session.
         void autopilotOnIdle(sid);
+        // Project memory: distill durable knowledge into AGENTS.md (throttled).
+        void memoryOnIdle(sid);
         // If the agent produced a web page, auto-open/refresh it in the preview.
         void syncStaticPreviewOnIdle();
         // Desktop heads-up if the user is in another window.

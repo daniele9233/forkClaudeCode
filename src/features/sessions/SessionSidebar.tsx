@@ -136,10 +136,11 @@ export function SessionSidebar() {
   const createSession = useCreateSession();
   const deleteSession = useDeleteSession();
 
-  // Only top-level sessions (no parentID) shown in the main list
+  // Only top-level sessions (no parentID) shown in the main list; kikkoCode's
+  // internal sessions (memory distiller) are title-tagged and hidden.
   const sorted = sessions
     ? [...sessions]
-        .filter((s) => !s.parentID)
+        .filter((s) => !s.parentID && !(s.title ?? "").startsWith("[kikko]"))
         .sort((a, b) => b.time.updated - a.time.updated)
     : [];
 

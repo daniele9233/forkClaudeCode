@@ -64,8 +64,11 @@ export function MessageList({ sessionId, isRunning }: Props) {
     }
 
     // Live-only messages (a streaming reply not yet in the fetched history).
+    // Filter by session: live traffic from OTHER sessions (subagents, hidden
+    // kikkoCode sessions) must never leak into this chat.
     for (const [id, msg] of liveMessages) {
       if (!msg || seen.has(id)) continue;
+      if (msg.sessionID !== sessionId) continue;
       const lp = liveParts.get(id);
       out.push({
         info: msg,
@@ -75,7 +78,7 @@ export function MessageList({ sessionId, isRunning }: Props) {
     }
 
     return out.sort((a, b) => createdAt(a.info) - createdAt(b.info));
-  }, [messageRows, liveParts, liveMessages, isRunning]);
+  }, [messageRows, liveParts, liveMessages, isRunning, sessionId]);
 
   // Auto-scroll to bottom as content streams in — but only if the user was
   // already following the bottom (see stickToBottom).

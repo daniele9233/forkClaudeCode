@@ -1,4 +1,17 @@
-import { SKILLS, skillById, type Skill } from "./catalog";
+import { SKILLS, type Skill } from "./catalog";
+import { useSkillsStore } from "@/stores/skills.store";
+
+/** Built-in catalog + user-imported skills (imports shadow same-id builtins). */
+export function activeCatalog(): Skill[] {
+  const custom = useSkillsStore.getState().custom;
+  if (custom.length === 0) return SKILLS;
+  const customIds = new Set(custom.map((c) => c.id));
+  return [...SKILLS.filter((s) => !customIds.has(s.id)), ...custom];
+}
+
+export function skillById(id: string): Skill | undefined {
+  return activeCatalog().find((s) => s.id === id);
+}
 
 const SKILL_OPEN = "[[kikko-skill:";
 const SKILL_CLOSE = "[[/kikko-skill]]";
@@ -44,7 +57,8 @@ export function matchSkills(prompt: string, enabledIds: string[], max = 2): Skil
   const promptLower = trimmed.toLowerCase();
   const promptTokens = new Set(tokenize(trimmed));
 
-  return SKILLS.filter((s) => enabled.has(s.id))
+  return activeCatalog()
+    .filter((s) => enabled.has(s.id))
     .map((s) => ({ skill: s, score: scoreSkill(promptLower, promptTokens, s) }))
     .filter((x) => x.score >= 2)
     .sort((a, b) => b.score - a.score)
@@ -88,5 +102,3 @@ export function parseSkills(text: string): { clean: string; skillIds: string[] }
     .trim();
   return { clean, skillIds: ids };
 }
-
-export { skillById };

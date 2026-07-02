@@ -437,6 +437,95 @@ async fn set_preview_proxy(
     })
 }
 
+/// The project's `AGENTS.md` directory (the engine's cwd).
+fn project_dir(state: &tauri::State<'_, AppState>) -> Result<PathBuf, String> {
+    state
+        .sidecar
+        .working_dir()
+        .or_else(|| std::env::current_dir().ok())
+        .ok_or_else(|| "no project directory".into())
+}
+
+/// Read the project's `AGENTS.md` (the file opencode natively injects into the
+/// agent's context). Returns None if it doesn't exist yet.
+#[tauri::command]
+async fn read_agents_file(
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    let path = project_dir(&state)?.join("AGENTS.md");
+    match std::fs::read_to_string(&path) {
+        Ok(text) => Ok(Some(text)),
+        Err(_) => Ok(None),
+    }
+}
+
+/// Overwrite the project's `AGENTS.md` (the Rules editor's save).
+#[tauri::command]
+async fn write_agents_file(
+    state: tauri::State<'_, AppState>,
+    content: String,
+) -> Result<String, String> {
+    let path = project_dir(&state)?.join("AGENTS.md");
+    std::fs::write(&path, content).map_err(|e| format!("write {}: {e}", path.display()))?;
+    Ok(path.display().to_string())
+}
+
+const MEM_START: &str = "<!-- kikko:memory:start -->";
+const MEM_END: &str = "<!-- kikko:memory:end -->";
+
+/// Merge the distilled project memory into `AGENTS.md`, inside marker comments.
+/// Everything the human wrote outside the markers is preserved verbatim; only
+/// the machine-managed block is replaced (or appended on first use). Because
+/// opencode injects AGENTS.md natively, whatever lands here IS the agent's
+/// long-term memory — no extra plumbing.
+#[tauri::command]
+async fn update_agents_memory(
+    state: tauri::State<'_, AppState>,
+    memory: String,
+) -> Result<String, String> {
+    let path = project_dir(&state)?.join("AGENTS.md");
+    let existing = std::fs::read_to_string(&path).unwrap_or_default();
+
+    let block = format!("{MEM_START}\n{}\n{MEM_END}", memory.trim());
+    let next = match (existing.find(MEM_START), existing.find(MEM_END)) {
+        (Some(start), Some(end)) if end > start => {
+            let after = end + MEM_END.len();
+            format!("{}{}{}", &existing[..start], block, &existing[after..])
+        }
+        _ if existing.trim().is_empty() => {
+            format!("# Project instructions\n\n{block}\n")
+        }
+        _ => format!("{}\n\n{block}\n", existing.trim_end()),
+    };
+
+    std::fs::write(&path, next).map_err(|e| format!("write {}: {e}", path.display()))?;
+    Ok(path.display().to_string())
+}
+
+/// Fetch a text resource over HTTPS (skill import from GitHub raw URLs).
+/// Capped to 200 KB; done from Rust to bypass webview CORS.
+#[tauri::command]
+async fn fetch_text(url: String) -> Result<String, String> {
+    let url = url.trim().to_string();
+    if !url.starts_with("https://") {
+        return Err("only https:// URLs are allowed".into());
+    }
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|e| format!("http client error: {e}"))?;
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("could not fetch {url}: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {} fetching {url}", resp.status().as_u16()));
+    }
+    let text = resp.text().await.map_err(|e| format!("read body: {e}"))?;
+    Ok(text.chars().take(200_000).collect())
+}
+
 /// Discard the working-tree changes of a single file in the current project
 /// (the ✗ of the review panel). Tracked file → `git checkout HEAD -- <path>`;
 /// untracked (newly added) file → delete it. The GUI asks for confirmation
@@ -681,6 +770,10 @@ pub fn run() {
             set_preview_proxy,
             capture_preview,
             discard_file_changes,
+            read_agents_file,
+            write_agents_file,
+            update_agents_memory,
+            fetch_text,
             find_dev_server,
             start_dev_server,
             stop_dev_server,
