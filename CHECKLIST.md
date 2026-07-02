@@ -12,8 +12,9 @@
 
 > Voce più recente in cima. Formato: `data — fatto — scoperto — riprendere da`.
 
-- _2026-07-01 — **Project/workspace picker (fondamentale).** Aggiunta la scelta della cartella su cui lavorare: in opencode il "progetto" è la cwd di `opencode serve`, finora mai impostata. **Rust:** `sidecar.working_dir` (→ `current_dir` nello spawn); comandi `get_working_dir`/`set_working_dir` (imposta cwd + riavvia + salva last-project), `clone_repo` (git clone di sistema → private via credenziali locali), `create_project` (mkdir + git init opz.); `tauri-plugin-dialog` + `dialog:default`; `config_store::save/load_last_project` (`kikkocode.json`) → riapre l'ultimo progetto all'avvio. **Frontend:** `workspace.store` (currentDir + recents persistiti), `useProjectActions` (dialog nativo + openProject che ri-initClient sulla nuova porta, reset sessione, invalidate), `ProjectPicker` (3 tab: Open folder / Clone from GitHub / New project + recenti), `ProjectBar` in cima alla sidebar. Lint/build/22 test verdi. **Riprendere da:** conferma su Windows: dialog cartella, clone repo, create; poi eventuale gestione token per private repo e switch-progetto dalla command palette._
+- _2026-07-02 — **Checklist riallineata al lavoro reale:** spuntate D2–D5 e 1.2 (decisioni prese/superate), nuova **Fase 12** con tutto il post-roadmap di luglio (12.1–12.12 fatte) e le prossime candidate (12.13–12.20). **Riprendere da:** scegliere la prossima tra 12.13 (review-diff), 12.14 (coda task), 12.15 (notifiche)._
 - _2026-07-02 — **Affidabilità + Error Radar ⭐.** (1) SSE auto-reconnect con backoff (stream caduto ≠ app sorda); (2) memoria chat riconciliata su idle (refetch → clearSession, niente crescita infinita); (3) auto-scroll solo se sei già al fondo. **Error Radar:** lo script iniettato dal proxy cattura errori runtime della pagina (js/promise/resource/console.error) → badge ⚠ sulla toolbar anteprima + drawer + "Fix with agent" che manda gli errori all'agente in un click. +8 test sul matcher skills (22→30). **Riprendere da:** verifica su Windows (ricompilare: Rust toccato); prossime feature candidate: review-diff con approvazione per file, coda di task, notifiche desktop, screenshot→self-critique._
+- _2026-07-01 — **Project/workspace picker (fondamentale).** Aggiunta la scelta della cartella su cui lavorare: in opencode il "progetto" è la cwd di `opencode serve`, finora mai impostata. **Rust:** `sidecar.working_dir` (→ `current_dir` nello spawn); comandi `get_working_dir`/`set_working_dir` (imposta cwd + riavvia + salva last-project), `clone_repo` (git clone di sistema → private via credenziali locali), `create_project` (mkdir + git init opz.); `tauri-plugin-dialog` + `dialog:default`; `config_store::save/load_last_project` (`kikkocode.json`) → riapre l'ultimo progetto all'avvio. **Frontend:** `workspace.store` (currentDir + recents persistiti), `useProjectActions` (dialog nativo + openProject che ri-initClient sulla nuova porta, reset sessione, invalidate), `ProjectPicker` (3 tab: Open folder / Clone from GitHub / New project + recenti), `ProjectBar` in cima alla sidebar. **Riprendere da:** gestione token per private repo e switch-progetto dalla command palette._
 - _2026-07-01 — **UX: pannello inferiore ridimensionabile + tasto anteprima in-app.** (1) Il prompt non si poteva abbassare quando Terminal/Inspector/Timeline erano aperti (pannello `h-[42vh]` fisso): ora il divisore è una maniglia trascinabile, `ui.store.bottomHeight` (def 340) + `App.tsx startResize` (pointer su document, `innerHeight-clientY-28`, clamp `[140, innerHeight*0.82]`). (2) Nuovo tasto `MonitorPlay` in `ChatShell` che apre l'anteprima **in-app** (iframe `PreviewPanel`, colonna destra) invece di Chrome: toggle `openPreview(detectedUrl ?? localhost:5173)` / `closePreview()`. Lint/build/22 test verdi, prettier pulito. **Riprendere da:** conferma su Windows del drag-resize e dell'anteprima in-app._
 - _2026-06-30 — **Fix connessione motore (Windows):** l'app restava su "CONNECTING TO ENGINE…" pur con un `opencode serve` (1.17.11) attivo a mano su :4096. Cause + fix in `src-tauri/src/sidecar/mod.rs`: (1) `opencode_bin`+`which_on_path` ora risolvono lo shim npm su Windows scandendo `PATH` con `PATHEXT` (`Command::new("opencode")` non lo applica → spawn fallito); (2) nuovo `engine_command` instrada gli shim `.cmd`/`.bat` via `cmd.exe /C` (gli `.exe`/Unix restano diretti; il bundle release usa `opencode.exe` reale → produzione pulita); (3) escape hatch `OPENCODE_BASE_URL` per agganciarsi a un server avviato a mano; (4) stdio ereditato + log `[kikkocode] …` per vedere la causa reale nel terminale. Inoltre `version.ts`: SDK (0.x) e server (1.x) hanno versioni indipendenti → il vecchio check `==0.15` nagava sempre; ora avvisa solo se major motore `< 1` (`MIN_ENGINE_MAJOR`). Lint verde, 22 test ok (Rust → CI). **Riprendere da:** confermare su Windows che l'app si collega (auto-spawn o via `OPENCODE_BASE_URL`); poi eventuale orphan-kill dello shim `cmd /C` su restart._
 - _2026-06-27 — **Fix CI:** il job Rust falliva (`resource path binaries/opencode-x86_64-unknown-linux-gnu doesn't exist`): Tauri valida `externalBin` a check-time e il binario non è committato. Spostato `externalBin` dal `tauri.conf.json` base a un overlay `src-tauri/tauri.release.conf.json` mergiato solo in release (`tauri build --config src-tauri/tauri.release.conf.json` in `release.yml`). Aggiornati ADR 06 + binaries/README. JSON validati. (Frontend CI già verde.) **Riprendere da:** verificare che il job Rust torni verde su questo push._
@@ -44,11 +45,11 @@
 
 ## 🎯 Decisioni da prendere (vedi `PROGETTO.md` §15)
 
-- [x] **D1.** Strumentazione selezione visuale: `data-*` (Onlook) **vs** jsx-source/click-to-component → **scelto: React fiber `_debugSource` + postMessage** (vedi `docs/05-adr-visual-selection.md`)
-- [ ] **D2.** Monaco **vs** CodeMirror 6
-- [ ] **D3.** Quanto usare Magic UI/Aceternity (dose di effetti)
-- [ ] **D4.** Come bundlare/versionare il binario `opencode`
-- [ ] **D5.** Nome definitivo del progetto
+- [x] **D1.** Strumentazione selezione visuale: `data-*` (Onlook) **vs** jsx-source/click-to-component → **scelto: React fiber `_debugSource` + postMessage** (vedi `docs/05-adr-visual-selection.md`); superato poi dal **proxy iniettante universale** (2026-07-02) che funziona senza plugin
+- [x] **D2.** Monaco **vs** CodeMirror 6 → **scelto: Monaco** (`@monaco-editor/react`, DiffEditor in Fase 3.2)
+- [x] **D3.** Quanto usare Magic UI/Aceternity → **scelto: nessuna dipendenza** — effetti hand-rolled con Motion per controllare `prefers-reduced-motion` (Fase 9.1)
+- [x] **D4.** Come bundlare/versionare il binario `opencode` → **scelto: `externalBin` in overlay release** + fallback PATH in dev (Fase 11.1, `docs/06-adr-sidecar-bundling.md`)
+- [x] **D5.** Nome definitivo del progetto → **kikkoCode**
 
 ---
 
@@ -63,7 +64,7 @@
 ## Fase 1 — Integrazione col motore OpenCode ⭐ *(da fare per prima)*
 
 - [x] **1.1** Installa OpenCode; avvia `opencode serve`; apri l'OpenAPI `/doc` e **mappa cosa espone** (sessioni, streaming, eventi tool, stato contesto) → nota in `docs/` _(→ `docs/01-opencode-openapi-findings.md`)_
-- [ ] **1.2** Configura un provider di test (DeepSeek o Gemini) via `opencode auth`; verifica una risposta dal terminale _(manuale — istruzioni in `docs/02-provider-setup.md`; da completare in locale con chiavi API reali)_
+- [x] **1.2** Configura un provider di test (DeepSeek o Gemini) _(superato: setup completo **dalla GUI** — `AddProviderKey` + comando Rust `set_provider_key` che inietta l'env var e riavvia il motore; DeepSeek verificato funzionante end-to-end il 2026-07-01)_
 - [x] **1.3** Backend Rust: **spawn/kill di `opencode serve`** come sidecar (porta libera, health check, riavvio) _(→ `src-tauri/src/sidecar/mod.rs`, `lib.rs`; Tauri cmds: `get_opencode_url`, evento `opencode-ready`)_
 - [x] **1.4** Frontend: connetti `@opencode-ai/sdk` (`createOpencodeClient`); **crea sessione + invia prompt + ricevi risposta** (round-trip minimo) _(→ `src/opencode/client.ts`, `session.ts`, `OpencodeProvider.tsx`, `src/stores/session.store.ts`)_
 - [x] **1.5** **Streaming** dei token/eventi dal server alla UI (rendering progressivo) _(→ `src/opencode/events.ts`: SSE `.stream` AsyncGenerator, `onEvent`/`onEventType` bus)_
@@ -137,6 +138,31 @@
 - [x] **11.2** Onboarding al primo avvio: configura il primo provider, spiega Plan/Build, mostra l'Inspector _(→ `stores/onboarding.store.ts` (flag `completed` persistito + reset); `features/onboarding/OnboardingWizard.tsx`: wizard 3 step (welcome → connect provider con key-setup riusando useProviders/useSetAuth + auto-default model → tour Plan/Build + Context Inspector); mostrato in `App.tsx` al primo avvio quando l'engine è ready; azione "Replay Intro" in CommandPalette)_
 - [x] **11.3** README + note di versione _(→ `README.md` (overview, differenziatori, architettura, stack, dev setup, packaging, status) + `CHANGELOG.md` (Keep a Changelog, sezione Unreleased con tutte le feature Fasi 1–11))_
 - [ ] **11.4** _(futuro)_ macOS/Linux
+
+## Fase 12 — Evoluzione post-roadmap (luglio 2026)
+
+> Lavoro oltre la roadmap originale, guidato dall'uso reale su Windows.
+
+- [x] **12.1** **Fix connessione motore su Windows** (shim npm `.cmd` via `cmd /C`, PATHEXT, `OPENCODE_BASE_URL`, health probe no-proxy) + fix race listener/poll `opencode-ready`
+- [x] **12.2** **Provider key dalla GUI** (env-var injection + restart motore; test chiave; selezione modello; selettore reasoner⇄chat; pallino online col modello attivo)
+- [x] **12.3** **Streaming reale + 20× più veloce** (niente refetch per token; merge storia+live; fix shape SDK 0.15 vs engine 1.17 via `messageShape.ts`)
+- [x] **12.4** **Sistema Skills** (catalogo 12 skill design, matcher keyword+descrizione, auto-inject con badge, Skills Manager con trigger words visibili, chip live "will apply")
+- [x] **12.5** **Integrazioni chat**: diagrammi Mermaid, tool-call card live parallele, Plan Tree (todo del motore in tempo reale), Cost & Context Guard pre-invio
+- [x] **12.6** **Project/workspace picker** ⭐ (apri cartella / clona repo GitHub / crea progetto; recenti; riapertura ultimo progetto; barra project + apri-in-Explorer)
+- [x] **12.7** **Pannello inferiore ridimensionabile** (maniglia trascinabile) + tasto anteprima in-app
+- [x] **12.8** **Anteprima automatica universale**: server statico integrato, dev server gestito da kikkoCode (output catturato → URL reale), probe IPv4+IPv6 su porte realmente in ascolto, URL dall'output = fonte di verità, auto-open a fine task, watch persistente
+- [x] **12.9** **Selezione elementi senza plugin** ⭐ (preview server = reverse-proxy iniettante; inspector universale: fiber file:riga quando c'è, sempre selettore CSS+HTML; ElementCompose anche senza source-map)
+- [x] **12.10** **Fix "stuck on Working"** (running flag posseduto dalla finestra send→idle, non da `session.updated`)
+- [x] **12.11** **Pacchetto affidabilità** (SSE auto-reconnect con backoff; memoria chat riconciliata su idle; auto-scroll solo se già al fondo) + 8 test sul matcher skills (30 totali)
+- [x] **12.12** **Error Radar** ⭐ (radar iniettato: errori js/promise/resource/console → badge ⚠ + drawer + "Fix with agent" in un click)
+- [ ] **12.13** **Review-diff con approvazione per file** (pannello file toccati a fine task, diff affiancato, ✓/✗ per file — la feature-fiducia)
+- [ ] **12.14** **Coda di task** (accoda più prompt, esecuzione in sequenza, NEXT queue visibile)
+- [ ] **12.15** **Notifiche desktop** a fine task (Tauri notification)
+- [ ] **12.16** **Screenshot → self-critique** (l'agente vede la pagina che ha creato e la migliora; richiede modello con visione)
+- [ ] **12.17** **HMR attraverso il proxy** (websocket passthrough → live-edit senza reload nel pannello)
+- [ ] **12.18** **Kill pulito dei processi su Windows** (orphan del `cmd /C`: taskkill /T o job object per dev server e motore)
+- [ ] **12.19** **Virtualizzazione chat** (react-virtuoso / memo dei bubble per sessioni lunghe)
+- [ ] **12.20** **Autopilot con budget** (obiettivo + tetto $ + criterio di stop; itera da solo)
 
 ---
 
