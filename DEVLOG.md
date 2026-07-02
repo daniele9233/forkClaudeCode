@@ -15,6 +15,47 @@
 
 ---
 
+## 2026-07-02 · Pacchetto affidabilità + Error Radar ⭐
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Dall'analisi completa del codice: prima i 3 fix di affidabilità più critici, poi
+la feature-firma nuova.
+
+### Affidabilità
+1. **SSE auto-reconnect** (`events.ts`): se lo stream eventi cadeva (hiccup del
+   motore, non crash del processo) il `for await` finiva e nessuno lo riavviava
+   → app "sorda" per sempre (niente streaming né permessi). Ora loop di
+   riconnessione con backoff esponenziale (1s→15s, reset quando fluiscono
+   eventi), guardato da `_generation` così stop/restart espliciti non lasciano
+   loop zombie.
+2. **Memoria chat** (`chat.store` + `useChatEvents`): `liveParts/liveMessages`
+   crescevano per sempre. Su `session.idle`: invalidate dei messaggi →
+   al termine del refetch `clearSession(sid)` (riconcilia senza flash);
+   `clearSession` ora copre anche le parts orfane via `part.sessionID`.
+3. **Auto-scroll intelligente** (`MessageList`): `scrollIntoView` scattava a
+   ogni token anche se stavi rileggendo in alto. Ora ref `stickToBottom`
+   aggiornato da `onScroll` (soglia 120px): segue il fondo solo se ci sei già;
+   re-stick al cambio sessione.
+
+### Error Radar ⭐ (nuova feature-firma)
+Il proxy iniettante ora inietta anche un **radar errori** nella pagina:
+`window error` (+ resource load in capture), `unhandledrejection`,
+`console.error` (wrap non distruttivo), cap 50, dedup dei duplicati consecutivi
+→ postMessage `forgia:pageerror`. Lato app: `pageErrors.store`, badge rosso
+`⚠ n` nella toolbar dell'anteprima, drawer con la lista e **"Fix with agent"**:
+un click impacchetta gli errori (max 8, con kind/message/source) in un prompt
+e lo manda all'agente (crea la sessione se manca). Reset del radar a ogni
+navigazione/reload.
+
+Extra: **test del matcher skills** (`match.test.ts`, 8 test: keywords, soglia,
+enabled-only, round-trip inject/parse, strip delle `[[kikko-note]]`) — era il
+buco di copertura più grave. Totale test: 22 → 30.
+
+Lint/build verdi. Rust toccato (INSPECTOR_JS) → **ricompilare con tauri dev**.
+
+---
+
 ## 2026-07-02 · Selezione visuale automatica (proxy iniettante) + anteprima più tenace
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

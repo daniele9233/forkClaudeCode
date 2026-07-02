@@ -59,16 +59,21 @@ export const useChatStore = create<ChatState>((set) => ({
 
   clearSession: (sessionId) =>
     set((s) => {
-      // Remove all live parts/messages belonging to this session.
-      // (Parts carry sessionID, but we clear conservatively by session.)
+      // Remove all live parts/messages belonging to this session. Called after
+      // the history refetch on session.idle, so the reconciled data replaces
+      // the live copies — without this the maps grow for the app's lifetime.
       const nextParts = new Map(s.liveParts);
       const nextMsgs = new Map(s.liveMessages);
-      for (const [msgId, _] of nextParts) {
+      for (const [msgId, parts] of nextParts) {
         const msg = nextMsgs.get(msgId);
-        if (msg && msg.sessionID === sessionId) {
+        // Parts carry sessionID too — covers parts that never got a message.
+        const first = parts.values().next().value as { sessionID?: string } | undefined;
+        if (msg?.sessionID === sessionId || first?.sessionID === sessionId) {
           nextParts.delete(msgId);
-          nextMsgs.delete(msgId);
         }
+      }
+      for (const [msgId, msg] of nextMsgs) {
+        if (msg.sessionID === sessionId) nextMsgs.delete(msgId);
       }
       const nextRunning = new Set(s.runningSessions);
       nextRunning.delete(sessionId);

@@ -211,6 +211,51 @@ const INSPECTOR_JS: &str = r#"
   } else {
     signalReady();
   }
+
+  /* --- Error radar ---------------------------------------------------
+   * Report the page's runtime problems to the app: JS errors, unhandled
+   * promise rejections, failed resource loads and console.error calls.
+   * The app shows them on the preview and can hand them to the agent. */
+  var errCount = 0;
+  function pushErr(kind, message, source) {
+    if (errCount >= 50) return; // cap — a render loop must not flood the app
+    errCount++;
+    try {
+      window.parent.postMessage({
+        type: 'forgia:pageerror',
+        error: {
+          kind: kind,
+          message: String(message).slice(0, 600),
+          source: source ? String(source).slice(0, 200) : undefined,
+          ts: Date.now(),
+        },
+      }, '*');
+    } catch (ex) {}
+  }
+  window.addEventListener('error', function (e) {
+    if (e && e.message) {
+      pushErr('js', e.message, (e.filename || '') + (e.lineno ? ':' + e.lineno : ''));
+    } else if (e && e.target && (e.target.src || e.target.href)) {
+      // capture-phase catches resource load failures (img/script/css)
+      pushErr('resource', 'failed to load: ' + (e.target.src || e.target.href),
+        e.target.tagName ? e.target.tagName.toLowerCase() : undefined);
+    }
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    pushErr('promise', (r && (r.stack || r.message)) || String(r));
+  });
+  var __origConsoleError = console.error;
+  console.error = function () {
+    try {
+      var msg = Array.prototype.map.call(arguments, function (a) {
+        if (typeof a === 'string') return a;
+        try { return JSON.stringify(a); } catch (ex) { return String(a); }
+      }).join(' ');
+      pushErr('console', msg);
+    } catch (ex) {}
+    return __origConsoleError.apply(console, arguments);
+  };
 })();
 "#;
 

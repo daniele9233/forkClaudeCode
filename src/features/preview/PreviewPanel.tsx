@@ -8,10 +8,15 @@ import {
   Play,
   Square,
   Loader2,
+  AlertTriangle,
+  Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useDevServerStore } from "@/stores/devserver.store";
+import { usePageErrorsStore, type PageError } from "@/stores/pageErrors.store";
+import { useSessionStore } from "@/stores/session.store";
+import { useSendPrompt, useCreateSession } from "@/opencode/session";
 import { useSelectionStore, type SelectedElement } from "@/stores/selection.store";
 import {
   startDevServer,
@@ -46,6 +51,16 @@ export function PreviewPanel() {
   const devLogs = useDevServerStore((s) => s.logs);
   const [availCommand, setAvailCommand] = useState<string | null>(null);
 
+  // Error radar: runtime errors reported by the previewed page.
+  const pageErrors = usePageErrorsStore((s) => s.errors);
+  const errorDrawerOpen = usePageErrorsStore((s) => s.drawerOpen);
+  const toggleErrorDrawer = usePageErrorsStore((s) => s.toggleDrawer);
+  const clearPageErrors = usePageErrorsStore((s) => s.clear);
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const setActiveSession = useSessionStore((s) => s.setActiveSession);
+  const sendPrompt = useSendPrompt();
+  const createSession = useCreateSession();
+
   // Discover whether this project has a dev command we can run.
   useEffect(() => {
     if (!previewOpen) return;
@@ -79,6 +94,8 @@ export function PreviewPanel() {
     clearSelection();
     setInspectorReady(false);
     setSelectionMode(false);
+    // A new page starts with a clean error radar.
+    usePageErrorsStore.getState().clear();
   }, [previewUrl, clearSelection, setInspectorReady, setSelectionMode]);
 
   // Stable ref so the message listener always sees current selectionMode
@@ -120,6 +137,13 @@ export function PreviewPanel() {
         case "forgia:select":
           if (data.tagName) setSelectedElement(data as SelectedElement);
           break;
+        case "forgia:pageerror": {
+          const err = (e.data as { error?: PageError }).error;
+          if (err && typeof err.message === "string") {
+            usePageErrorsStore.getState().addError(err);
+          }
+          break;
+        }
       }
     };
 
@@ -147,7 +171,33 @@ export function PreviewPanel() {
   const reload = () => {
     clearSelection();
     setInspectorReady(false);
+    clearPageErrors();
     setReloadKey((k) => k + 1);
+  };
+
+  // Hand the page's runtime errors to the agent as a fix task.
+  const fixErrors = async () => {
+    if (pageErrors.length === 0 || sendPrompt.isPending) return;
+    const list = pageErrors
+      .slice(0, 8)
+      .map(
+        (er, i) =>
+          `${i + 1}. [${er.kind}] ${er.message}${er.source ? ` (at ${er.source})` : ""}`,
+      )
+      .join("\n");
+    const prompt = `The web page previewed at ${previewUrl ?? "the dev server"} reports these runtime errors:
+
+${list}
+
+Find the root cause in this project's source code and fix them. After fixing, briefly explain what was wrong.`;
+    let sessionId = activeSessionId;
+    if (!sessionId) {
+      const s = await createSession.mutateAsync({});
+      sessionId = s.id;
+      setActiveSession(sessionId);
+    }
+    sendPrompt.mutate({ sessionId, text: prompt });
+    clearPageErrors();
   };
 
   const openExternal = () => {
@@ -224,6 +274,23 @@ export function PreviewPanel() {
           )
         )}
 
+        {/* Error radar badge — the page reported runtime errors */}
+        {pageErrors.length > 0 && (
+          <button
+            onClick={toggleErrorDrawer}
+            className={cn(
+              "flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[10px] font-bold transition-colors",
+              errorDrawerOpen
+                ? "bg-red-500/25 text-red-300 ring-1 ring-red-400/50"
+                : "bg-red-500/15 text-red-400 hover:bg-red-500/25",
+            )}
+            title={`${pageErrors.length} runtime error(s) on this page — click to inspect`}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {pageErrors.length}
+          </button>
+        )}
+
         <input
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
@@ -254,6 +321,51 @@ export function PreviewPanel() {
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
+
+      {/* Error radar drawer — the page's runtime errors + one-click fix */}
+      {errorDrawerOpen && pageErrors.length > 0 && (
+        <div className="shrink-0 border-b border-red-500/30 bg-red-950/20">
+          <div className="max-h-40 overflow-y-auto px-3 py-2">
+            {pageErrors.map((er, i) => (
+              <div
+                key={`${er.ts}-${i}`}
+                className="flex gap-2 py-1 font-mono text-[11px]"
+              >
+                <span className="shrink-0 rounded bg-red-500/20 px-1 uppercase text-red-400">
+                  {er.kind}
+                </span>
+                <span className="min-w-0 flex-1 break-words text-red-200/90">
+                  {er.message}
+                  {er.source && <span className="text-red-300/50"> — {er.source}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 border-t border-red-500/20 px-3 py-1.5">
+            <button
+              onClick={() => void fixErrors()}
+              disabled={sendPrompt.isPending}
+              className="flex items-center gap-1.5 rounded bg-red-500/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {sendPrompt.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Wand2 className="h-3 w-3" />
+              )}
+              Fix with agent
+            </button>
+            <button
+              onClick={clearPageErrors}
+              className="rounded px-2 py-1 text-[10px] uppercase tracking-wider text-red-300/70 transition-colors hover:bg-red-500/10 hover:text-red-200"
+            >
+              Clear
+            </button>
+            <span className="ml-auto text-[10px] text-red-300/50">
+              captured live from the page
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Element compose panel — visible when an element is selected */}
       <ElementCompose />

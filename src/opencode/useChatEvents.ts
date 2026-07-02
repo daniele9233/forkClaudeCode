@@ -65,6 +65,15 @@ export function useChatEvents() {
         setSessionRunning(sid, false);
         queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sid) });
         queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+        // Reconcile: refetch the authoritative history, THEN drop the live
+        // copies for this session — frees memory without a visual gap (the
+        // refetched rows replace the live entries in the same render).
+        queryClient
+          .invalidateQueries({ queryKey: sessionKeys.messages(sid) })
+          .then(() => useChatStore.getState().clearSession(sid))
+          .catch(() => {
+            /* refetch failed — keep the live copies so nothing disappears */
+          });
         // If the agent produced a web page, auto-open/refresh it in the preview.
         void syncStaticPreviewOnIdle();
       }),

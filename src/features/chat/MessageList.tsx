@@ -19,6 +19,10 @@ interface RenderItem {
 
 export function MessageList({ sessionId, isRunning }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Stick to the bottom only while the user IS at the bottom: scrolling up to
+  // re-read must not be hijacked by streaming updates.
+  const stickToBottom = useRef(true);
   const reduce = useReducedMotion();
   const { data: messageRows, isLoading } = useSessionMessages(sessionId);
   const liveParts = useChatStore((s) => s.liveParts);
@@ -58,10 +62,24 @@ export function MessageList({ sessionId, isRunning }: Props) {
     return out.sort((a, b) => createdAt(a.info) - createdAt(b.info));
   }, [messageRows, liveParts, liveMessages, isRunning]);
 
-  // Auto-scroll to bottom as content streams in.
+  // Auto-scroll to bottom as content streams in — but only if the user was
+  // already following the bottom (see stickToBottom).
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (stickToBottom.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [items]);
+
+  // Re-stick when switching session (fresh conversation starts at the bottom).
+  useEffect(() => {
+    stickToBottom.current = true;
+  }, [sessionId]);
+
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  };
 
   if (isLoading && items.length === 0) {
     return (
@@ -83,7 +101,11 @@ export function MessageList({ sessionId, isRunning }: Props) {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="flex flex-1 flex-col gap-4 overflow-y-auto p-4"
+    >
       {items.map(({ info, parts, streaming }) => (
         <motion.div
           key={info.id}
