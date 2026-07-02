@@ -436,6 +436,80 @@ async fn set_preview_proxy(
     })
 }
 
+/// Capture a screenshot of a URL with the system's Chromium-based browser in
+/// headless mode (Edge ships with Windows; Chrome/Chromium as fallback) and
+/// return the PNG path. This is what lets the agent literally SEE the page it
+/// built: the frontend attaches the image to a prompt for visual self-review.
+#[tauri::command]
+async fn capture_preview(url: String) -> Result<String, String> {
+    let url = url.trim().to_string();
+    if url.is_empty() {
+        return Err("no preview URL to capture".into());
+    }
+    let browser = find_browser()
+        .ok_or("no Chromium-based browser (Edge/Chrome) found for the screenshot")?;
+
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let out_path = std::env::temp_dir().join(format!("kikko-preview-{stamp}.png"));
+
+    let run = tokio::process::Command::new(&browser)
+        .args([
+            "--headless=new",
+            "--disable-gpu",
+            "--hide-scrollbars",
+            "--force-device-scale-factor=1",
+            "--window-size=1440,900",
+            // A little settling time so SPAs finish their first paint.
+            "--virtual-time-budget=4000",
+            &format!("--screenshot={}", out_path.display()),
+            &url,
+        ])
+        .output();
+    let output = tokio::time::timeout(std::time::Duration::from_secs(45), run)
+        .await
+        .map_err(|_| "screenshot timed out after 45s".to_string())?
+        .map_err(|e| format!("could not run {}: {e}", browser.display()))?;
+
+    if !out_path.is_file() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "screenshot failed ({}): {}",
+            browser.display(),
+            err.trim()
+        ));
+    }
+    Ok(out_path.display().to_string())
+}
+
+/// Locate a Chromium-based browser for headless screenshots.
+fn find_browser() -> Option<PathBuf> {
+    if cfg!(windows) {
+        let pf86 = std::env::var("ProgramFiles(x86)")
+            .unwrap_or_else(|_| r"C:\Program Files (x86)".into());
+        let pf =
+            std::env::var("ProgramFiles").unwrap_or_else(|_| r"C:\Program Files".into());
+        let local = std::env::var("LOCALAPPDATA").unwrap_or_default();
+        let candidates = [
+            format!(r"{pf86}\Microsoft\Edge\Application\msedge.exe"),
+            format!(r"{pf}\Microsoft\Edge\Application\msedge.exe"),
+            format!(r"{pf}\Google\Chrome\Application\chrome.exe"),
+            format!(r"{pf86}\Google\Chrome\Application\chrome.exe"),
+            format!(r"{local}\Google\Chrome\Application\chrome.exe"),
+        ];
+        candidates
+            .into_iter()
+            .map(PathBuf::from)
+            .find(|p| p.is_file())
+    } else {
+        ["google-chrome", "chromium", "chromium-browser", "microsoft-edge"]
+            .iter()
+            .find_map(|name| sidecar::which_on_path(name))
+    }
+}
+
 /// Restart the sidecar (used by the UI's "Reconnect" action after a crash).
 /// Re-emits `opencode-ready` / `opencode-error` so the frontend re-initializes.
 #[tauri::command]
@@ -552,6 +626,7 @@ pub fn run() {
             create_project,
             preview_url,
             set_preview_proxy,
+            capture_preview,
             find_dev_server,
             start_dev_server,
             stop_dev_server,

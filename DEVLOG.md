@@ -15,6 +15,42 @@
 
 ---
 
+## 2026-07-02 · HMR attraverso il proxy + "l'agente vede la sua pagina" (12.17 + 12.16)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### 12.17 — HMR passthrough (live-edit senza reload)
+tiny_http non fa upgrade websocket, ma non serve: i WebSocket **non sono
+soggetti alla same-origin policy**. Il proxy ora inietta
+`window.__kikko_ws_target__` (host:porta del dev server reale) e lo script
+inspector **monkey-patcha `window.WebSocket`**: ogni socket puntato all'origin
+del proxy viene ridirezionato dritto al dev server. Vite/Next HMR si aggancia →
+selezioni un elemento, chiedi la modifica, **la vedi cambiare senza reload**
+(i moduli aggiornati passano dal proxy via HTTP normale). Statico: nessun
+target → nessun patch. Nota: script iniettato a fine body (classic) → esegue
+prima dei module script (deferred), quindi il patch precede il client Vite.
+
+### 12.16 — Screenshot → self-critique
+Comando Rust `capture_preview(url)`: trova un browser Chromium di sistema
+(**Edge** è preinstallato su Windows; Chrome/Chromium fallback, unix via PATH),
+lo lancia `--headless=new --screenshot --window-size=1440,900
+--virtual-time-budget=4000` (timeout 45s) → PNG in temp. Frontend:
+`useSendPrompt` ora accetta `files?: FilePartInput[]` (parts extra nel prompt);
+nuovo bottone **📷** nella toolbar anteprima → cattura l'URL reale, allega il
+PNG (`file://…`) a un prompt di **critica visiva da senior designer**
+(layout/spacing/gerarchia/contrasto) con istruzione di applicare i
+miglioramenti al codice. Errori di cattura loggati nel pannello dev-server.
+
+**Limiti onesti:** serve un **modello con visione** per "vedere" davvero
+l'immagine (DeepSeek chat non ce l'ha — il prompt chiede esplicitamente di
+dichiararlo invece di inventare); lo screenshot è della URL fresca in headless,
+non dello stato esatto dell'iframe (per un dev server è equivalente). Il patch
+WS presuppone che il dev server accetti connessioni cross-origin da localhost
+(default Vite/Next; se un framework le rifiuta si torna al comportamento di
+prima, reload a fine task). Lint/build/30 test verdi. Rust toccato → tauri dev.
+
+---
+
 ## 2026-07-02 · Pacchetto affidabilità + Error Radar ⭐
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

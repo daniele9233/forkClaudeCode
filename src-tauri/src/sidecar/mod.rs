@@ -316,7 +316,7 @@ fn engine_command(bin: &std::path::Path) -> Command {
 /// shell script), `opencode.cmd`, and `opencode.ps1`. The extensionless one is
 /// NOT runnable by `CreateProcess`; we must pick `opencode.cmd`. Only if the
 /// stem already carries an extension do we accept it verbatim.
-fn which_on_path(stem: &str) -> Option<std::path::PathBuf> {
+pub(crate) fn which_on_path(stem: &str) -> Option<std::path::PathBuf> {
     let path = std::env::var_os("PATH")?;
     let stem_has_ext = std::path::Path::new(stem).extension().is_some();
 

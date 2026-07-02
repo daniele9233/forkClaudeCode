@@ -28,6 +28,32 @@ const INSPECTOR_JS: &str = r#"
   if (window.__forgia_injected__) return;
   window.__forgia_injected__ = true;
 
+  /* --- HMR passthrough -------------------------------------------------
+   * The page is served through kikkoCode's proxy, but WebSockets (Vite/Next
+   * HMR) can't ride tiny_http. WebSocket connections are NOT subject to the
+   * same-origin policy, so we simply retarget any socket aimed at the proxy
+   * origin straight at the real dev server — live reload works untouched. */
+  var wsTarget = window.__kikko_ws_target__;
+  if (wsTarget && window.WebSocket) {
+    var OrigWS = window.WebSocket;
+    var PatchedWS = function (url, protocols) {
+      try {
+        var u = new URL(url, location.href);
+        if (u.host === location.host) {
+          u.host = wsTarget;
+          url = u.toString();
+        }
+      } catch (ex) {}
+      return protocols === undefined ? new OrigWS(url) : new OrigWS(url, protocols);
+    };
+    PatchedWS.prototype = OrigWS.prototype;
+    PatchedWS.CONNECTING = OrigWS.CONNECTING;
+    PatchedWS.OPEN = OrigWS.OPEN;
+    PatchedWS.CLOSING = OrigWS.CLOSING;
+    PatchedWS.CLOSED = OrigWS.CLOSED;
+    window.WebSocket = PatchedWS;
+  }
+
   var enabled = false;
   var lastTarget = null;
 
@@ -333,13 +359,26 @@ impl PreviewServer {
 /// Insert the inspector script right before `</body>` (or append at the end if
 /// the page has no closing body tag). ASCII-lowercasing keeps byte offsets 1:1,
 /// so the index found on the lowered copy is valid on the original.
-fn inject_inspector(html: &str) -> String {
-    let tag = format!("<script id=\"__forgia_inspector__\">{INSPECTOR_JS}</script>");
+/// `ws_target` (host:port of the real dev server, proxy mode only) enables the
+/// WebSocket/HMR passthrough inside the injected script.
+fn inject_inspector(html: &str, ws_target: Option<&str>) -> String {
+    let cfg = ws_target
+        .map(|h| format!("window.__kikko_ws_target__={h:?};"))
+        .unwrap_or_default();
+    let tag = format!("<script id=\"__forgia_inspector__\">{cfg}{INSPECTOR_JS}</script>");
     let lower = html.to_ascii_lowercase();
     match lower.rfind("</body>") {
         Some(idx) => format!("{}{}{}", &html[..idx], tag, &html[idx..]),
         None => format!("{html}{tag}"),
     }
+}
+
+/// Host:port of a target URL (`http://localhost:3002` → `localhost:3002`).
+fn host_of(target: &str) -> &str {
+    target
+        .trim_start_matches("http://")
+        .trim_start_matches("https://")
+        .trim_end_matches('/')
 }
 
 /// Forward one request to the dev server at `target`, injecting the inspector
@@ -410,7 +449,7 @@ fn proxy(mut request: tiny_http::Request, target: &str) {
     // Inject into HTML documents only.
     let out = if content_type.to_ascii_lowercase().contains("text/html") {
         match String::from_utf8(bytes) {
-            Ok(html) => inject_inspector(&html).into_bytes(),
+            Ok(html) => inject_inspector(&html, Some(host_of(target))).into_bytes(),
             Err(e) => e.into_bytes(), // not valid UTF-8 — pass through untouched
         }
     } else {
@@ -465,7 +504,8 @@ fn file_response(path: &Path) -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
             // works on plain HTML pages served straight from disk.
             if ctype.starts_with("text/html") {
                 if let Ok(html) = String::from_utf8(buf.clone()) {
-                    buf = inject_inspector(&html).into_bytes();
+                    // No ws target: static files have no dev server behind them.
+                    buf = inject_inspector(&html, None).into_bytes();
                 }
             }
             let mut resp = tiny_http::Response::from_data(buf);

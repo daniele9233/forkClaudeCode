@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   RotateCw,
   ExternalLink,
@@ -10,6 +11,7 @@ import {
   Loader2,
   AlertTriangle,
   Wand2,
+  Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
@@ -204,6 +206,41 @@ Find the root cause in this project's source code and fix them. After fixing, br
     if (previewUrl) window.open(previewUrl, "_blank", "noopener,noreferrer");
   };
 
+  // "The agent sees its page": headless-capture the previewed URL and attach
+  // the PNG to a visual self-review prompt. Design quality multiplier — needs
+  // a vision-capable model to actually look at the image.
+  const [capturing, setCapturing] = useState(false);
+  const showPageToAgent = async () => {
+    if (!previewUrl || capturing || sendPrompt.isPending) return;
+    setCapturing(true);
+    try {
+      const path = await invoke<string>("capture_preview", { url: previewUrl });
+      const fileUrl =
+        "file://" + (path.startsWith("/") ? "" : "/") + path.replace(/\\/g, "/");
+      let sessionId = activeSessionId;
+      if (!sessionId) {
+        const s = await createSession.mutateAsync({});
+        sessionId = s.id;
+        setActiveSession(sessionId);
+      }
+      sendPrompt.mutate({
+        sessionId,
+        text: `Attached is a screenshot of the web page you are building, previewed at ${previewUrl}. Look at it carefully and critique it like a senior product designer: layout, spacing, alignment, typography, visual hierarchy, contrast, consistency, responsiveness red flags. Then apply the most impactful improvements directly to the code. If you cannot see the attached image, say so explicitly instead of guessing.`,
+        files: [
+          { type: "file", mime: "image/png", filename: "preview.png", url: fileUrl },
+        ],
+      });
+    } catch (e) {
+      // Surface the failure where the user is looking (the dev-server log area
+      // doubles as the preview's message strip).
+      useDevServerStore
+        .getState()
+        .appendLog(`[screenshot] ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setCapturing(false);
+    }
+  };
+
   // After iframe loads a new page, ping the inspector script.
   const handleIframeLoad = () => {
     setInspectorReady(false);
@@ -272,6 +309,22 @@ Find the root cause in this project's source code and fix them. After fixing, br
               <Play className="h-3.5 w-3.5" />
             </button>
           )
+        )}
+
+        {/* Show the page to the agent: screenshot → visual self-review */}
+        {previewUrl && (
+          <button
+            onClick={() => void showPageToAgent()}
+            disabled={capturing || sendPrompt.isPending}
+            className="shrink-0 rounded p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+            title="Show this page to the agent (screenshot → visual review & improve)"
+          >
+            {capturing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Camera className="h-3.5 w-3.5" />
+            )}
+          </button>
         )}
 
         {/* Error radar badge — the page reported runtime errors */}

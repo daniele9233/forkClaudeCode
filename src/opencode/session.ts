@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Session, AssistantMessage } from "@opencode-ai/sdk/client";
+import type { Session, AssistantMessage, FilePartInput } from "@opencode-ai/sdk/client";
 import { getClient } from "./client";
 import { useChatStore } from "@/stores/chat.store";
 
@@ -76,6 +76,8 @@ interface SendPromptInput {
   modelID?: string;
   providerID?: string;
   agent?: string;
+  /** Extra file parts (e.g. a preview screenshot for visual review). */
+  files?: FilePartInput[];
 }
 
 /** Send a prompt to a session. */
@@ -97,11 +99,12 @@ export function useSendPrompt() {
       modelID,
       providerID,
       agent,
+      files,
     }: SendPromptInput) => {
       const res = await getClient().session.prompt({
         path: { id: sessionId },
         body: {
-          parts: [{ type: "text", text }],
+          parts: [{ type: "text", text }, ...(files ?? [])],
           ...(modelID && providerID ? { model: { modelID, providerID } } : {}),
           ...(agent ? { agent } : {}),
         },
