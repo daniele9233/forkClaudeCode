@@ -1,19 +1,226 @@
-//! A tiny built-in static file server for the web preview.
+//! Built-in preview server: static file server + injecting reverse proxy.
 //!
-//! It serves the current project directory so a plain `index.html` (produced by
-//! the agent) can be previewed in-app with zero setup — no `npm run dev` needed.
-//! The server binds one fixed port for the app's lifetime; its root follows the
-//! open project (updated on project switch).
+//! Two jobs, one server:
+//! 1. **Static mode** — serves the current project directory so a plain
+//!    `index.html` can be previewed with zero setup.
+//! 2. **Proxy mode** — when a dev server (Vite/Next/…) is the preview target,
+//!    the iframe loads THIS server, which forwards every request to the dev
+//!    server and injects the visual-inspector script into HTML responses.
+//!    That's what makes element selection work on any site automatically,
+//!    without touching the user's project (an iframe on another origin can't
+//!    be scripted from the app — the script must come from the same origin).
+//!
+//! The server binds one fixed port for the app's lifetime; root/target follow
+//! the open project / active preview.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+/// Universal visual-inspector bridge, injected into every HTML page served or
+/// proxied. Protocol (postMessage with the app): forgia:enable/disable/ping in,
+/// forgia:ready/pong/hover/select out. Resolves source file:line from React
+/// fiber `_debugSource` when available (React <19 dev), and ALWAYS includes a
+/// CSS selector + outerHTML so selection works on any framework or plain HTML.
+const INSPECTOR_JS: &str = r#"
+(function () {
+  'use strict';
+  if (window.__forgia_injected__) return;
+  window.__forgia_injected__ = true;
+
+  var enabled = false;
+  var lastTarget = null;
+
+  var hl = document.createElement('div');
+  hl.id = '__forgia_hl__';
+  hl.style.cssText =
+    'position:fixed;pointer-events:none;box-sizing:border-box;' +
+    'border:2px solid #f59e0b;background:rgba(245,158,11,0.08);' +
+    'border-radius:4px;z-index:2147483647;transition:left 60ms,top 60ms,' +
+    'width 60ms,height 60ms;display:none;';
+  var tip = document.createElement('div');
+  tip.style.cssText =
+    'position:absolute;bottom:calc(100% + 5px);left:0;' +
+    'background:#f59e0b;color:#000;font:bold 11px/1.4 monospace;' +
+    'padding:2px 8px;border-radius:3px;white-space:nowrap;pointer-events:none;' +
+    'box-shadow:0 2px 8px rgba(0,0,0,.35);';
+  hl.appendChild(tip);
+
+  function mount() {
+    if (document.body && !document.body.contains(hl)) document.body.appendChild(hl);
+  }
+  function positionAt(el) {
+    mount();
+    var r = el.getBoundingClientRect();
+    hl.style.display = 'block';
+    hl.style.left = r.left + 'px';
+    hl.style.top = r.top + 'px';
+    hl.style.width = r.width + 'px';
+    hl.style.height = r.height + 'px';
+  }
+  function hide() { hl.style.display = 'none'; lastTarget = null; }
+
+  function getFiberSource(el) {
+    var keys = Object.keys(el);
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].indexOf('__reactFiber$') === 0 || keys[i].indexOf('__reactInternals$') === 0) {
+        var fiber = el[keys[i]];
+        while (fiber) {
+          if (fiber._debugSource) {
+            var s = fiber._debugSource;
+            return { file: s.fileName, line: s.lineNumber, col: s.columnNumber || 1 };
+          }
+          fiber = fiber.return;
+        }
+        return null;
+      }
+    }
+    return null;
+  }
+  function getAttrSource(el) {
+    var t = (el.closest && el.closest('[data-forgia-loc]')) || el;
+    var loc = t.dataset && t.dataset.forgiaLoc;
+    if (!loc) return null;
+    var parts = loc.split(':');
+    if (parts.length < 2) return null;
+    var col = parseInt(parts.pop()) || 1;
+    var line = parseInt(parts.pop()) || 1;
+    return { file: parts.join(':'), line: line, col: col };
+  }
+  function getSource(el) {
+    if (!el || el.nodeType !== 1) return null;
+    return getFiberSource(el) || getAttrSource(el) || null;
+  }
+
+  /* CSS selector path — always available, on any site. */
+  function cssPath(el) {
+    var parts = [];
+    var node = el;
+    var depth = 0;
+    while (node && node.nodeType === 1 && depth < 6) {
+      var tag = node.tagName.toLowerCase();
+      if (tag === 'html' || tag === 'body') { parts.unshift(tag); break; }
+      if (node.id) { parts.unshift(tag + '#' + node.id); break; }
+      var cls = '';
+      if (typeof node.className === 'string' && node.className.trim()) {
+        var names = node.className.trim().split(/\s+/).slice(0, 2);
+        cls = '.' + names.join('.');
+      }
+      var idx = 1;
+      var sib = node;
+      while ((sib = sib.previousElementSibling)) {
+        if (sib.tagName === node.tagName) idx++;
+      }
+      parts.unshift(tag + cls + ':nth-of-type(' + idx + ')');
+      node = node.parentElement;
+      depth++;
+    }
+    return parts.join(' > ');
+  }
+
+  function basename(p) { return p.split('/').pop().split('\\').pop(); }
+  function safeHTML(el) {
+    try {
+      var h = el.outerHTML || '';
+      return h.length > 600 ? h.slice(0, 600) + '…' : h;
+    } catch (e) {
+      return '<' + el.tagName.toLowerCase() + '>';
+    }
+  }
+  function textSnippet(el) {
+    try {
+      var t = (el.innerText || '').replace(/\s+/g, ' ').trim();
+      return t.length > 120 ? t.slice(0, 120) + '…' : t;
+    } catch (e) { return ''; }
+  }
+
+  function payload(type, el) {
+    var src = getSource(el);
+    return {
+      type: type,
+      file: src ? src.file : undefined,
+      line: src ? src.line : undefined,
+      col: src ? src.col : undefined,
+      selector: cssPath(el),
+      text: textSnippet(el),
+      tagName: el.tagName.toLowerCase(),
+      outerHTML: safeHTML(el),
+    };
+  }
+
+  function onMove(e) {
+    if (!enabled) return;
+    var el = e.target;
+    if (el === hl || hl.contains(el) || el === lastTarget) return;
+    lastTarget = el;
+    if (!el || el.nodeType !== 1) { hide(); return; }
+    positionAt(el);
+    var src = getSource(el);
+    tip.textContent = src
+      ? basename(src.file) + ':' + src.line
+      : '<' + el.tagName.toLowerCase() + '>';
+    try { window.parent.postMessage(payload('forgia:hover', el), '*'); } catch (ex) {}
+  }
+  function onClick(e) {
+    if (!enabled) return;
+    var el = e.target;
+    if (el === hl || hl.contains(el)) return;
+    if (!el || el.nodeType !== 1) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    hide();
+    try { window.parent.postMessage(payload('forgia:select', el), '*'); } catch (ex) {}
+  }
+  function onLeave() { if (enabled) hide(); }
+
+  function enable() {
+    if (enabled) return;
+    enabled = true;
+    if (document.body) document.body.style.cursor = 'crosshair';
+    document.addEventListener('mousemove', onMove, true);
+    document.addEventListener('click', onClick, true);
+    document.addEventListener('mouseleave', onLeave);
+    mount();
+  }
+  function disable() {
+    if (!enabled) return;
+    enabled = false;
+    if (document.body) document.body.style.cursor = '';
+    document.removeEventListener('mousemove', onMove, true);
+    document.removeEventListener('click', onClick, true);
+    document.removeEventListener('mouseleave', onLeave);
+    hide();
+  }
+
+  window.addEventListener('message', function (e) {
+    if (!e.data || typeof e.data !== 'object') return;
+    var t = e.data.type;
+    if (t === 'forgia:enable') enable();
+    else if (t === 'forgia:disable') disable();
+    else if (t === 'forgia:ping') {
+      try { window.parent.postMessage({ type: 'forgia:pong' }, '*'); } catch (ex) {}
+    }
+  });
+
+  function signalReady() {
+    try { window.parent.postMessage({ type: 'forgia:ready' }, '*'); } catch (ex) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', signalReady);
+  } else {
+    signalReady();
+  }
+})();
+"#;
+
 pub struct PreviewServer {
     port: u16,
-    /// The directory currently served (the open project). `None` until a project
-    /// is opened.
+    /// The directory currently served in static mode (the open project).
     root: Arc<Mutex<Option<PathBuf>>>,
+    /// When set, every request is forwarded to this base URL (a dev server)
+    /// with the inspector injected into HTML responses.
+    proxy_target: Arc<Mutex<Option<String>>>,
 }
 
 impl PreviewServer {
@@ -23,26 +230,44 @@ impl PreviewServer {
         let server = tiny_http::Server::http("127.0.0.1:0").ok()?;
         let port = server.server_addr().to_ip()?.port();
         let root: Arc<Mutex<Option<PathBuf>>> = Arc::new(Mutex::new(None));
+        let proxy_target: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let thread_root = root.clone();
+        let thread_target = proxy_target.clone();
 
         std::thread::spawn(move || {
             for request in server.incoming_requests() {
                 let root_dir = thread_root.lock().unwrap().clone();
-                serve(request, root_dir);
+                let target = thread_target.lock().unwrap().clone();
+                // One thread per request: a slow proxied asset must not block
+                // the rest of the page (dev servers load many modules at once).
+                std::thread::spawn(move || match target {
+                    Some(t) => proxy(request, &t),
+                    None => serve_static(request, root_dir),
+                });
             }
         });
 
         eprintln!("[kikkocode] preview server listening on 127.0.0.1:{port}");
-        Some(Self { port, root })
+        Some(Self {
+            port,
+            root,
+            proxy_target,
+        })
     }
 
     pub fn port(&self) -> u16 {
         self.port
     }
 
-    /// Point the server at a new project directory.
+    /// Point the static side at a new project directory.
     pub fn set_root(&self, dir: Option<PathBuf>) {
         *self.root.lock().unwrap() = dir;
+    }
+
+    /// Enable (Some) or disable (None) proxy mode.
+    pub fn set_proxy_target(&self, target: Option<String>) {
+        *self.proxy_target.lock().unwrap() =
+            target.map(|t| t.trim().trim_end_matches('/').to_string());
     }
 
     /// Base URL of the preview server (e.g. `http://127.0.0.1:41234`).
@@ -60,8 +285,104 @@ impl PreviewServer {
     }
 }
 
+/// Insert the inspector script right before `</body>` (or append at the end if
+/// the page has no closing body tag). ASCII-lowercasing keeps byte offsets 1:1,
+/// so the index found on the lowered copy is valid on the original.
+fn inject_inspector(html: &str) -> String {
+    let tag = format!("<script id=\"__forgia_inspector__\">{INSPECTOR_JS}</script>");
+    let lower = html.to_ascii_lowercase();
+    match lower.rfind("</body>") {
+        Some(idx) => format!("{}{}{}", &html[..idx], tag, &html[idx..]),
+        None => format!("{html}{tag}"),
+    }
+}
+
+/// Forward one request to the dev server at `target`, injecting the inspector
+/// into HTML responses. Runs on its own thread (blocking I/O is fine here).
+fn proxy(mut request: tiny_http::Request, target: &str) {
+    let url = format!("{}{}", target, request.url());
+
+    let client = match reqwest::blocking::Client::builder()
+        .no_proxy()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => {
+            let _ = request.respond(text_response(502, "proxy client error"));
+            return;
+        }
+    };
+
+    let method = reqwest::Method::from_bytes(request.method().as_str().as_bytes())
+        .unwrap_or(reqwest::Method::GET);
+
+    // Read the incoming body (POST forms etc.).
+    let mut body = Vec::new();
+    let _ = request.as_reader().read_to_end(&mut body);
+
+    // Forward headers, except hop-by-hop ones and Accept-Encoding: we need the
+    // response uncompressed to inject the script, and Host must match the
+    // target, not this proxy.
+    let mut req = client.request(method, &url);
+    for h in request.headers() {
+        let name = h.field.as_str().as_str().to_ascii_lowercase();
+        if matches!(
+            name.as_str(),
+            "host" | "accept-encoding" | "connection" | "content-length" | "origin" | "referer"
+        ) {
+            continue;
+        }
+        req = req.header(h.field.as_str().as_str(), h.value.as_str());
+    }
+    if !body.is_empty() {
+        req = req.body(body);
+    }
+
+    let resp = match req.send() {
+        Ok(r) => r,
+        Err(e) => {
+            let _ = request.respond(text_response(
+                502,
+                &format!("preview proxy could not reach {target}: {e}"),
+            ));
+            return;
+        }
+    };
+
+    let status = resp.status().as_u16();
+    let content_type = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream")
+        .to_string();
+    let bytes = match resp.bytes() {
+        Ok(b) => b.to_vec(),
+        Err(_) => Vec::new(),
+    };
+
+    // Inject into HTML documents only.
+    let out = if content_type.to_ascii_lowercase().contains("text/html") {
+        match String::from_utf8(bytes) {
+            Ok(html) => inject_inspector(&html).into_bytes(),
+            Err(e) => e.into_bytes(), // not valid UTF-8 — pass through untouched
+        }
+    } else {
+        bytes
+    };
+
+    let mut response = tiny_http::Response::from_data(out).with_status_code(status);
+    if let Ok(header) =
+        tiny_http::Header::from_bytes(&b"Content-Type"[..], content_type.as_bytes())
+    {
+        response = response.with_header(header);
+    }
+    let _ = request.respond(response);
+}
+
 /// Serve a single request from `root`, guarding against path traversal.
-fn serve(request: tiny_http::Request, root: Option<PathBuf>) {
+fn serve_static(request: tiny_http::Request, root: Option<PathBuf>) {
     let Some(root) = root else {
         let _ = request.respond(text_response(503, "no project open"));
         return;
@@ -94,11 +415,18 @@ fn file_response(path: &Path) -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
     let mut buf = Vec::new();
     match std::fs::File::open(path).and_then(|mut f| f.read_to_end(&mut buf)) {
         Ok(_) => {
+            let ctype = content_type(path);
+            // The static preview gets the inspector too, so element selection
+            // works on plain HTML pages served straight from disk.
+            if ctype.starts_with("text/html") {
+                if let Ok(html) = String::from_utf8(buf.clone()) {
+                    buf = inject_inspector(&html).into_bytes();
+                }
+            }
             let mut resp = tiny_http::Response::from_data(buf);
-            if let Ok(header) = tiny_http::Header::from_bytes(
-                &b"Content-Type"[..],
-                content_type(path).as_bytes(),
-            ) {
+            if let Ok(header) =
+                tiny_http::Header::from_bytes(&b"Content-Type"[..], ctype.as_bytes())
+            {
                 resp = resp.with_header(header);
             }
             resp

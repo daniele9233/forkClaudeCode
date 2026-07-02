@@ -13,23 +13,28 @@ import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useDevServerStore } from "@/stores/devserver.store";
 import { useSelectionStore, type SelectedElement } from "@/stores/selection.store";
-import { startDevServer, stopDevServer, getDevCommand } from "@/opencode/preview";
+import {
+  startDevServer,
+  stopDevServer,
+  getDevCommand,
+  showPreview,
+} from "@/opencode/preview";
 import { ElementCompose } from "./ElementCompose";
 
 /**
- * Web preview of the running dev server. Uses an <iframe> for now: local dev
- * servers don't set X-Frame-Options, and their own HMR client reloads the
- * iframe content automatically. A native WRY webview is the future evolution
- * (see docs/04-adr-web-preview.md) to bypass iframe limitations and enable
- * the visual element selection of Fase 5.
+ * Web preview of the running site. The iframe loads kikkoCode's built-in
+ * preview server: in proxy mode it forwards to the user's dev server and
+ * injects the visual-inspector script into HTML on the fly; in static mode it
+ * serves the project's index.html (also injected). So element selection works
+ * automatically on any framework, with zero changes to the user's project.
  *
- * Visual selection (Fase 5): when the user's dev server runs the
- * forgiaInspector() Vite plugin (see ForgiaInspectorPlugin.ts), the iframe
- * posts forgia:hover / forgia:select messages to the parent window. This panel
- * listens for them and drives the selection store + ElementCompose UI.
+ * The injected inspector posts forgia:hover / forgia:select messages to the
+ * parent window; this panel listens and drives the selection store +
+ * ElementCompose UI. (The optional forgiaInspector() Vite plugin still works
+ * and simply takes precedence — the injected script no-ops if already present.)
  */
 export function PreviewPanel() {
-  const { previewOpen, previewUrl, reloadNonce, openPreview, closePreview } =
+  const { previewOpen, previewUrl, frameUrl, reloadNonce, closePreview } =
     usePreviewStore();
   const [urlInput, setUrlInput] = useState(previewUrl ?? "");
   const [reloadKey, setReloadKey] = useState(0);
@@ -107,11 +112,13 @@ export function PreviewPanel() {
         case "forgia:pong":
           setInspectorReady(true);
           break;
+        // file/line are optional: the injected inspector always sends tag +
+        // selector + HTML, so selection works even without source mapping.
         case "forgia:hover":
-          if (data.file && data.line != null) setHoveredElement(data as SelectedElement);
+          if (data.tagName) setHoveredElement(data as SelectedElement);
           break;
         case "forgia:select":
-          if (data.file && data.line != null) setSelectedElement(data as SelectedElement);
+          if (data.tagName) setSelectedElement(data as SelectedElement);
           break;
       }
     };
@@ -132,7 +139,8 @@ export function PreviewPanel() {
     const url = urlInput.trim();
     if (!url) return;
     const normalized = /^https?:\/\//i.test(url) ? url : `http://${url}`;
-    openPreview(normalized);
+    // Route through the injecting proxy so element selection works here too.
+    void showPreview(normalized);
     setReloadKey((k) => k + 1);
   };
 
@@ -250,16 +258,12 @@ export function PreviewPanel() {
       {/* Element compose panel — visible when an element is selected */}
       <ElementCompose />
 
-      {/* Selection mode hint — shown when active and inspector is not yet detected */}
+      {/* Selection mode hint — the inspector is auto-injected by the preview
+          proxy, so "not ready" just means the page hasn't loaded it yet. */}
       {selectionMode && !inspectorReady && (
         <div className="shrink-0 border-b border-[var(--border)] bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-400">
-          Add{" "}
-          <code className="rounded bg-amber-500/20 px-1 font-mono">
-            forgiaInspector()
-          </code>{" "}
-          to your project&apos;s{" "}
-          <code className="rounded bg-amber-500/20 px-1 font-mono">vite.config.ts</code>{" "}
-          to enable visual selection.
+          Waiting for the page inspector… If this persists, hit reload (↻) so the page
+          passes through kikkoCode&apos;s preview proxy.
         </div>
       )}
 
@@ -271,7 +275,7 @@ export function PreviewPanel() {
           <iframe
             ref={iframeRef}
             key={`${reloadKey}-${reloadNonce}`}
-            src={previewUrl}
+            src={frameUrl ?? previewUrl}
             title="Web preview"
             className="h-full w-full border-0"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"

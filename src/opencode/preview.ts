@@ -7,7 +7,7 @@ import { useSessionStore } from "@/stores/session.store";
  * URL of the built-in static server for the current project — but only if the
  * project has a servable `index.html`. Returns null otherwise. This is what
  * lets "ask for a page → see it" work with no dev server: the agent writes
- * index.html and the backend serves it.
+ * index.html and the backend serves it (with the inspector injected).
  */
 export async function getStaticPreviewUrl(): Promise<string | null> {
   try {
@@ -32,54 +32,87 @@ export async function probeDevServer(): Promise<string | null> {
   }
 }
 
+function portOf(url: string | null): number | null {
+  if (!url) return null;
+  const m = url.match(/:(\d{2,5})\b/);
+  return m ? Number(m[1]) : null;
+}
+
 /** Ports kikkoCode itself uses, so we never mistake them for the user's site. */
 function ownPorts(): number[] {
-  const ports: number[] = [];
-  const push = (u: string | null) => {
-    if (!u) return;
-    const m = u.match(/:(\d{2,5})\b/);
-    if (m) ports.push(Number(m[1]));
+  const ports: number[] = [1420]; // our own UI dev server (tauri dev)
+  const push = (p: number | null) => {
+    if (p) ports.push(p);
   };
-  push(useSessionStore.getState().opencodeUrl);
-  push(usePreviewStore.getState().previewUrl);
+  push(portOf(useSessionStore.getState().opencodeUrl));
+  push(portOf(usePreviewStore.getState().previewUrl));
+  push(portOf(usePreviewStore.getState().frameUrl));
   return ports;
 }
 
 /**
- * Resolve the best URL to preview, in priority order:
- * 1. a dev server whose URL we captured from the terminal
- * 2. a live dev server found by probing common ports
- * 3. the built-in static server (project has an index.html)
- * Returns undefined when there's nothing to show yet.
+ * Show a target URL in the preview panel. Dev-server targets are routed through
+ * the built-in injecting proxy (`set_preview_proxy`) so the visual inspector is
+ * available on any site with zero project changes; the static server injects it
+ * by itself, so static URLs load directly. The address bar always shows the
+ * real target — the proxy is invisible plumbing.
  */
-async function resolvePreviewUrl(): Promise<string | undefined> {
+export async function showPreview(
+  url: string,
+  opts?: { isStatic?: boolean },
+): Promise<void> {
+  let frame = url;
+  try {
+    if (opts?.isStatic) {
+      await invoke("set_preview_proxy", { target: null });
+    } else {
+      const proxied = await invoke<string | null>("set_preview_proxy", { target: url });
+      if (proxied) frame = proxied;
+    }
+  } catch {
+    /* preview server unavailable — load the target directly (no inspector) */
+  }
   const st = usePreviewStore.getState();
-  return (
-    st.detectedUrl ??
-    (await probeDevServer()) ??
-    (await getStaticPreviewUrl()) ??
-    undefined
-  );
+  if (st.previewUrl === url && st.frameUrl === frame && st.previewOpen) {
+    st.bumpReload();
+  } else {
+    st.openPreview(url, frame);
+  }
+}
+
+/**
+ * Resolve the best thing to preview, in priority order:
+ * 1. a dev server whose URL we captured from output (authoritative)
+ * 2. a live dev server found by probing the machine's listening ports
+ * 3. the built-in static server (project has an index.html)
+ */
+async function resolvePreview(): Promise<{ url: string; isStatic: boolean } | null> {
+  const st = usePreviewStore.getState();
+  const dev = st.detectedUrl ?? (await probeDevServer());
+  if (dev) return { url: dev, isStatic: false };
+  const stat = await getStaticPreviewUrl();
+  if (stat) return { url: stat, isStatic: true };
+  return null;
 }
 
 /**
  * A real dev-server URL was seen in output (the agent's command output, or our
  * managed server's log). The URL a server prints is authoritative — it beats any
  * port-scan guess or the static fallback — so record it and navigate the preview
- * to it. Respects a user who explicitly closed the panel.
+ * to it. Respects a user who explicitly closed the panel, and ignores kikkoCode's
+ * own servers (engine health checks in agent output must never hijack the view).
  */
 export function onDevUrlDetected(url: string): void {
+  const port = portOf(url);
+  if (port && ownPorts().includes(port)) return;
+
   const st = usePreviewStore.getState();
   st.setDetectedUrl(url);
   useDevServerStore.getState().setStarting(false);
   useDevServerStore.getState().setRunning(true);
   // Don't pop the panel back up if the user deliberately closed it.
   if (!st.previewOpen && st.closedByUser) return;
-  if (st.previewUrl !== url) {
-    st.openPreview(url);
-  } else {
-    st.bumpReload();
-  }
+  void showPreview(url);
 }
 
 /** The dev command kikkoCode would run for this project, or null. */
@@ -126,27 +159,28 @@ export async function stopDevServer(): Promise<void> {
 let watching = false;
 
 /**
- * Poll for a preview URL for a while and open it as soon as it appears. Dev
- * servers can take several seconds to boot (or the agent starts one after we
- * looked), so a single probe isn't enough — we keep looking. Safe to call
- * repeatedly: only one watcher runs at a time.
+ * Keep looking for something to preview and open it the moment it appears. Dev
+ * servers can take many seconds to boot (or the agent starts one later), so a
+ * single probe isn't enough. Runs as long as the panel is open and empty (with
+ * a generous cap), stops when a page loads or the user closes the panel. Safe
+ * to call repeatedly: only one watcher runs at a time.
  */
-export async function watchForDevServer(timeoutMs = 30_000): Promise<void> {
+export async function watchForDevServer(maxMs = 10 * 60_000): Promise<void> {
   if (watching) return;
   watching = true;
   const start = Date.now();
   try {
-    while (Date.now() - start < timeoutMs) {
+    while (Date.now() - start < maxMs) {
       const st = usePreviewStore.getState();
       // A real page is already loaded, or the user closed the panel — stop.
       if (st.previewUrl) return;
-      if (!st.previewOpen && st.closedByUser) return;
-      const url = await resolvePreviewUrl();
-      if (url) {
-        usePreviewStore.getState().openPreview(url);
+      if (!st.previewOpen) return;
+      const found = await resolvePreview();
+      if (found) {
+        await showPreview(found.url, { isStatic: found.isStatic });
         return;
       }
-      await new Promise((r) => setTimeout(r, 1500));
+      await new Promise((r) => setTimeout(r, 2000));
     }
   } finally {
     watching = false;
@@ -155,9 +189,9 @@ export async function watchForDevServer(timeoutMs = 30_000): Promise<void> {
 
 export async function openBestPreview(): Promise<void> {
   const st = usePreviewStore.getState();
-  const url = await resolvePreviewUrl();
-  if (url) {
-    st.openPreview(url);
+  const found = await resolvePreview();
+  if (found) {
+    await showPreview(found.url, { isStatic: found.isStatic });
     return;
   }
   // Nothing live and no static page — open the panel, run the project's dev
@@ -182,13 +216,9 @@ export async function syncStaticPreviewOnIdle(): Promise<void> {
   // Don't fight a user who closed the preview and never reopened it.
   if (!st.previewOpen && st.closedByUser) return;
 
-  const url = await resolvePreviewUrl();
-  if (url) {
-    if (!st.previewOpen || st.previewUrl !== url) {
-      st.openPreview(url); // auto-open / switch to the live page
-    } else {
-      st.bumpReload(); // already showing it → reflect the latest edits
-    }
+  const found = await resolvePreview();
+  if (found) {
+    await showPreview(found.url, { isStatic: found.isStatic });
     return;
   }
 

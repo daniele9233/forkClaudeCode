@@ -15,6 +15,51 @@
 
 ---
 
+## 2026-07-02 · Selezione visuale automatica (proxy iniettante) + anteprima più tenace
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Due richieste: (1) l'anteprima deve riconoscere tutto da sola, sempre; (2)
+selezione degli elementi del sito **senza** dover aggiungere `forgiaInspector()`
+al progetto.
+
+### Selezione visuale — proxy con iniezione (universale)
+Un iframe cross-origin non è scriptabile dall'app: lo script deve arrivare
+dalla stessa origine della pagina. Quindi il **preview server integrato ora fa
+anche da reverse-proxy iniettante**:
+- `preview_server.rs`: `proxy_target` accanto a `root`; in proxy mode ogni
+  richiesta è inoltrata al dev server (reqwest **blocking**, un thread per
+  richiesta, Accept-Encoding rimosso per poter modificare l'HTML) e nelle
+  risposte `text/html` viene iniettato `INSPECTOR_JS` prima di `</body>`.
+  Anche lo statico inietta nelle pagine HTML servite da disco.
+- `INSPECTOR_JS` (versione universale del bridge): file:riga da React fiber
+  `_debugSource` quando c'è, e **sempre** selettore CSS + snippet testo +
+  outerHTML → la selezione funziona su qualsiasi framework (anche React 19,
+  che ha rimosso `_debugSource`, e HTML puro). Guard `__forgia_injected__`
+  (il plugin Vite, se presente, ha precedenza).
+- Comando `set_preview_proxy(target) -> Option<proxy_url>`; Cargo: feature
+  `blocking` su reqwest.
+- Frontend: `preview.store.frameUrl` (l'iframe carica il proxy, la barra URL
+  mostra il target reale); `showPreview(url, {isStatic})` centralizza tutto
+  (bottone, banner, palette, barra indirizzi, auto-open); `selection.store`
+  con `file?/line?/selector/text`; `ElementCompose` compone il prompt anche
+  senza source-mapping (descrive tag/selettore/testo/HTML e l'agente localizza);
+  `PreviewPanel` accetta hover/select senza file:riga e il vecchio hint
+  "Add forgiaInspector()" è sostituito.
+
+### Anteprima più tenace
+- `watchForDevServer`: non più 30s una tantum — continua finché il pannello è
+  aperto e vuoto (cap 10 min, poll 2s).
+- `onDevUrlDetected` ignora le porte di kikkoCode (engine/1420/preview): un
+  health-check del motore nell'output dell'agente non può più dirottare l'iframe.
+
+**Limite noto:** attraverso il proxy l'HMR websocket di Vite non si aggancia
+(tiny_http non fa upgrade) → niente hot-reload live nel pannello; compensa il
+refresh automatico a fine task (`bumpReload`). Lint/build/22 test verdi (Rust →
+CI).
+
+---
+
 ## 2026-07-01 · Anteprima universale: URL dall'output = fonte di verità
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

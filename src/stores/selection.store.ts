@@ -1,9 +1,15 @@
 import { create } from "zustand";
 
 export interface SelectedElement {
-  file: string;
-  line: number;
-  col: number;
+  /** Source location — present only when the page exposes it (React dev with
+   *  _debugSource, or data-forgia-loc attributes). */
+  file?: string;
+  line?: number;
+  col?: number;
+  /** CSS selector path — always present, works on any framework/plain HTML. */
+  selector?: string;
+  /** Visible text snippet of the element, to help the agent locate it. */
+  text?: string;
   tagName: string;
   outerHTML: string;
 }

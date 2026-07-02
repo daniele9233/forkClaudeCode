@@ -16,6 +16,7 @@ import { Panel } from "@/components/Panel";
 import { useUIStore } from "@/stores/ui.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePreviewStore } from "@/stores/preview.store";
+import { openBestPreview } from "@/opencode/preview";
 import { useSessions, useCreateSession } from "@/opencode/session";
 import { useOnboardingStore } from "@/stores/onboarding.store";
 import type { Session } from "@opencode-ai/sdk/client";
@@ -41,7 +42,7 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
 
   const { closeCommandPalette, openBottom, toggleTerminal, openSettings } = useUIStore();
   const { setActiveSession } = useSessionStore();
-  const { openPreview, detectedUrl, previewUrl } = usePreviewStore();
+  const { detectedUrl, previewUrl } = usePreviewStore();
   const resetOnboarding = useOnboardingStore((s) => s.reset);
   const { data: sessions = [] } = useSessions();
   const createSession = useCreateSession();
@@ -101,11 +102,10 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
         id: "open-preview",
         group: "Actions",
         label: "Open Web Preview",
-        description: detectedUrl ?? previewUrl ?? "No dev server detected yet",
+        description: detectedUrl ?? previewUrl ?? "Auto-detects the running site",
         icon: <Eye className="h-3.5 w-3.5" />,
         onSelect: () => {
-          const url = previewUrl ?? detectedUrl;
-          if (url) openPreview(url);
+          void openBestPreview();
           closeCommandPalette();
         },
       },
@@ -152,7 +152,6 @@ export function CommandPalette({ onOpenSettings }: CommandPaletteProps) {
       closeCommandPalette,
       toggleTerminal,
       openBottom,
-      openPreview,
       openSettings,
       onOpenSettings,
       resetOnboarding,

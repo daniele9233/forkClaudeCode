@@ -14,19 +14,31 @@ function truncateHTML(html: string, maxLen = 80) {
   return html.length > maxLen ? html.slice(0, maxLen) + "…" : html;
 }
 
-function buildPrompt(
-  file: string,
-  line: number,
-  tagName: string,
-  outerHTML: string,
-  userText: string,
-) {
-  const rel = basename(file);
-  return `In \`${rel}\` (full path: \`${file}\`), line ${line} — modify the \`<${tagName}>\` element:
+import type { SelectedElement } from "@/stores/selection.store";
+
+function buildPrompt(el: SelectedElement, userText: string) {
+  const { file, line, selector, text, tagName, outerHTML } = el;
+  if (file && line != null) {
+    const rel = basename(file);
+    return `In \`${rel}\` (full path: \`${file}\`), line ${line} — modify the \`<${tagName}>\` element:
 
 \`\`\`html
 ${outerHTML}
 \`\`\`
+
+${userText}`;
+  }
+  // No source mapping available (plain HTML / React 19 / any framework):
+  // describe the element precisely so the agent can locate it in the code.
+  return `On the web page currently previewed, the user selected this \`<${tagName}>\` element (CSS path: \`${selector ?? tagName}\`${
+    text ? `, visible text: "${text}"` : ""
+  }):
+
+\`\`\`html
+${outerHTML}
+\`\`\`
+
+Find the corresponding markup/component in this project's source (search for the tag, classes, or text above) and apply this change:
 
 ${userText}`;
 }
@@ -41,14 +53,17 @@ export function ElementCompose() {
 
   if (!selectedElement) return null;
 
-  const { file, line, tagName, outerHTML } = selectedElement;
-  const shortFile = basename(file);
+  const { file, line, selector, tagName, outerHTML } = selectedElement;
+  const hasSource = !!file && line != null;
+  const shortFile = file ? basename(file) : null;
 
-  const handleOpenEditor = () => openFile(file, line);
+  const handleOpenEditor = () => {
+    if (hasSource) openFile(file!, line!);
+  };
 
   const handleSend = () => {
     if (!activeSessionId || !composeText.trim()) return;
-    const prompt = buildPrompt(file, line, tagName, outerHTML, composeText.trim());
+    const prompt = buildPrompt(selectedElement, composeText.trim());
     sendPrompt.mutate({ sessionId: activeSessionId, text: prompt });
     clearSelection();
   };
@@ -69,7 +84,7 @@ export function ElementCompose() {
           {`<${tagName}>`}
         </span>
         <span className="min-w-0 truncate font-mono text-[11px] text-[var(--muted-foreground)]">
-          {shortFile}:{line}
+          {hasSource ? `${shortFile}:${line}` : (selector ?? tagName)}
         </span>
         <span
           className="min-w-0 flex-1 truncate font-mono text-[10px] text-[var(--muted-foreground)]/60"
@@ -77,13 +92,15 @@ export function ElementCompose() {
         >
           {truncateHTML(outerHTML)}
         </span>
-        <button
-          onClick={handleOpenEditor}
-          className="shrink-0 rounded p-0.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-          title="Open in editor"
-        >
-          <ExternalLink className="h-3 w-3" />
-        </button>
+        {hasSource && (
+          <button
+            onClick={handleOpenEditor}
+            className="shrink-0 rounded p-0.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+            title="Open in editor"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </button>
+        )}
         <button
           onClick={clearSelection}
           className="shrink-0 rounded p-0.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"

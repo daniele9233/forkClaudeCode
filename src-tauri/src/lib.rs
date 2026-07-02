@@ -413,6 +413,29 @@ async fn preview_url(state: tauri::State<'_, AppState>) -> Result<Option<String>
     })
 }
 
+/// Route the in-app preview through the built-in injecting proxy. With a
+/// `target` (a dev-server URL) the preview server forwards everything to it and
+/// injects the visual-inspector script into HTML — element selection then works
+/// on any site with zero project changes. `None` switches back to static mode.
+/// Returns the URL the iframe should load (the proxy), or None if the preview
+/// server isn't available (caller falls back to loading the target directly).
+#[tauri::command]
+async fn set_preview_proxy(
+    state: tauri::State<'_, AppState>,
+    target: Option<String>,
+) -> Result<Option<String>, String> {
+    let Some(preview) = &state.preview else {
+        return Ok(None);
+    };
+    let is_proxy = target.is_some();
+    preview.set_proxy_target(target);
+    Ok(if is_proxy {
+        Some(format!("{}/", preview.base_url()))
+    } else {
+        None
+    })
+}
+
 /// Restart the sidecar (used by the UI's "Reconnect" action after a crash).
 /// Re-emits `opencode-ready` / `opencode-error` so the frontend re-initializes.
 #[tauri::command]
@@ -528,6 +551,7 @@ pub fn run() {
             clone_repo,
             create_project,
             preview_url,
+            set_preview_proxy,
             find_dev_server,
             start_dev_server,
             stop_dev_server,
