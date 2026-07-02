@@ -15,6 +15,37 @@
 
 ---
 
+## 2026-07-02 · Review-diff per file + coda di task + notifiche (12.13 + 12.14 + 12.15)
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### 12.13 — Review panel (la feature-fiducia)
+`features/review/ReviewPanel.tsx` (montato in ChatShell sotto il PlanTree,
+pattern collassabile): lista dei file toccati dall'agente da `useFileStatus`
+(git status del motore) con badge A/M/D, +righe/−righe totali e per file;
+click sul path → diff Monaco nel bottom panel (`openFile`); **Discard a due
+step** (↩ → "confirm") per file: comando Rust `discard_file_changes(path)` —
+tracked → `git checkout HEAD -- <path>`, untracked (file nuovo) → delete.
+Status file rinfrescato su `session.idle` (invalidate `["files"]`).
+
+### 12.14 — Coda di task (NEXT queue)
+`stores/queue.store.ts` (items con sessionId, FIFO, `takeNext`). ChatShell:
+se `isRunning`, `handleSend` **accoda** invece di inviare; effetto con guardia
+prev-running (StrictMode-safe) che a idle→ manda il prossimo della coda della
+sessione attiva. UI: riga chip "queue · n" sopra l'input (testo troncato, ✗
+per rimuovere); ChatInput ora invia anche durante il run (Enter accoda,
+placeholder aggiornato) + bottone ListPlus accanto a Stop.
+
+### 12.15 — Notifiche desktop
+`tauri-plugin-notification` (Cargo+JS+capability). `lib/notify.ts`:
+`notifyWhenUnfocused` (solo se la finestra NON è a fuoco; permesso richiesto
+lazy). Su `session.idle`: "Task finished — the agent is done…".
+
+Lint/build/30 test verdi. Rust toccato (comando discard + plugin notification)
+→ ricompilare con `pnpm tauri dev`.
+
+---
+
 ## 2026-07-02 · HMR attraverso il proxy + "l'agente vede la sua pagina" (12.17 + 12.16)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

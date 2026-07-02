@@ -16,6 +16,7 @@ import { onEventType } from "./events";
 import { sessionKeys } from "./session";
 import { contextKeys } from "./context";
 import { syncStaticPreviewOnIdle } from "./preview";
+import { notifyWhenUnfocused } from "@/lib/notify";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePermissionStore } from "@/stores/permission.store";
@@ -74,8 +75,15 @@ export function useChatEvents() {
           .catch(() => {
             /* refetch failed — keep the live copies so nothing disappears */
           });
+        // Refresh the review panel (files touched during the run).
+        queryClient.invalidateQueries({ queryKey: ["files"] });
         // If the agent produced a web page, auto-open/refresh it in the preview.
         void syncStaticPreviewOnIdle();
+        // Desktop heads-up if the user is in another window.
+        void notifyWhenUnfocused(
+          "kikkoCode",
+          "Task finished — the agent is done and waiting for you.",
+        );
       }),
 
       onEventType<EventSessionError>("session.error", (e) => {

@@ -436,6 +436,57 @@ async fn set_preview_proxy(
     })
 }
 
+/// Discard the working-tree changes of a single file in the current project
+/// (the ✗ of the review panel). Tracked file → `git checkout HEAD -- <path>`;
+/// untracked (newly added) file → delete it. The GUI asks for confirmation
+/// before calling this — it is destructive by design.
+#[tauri::command]
+async fn discard_file_changes(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<(), String> {
+    let rel = path.trim();
+    if rel.is_empty() {
+        return Err("empty path".into());
+    }
+    let dir = state
+        .sidecar
+        .working_dir()
+        .or_else(|| std::env::current_dir().ok())
+        .ok_or("no project directory")?;
+
+    // Tracked by git? (exit code 0 = tracked)
+    let tracked = tokio::process::Command::new("git")
+        .args(["ls-files", "--error-unmatch", rel])
+        .current_dir(&dir)
+        .output()
+        .await
+        .map_err(|e| format!("could not run git: {e}"))?
+        .status
+        .success();
+
+    if tracked {
+        let out = tokio::process::Command::new("git")
+            .args(["checkout", "HEAD", "--", rel])
+            .current_dir(&dir)
+            .output()
+            .await
+            .map_err(|e| format!("could not run git checkout: {e}"))?;
+        if !out.status.success() {
+            let err = String::from_utf8_lossy(&out.stderr);
+            return Err(format!("git checkout failed: {}", err.trim()));
+        }
+    } else {
+        // New untracked file created by the agent — discarding means deleting it.
+        let abs = dir.join(rel);
+        if abs.is_file() {
+            std::fs::remove_file(&abs)
+                .map_err(|e| format!("could not delete {}: {e}", abs.display()))?;
+        }
+    }
+    Ok(())
+}
+
 /// Capture a screenshot of a URL with the system's Chromium-based browser in
 /// headless mode (Edge ships with Windows; Chrome/Chromium as fallback) and
 /// return the PNG path. This is what lets the agent literally SEE the page it
@@ -576,6 +627,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(AppState {
             sidecar,
             preview,
@@ -627,6 +679,7 @@ pub fn run() {
             preview_url,
             set_preview_proxy,
             capture_preview,
+            discard_file_changes,
             find_dev_server,
             start_dev_server,
             stop_dev_server,

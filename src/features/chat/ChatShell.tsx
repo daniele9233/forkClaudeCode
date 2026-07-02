@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { TerminalSquare, Settings, MonitorPlay } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
+import { TerminalSquare, Settings, MonitorPlay, ListPlus, X } from "lucide-react";
 import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
@@ -11,6 +11,7 @@ import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useDevServerEvents } from "@/features/preview/useDevServerEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { usePreviewStore } from "@/stores/preview.store";
+import { useQueueStore } from "@/stores/queue.store";
 import { openBestPreview } from "@/opencode/preview";
 import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
@@ -22,6 +23,7 @@ import { MessageList } from "./MessageList";
 import { ChatInput, type AgentMode } from "./ChatInput";
 import { PermissionBanner } from "./PermissionBanner";
 import { PlanTree } from "./PlanTree";
+import { ReviewPanel } from "@/features/review/ReviewPanel";
 
 export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = {}) {
   const { isRunning } = useChatEvents();
@@ -48,9 +50,19 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const autoApplySkills = useSkillsStore((s) => s.autoApply);
   const terminalActive = bottomOpen && bottomTab === "terminal";
 
+  const queueItems = useQueueStore((s) => s.items);
+  const enqueueTask = useQueueStore((s) => s.enqueue);
+  const removeQueued = useQueueStore((s) => s.remove);
+
   const handleSend = useCallback(
     async (text: string, mode: AgentMode) => {
       let sessionId = activeSessionId;
+
+      // Agent busy → queue the task instead; it auto-sends on idle (12.14).
+      if (isRunning && sessionId) {
+        enqueueTask({ sessionId, text, mode });
+        return;
+      }
 
       // Auto-create session if none active
       if (!sessionId) {
@@ -81,6 +93,8 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
     },
     [
       activeSessionId,
+      isRunning,
+      enqueueTask,
       createSession,
       sendPrompt,
       setActiveSession,
@@ -89,6 +103,22 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       skillsEnabled,
     ],
   );
+
+  // Drain the queue: when the agent goes from running → idle and there are
+  // queued tasks for this session, fire the next one. The prev-running guard
+  // means a fresh mount never auto-sends (StrictMode-safe).
+  const prevRunning = useRef(false);
+  useEffect(() => {
+    const wasRunning = prevRunning.current;
+    prevRunning.current = isRunning;
+    if (!wasRunning || isRunning || !activeSessionId) return;
+    const next = useQueueStore.getState().takeNext(activeSessionId);
+    if (next) void handleSend(next.text, next.mode);
+  }, [isRunning, activeSessionId, handleSend]);
+
+  const sessionQueue = activeSessionId
+    ? queueItems.filter((i) => i.sessionId === activeSessionId)
+    : [];
 
   const handleAbort = useCallback(() => {
     if (activeSessionId) {
@@ -185,6 +215,9 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       {/* Live plan tree (agent's todo list) — shows only when a plan exists */}
       {activeSessionId && <PlanTree sessionId={activeSessionId} />}
 
+      {/* Review — files the agent touched, with per-file diff & discard */}
+      {isReady && <ReviewPanel />}
+
       {/* Message area */}
       {activeSessionId ? (
         <MessageList sessionId={activeSessionId} isRunning={isRunning} />
@@ -194,6 +227,32 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
 
       {/* Input area */}
       <div className="border-t border-[var(--border)] pt-2">
+        {/* NEXT queue — tasks waiting for the agent to go idle */}
+        {sessionQueue.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
+            <span className="hud-label flex items-center gap-1 text-[var(--muted-foreground)]">
+              <ListPlus className="h-3 w-3" />
+              queue · {sessionQueue.length}
+            </span>
+            {sessionQueue.map((t, i) => (
+              <span
+                key={t.id}
+                title={t.text}
+                className="flex max-w-56 items-center gap-1 rounded-sm border border-[var(--border)] bg-[var(--muted)]/40 px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]"
+              >
+                <span className="font-mono text-[var(--primary)]">{i + 1}</span>
+                <span className="truncate">{t.text}</span>
+                <button
+                  onClick={() => removeQueued(t.id)}
+                  className="shrink-0 rounded p-0.5 transition-colors hover:bg-red-950/40 hover:text-red-400"
+                  title="Remove from queue"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         <PermissionBanner />
         <div className="px-3 pb-3">
           <ChatInput

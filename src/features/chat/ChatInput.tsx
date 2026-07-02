@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react";
-import { SendHorizontal, Square, Hammer, Map } from "lucide-react";
+import { SendHorizontal, Square, Hammer, Map, ListPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { usePromptCost } from "@/features/inspector/usePromptCost";
@@ -43,13 +43,15 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
 
   const submit = useCallback(() => {
     const trimmed = text.trim();
-    if (!trimmed || disabled || isRunning) return;
+    // While the agent runs, sending is still allowed — the shell queues it
+    // (NEXT queue) and fires it automatically when the agent goes idle.
+    if (!trimmed || disabled) return;
     onSend(trimmed, mode);
     setText("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-  }, [text, disabled, isRunning, mode, onSend]);
+  }, [text, disabled, mode, onSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -150,7 +152,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           rows={1}
           placeholder={
             isRunning
-              ? "Agent is working…"
+              ? "Agent is working — Enter queues the next task"
               : `Message the agent in ${mode} mode (Enter to send)`
           }
           className={cn(
@@ -160,17 +162,32 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           )}
         />
         {isRunning ? (
-          <button
-            onClick={onAbort}
-            className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-sm transition-colors",
-              "bg-[var(--color-alert)]/80 text-white hover:bg-[var(--color-alert)]",
+          <div className="flex shrink-0 items-end gap-1.5">
+            {text.trim() && (
+              <button
+                onClick={submit}
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-sm transition-colors",
+                  "bg-[var(--primary)]/20 text-[var(--primary)] hover:bg-[var(--primary)]/30",
+                )}
+                title="Queue this task (runs when the agent is idle)"
+                aria-label="Queue task"
+              >
+                <ListPlus className="h-4 w-4" />
+              </button>
             )}
-            title="Stop"
-            aria-label="Stop generation"
-          >
-            <Square className="h-4 w-4 fill-current" />
-          </button>
+            <button
+              onClick={onAbort}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-sm transition-colors",
+                "bg-[var(--color-alert)]/80 text-white hover:bg-[var(--color-alert)]",
+              )}
+              title="Stop"
+              aria-label="Stop generation"
+            >
+              <Square className="h-4 w-4 fill-current" />
+            </button>
+          </div>
         ) : (
           <button
             onClick={submit}
