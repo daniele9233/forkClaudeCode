@@ -152,18 +152,34 @@ export interface ConnectProviderInput {
 }
 
 /**
- * Connect a built-in provider the way opencode is designed to receive keys:
- * inject `<ENV_VAR>=<key>` into the engine's environment and restart it, so the
- * engine's native provider loads the key at startup. After it comes back, point
- * the SDK client at the new URL and auto-select the provider's first model.
- *
- * This avoids the config-merge pitfalls that make a key "verify" but still get
- * rejected on chat — the engine's own provider does the request with the key.
+ * Connect a built-in provider — belt AND braces, because engine versions differ
+ * in what they honor:
+ * 1. write the key into the engine's NATIVE auth store (same effect as
+ *    `opencode auth login`: persisted in auth.json, read on every startup);
+ * 2. inject `<ENV_VAR>=<key>` into the engine's environment and restart it;
+ * 3. wait (up to ~30s) for the provider to appear, prefer its plain chat model,
+ *    and make it the active model — this also unseats any auto-configured
+ *    default provider (e.g. a zai/GLM free-tier login);
+ * 4. if the provider never appears, throw a DIAGNOSTIC error listing what the
+ *    engine actually exposes, instead of failing silently.
  */
 export function useConnectProvider() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ providerId, envVar, apiKey }: ConnectProviderInput) => {
+      // 1. Native auth store first (survives restarts; doesn't depend on env
+      // propagation quirks across engine versions).
+      try {
+        await getClient().auth.set({
+          path: { id: providerId },
+          body: { type: "api", key: apiKey },
+          throwOnError: true,
+        });
+      } catch {
+        /* engine may be mid-restart — the env path below still covers us */
+      }
+
+      // 2. Env var + engine restart.
       const newUrl = await invoke<string>("set_provider_key", { envVar, key: apiKey });
       // Re-point the client at the restarted engine and restart the SSE stream
       // (the old stream died with the old process; the provider's ready-guard
@@ -172,17 +188,21 @@ export function useConnectProvider() {
       stopEventStream();
       void startEventStream();
 
-      // Wait for the restarted engine to expose the provider, then select a model.
+      // 3. Wait for the restarted engine to expose the provider, then select a model.
       let firstModel: string | undefined;
-      for (let i = 0; i < 25 && !firstModel; i++) {
+      let exposed: string[] = [];
+      for (let i = 0; i < 60 && !firstModel; i++) {
         try {
           const res = await getClient().config.providers({ throwOnError: true });
-          const p = (res.data?.providers ?? []).find((x) => x.id === providerId);
+          const providers = res.data?.providers ?? [];
+          exposed = providers.map((x) => x.id);
+          const p = providers.find((x) => x.id === providerId);
           if (p) {
             const ids = Object.keys(p.models ?? {});
-            // Prefer a fast non-reasoning chat model (reasoning models are much
-            // slower); fall back to the first available.
+            // Prefer the plain chat model (reasoning models are much slower);
+            // fall back to the first available.
             firstModel =
+              ids.find((m) => m === "deepseek-chat") ??
               ids.find((m) => /chat/i.test(m) && !/reason/i.test(m)) ??
               ids.find((m) => !/reason/i.test(m)) ??
               ids[0];
@@ -190,16 +210,24 @@ export function useConnectProvider() {
         } catch {
           /* engine still restarting */
         }
-        if (!firstModel) await new Promise((r) => setTimeout(r, 400));
+        if (!firstModel) await new Promise((r) => setTimeout(r, 500));
       }
 
-      if (firstModel) {
-        const cur = (await getClient().config.get({ throwOnError: true })).data as Config;
-        await getClient().config.update({
-          body: { ...cur, model: `${providerId}/${firstModel}` },
-          throwOnError: true,
-        });
+      if (!firstModel) {
+        throw new Error(
+          `Key saved, but the engine never exposed provider "${providerId}" ` +
+            `(it exposes: ${exposed.length ? exposed.join(", ") : "none"}). ` +
+            `Close and reopen the app, then pick the model from the switcher; ` +
+            `if it still misses, run \`opencode auth list\` in a terminal.`,
+        );
       }
+
+      // 4. Make it the active model (unseats any auto-selected default).
+      const cur = (await getClient().config.get({ throwOnError: true })).data as Config;
+      await getClient().config.update({
+        body: { ...cur, model: `${providerId}/${firstModel}` },
+        throwOnError: true,
+      });
       return { providerId, firstModel };
     },
     onSuccess: () => {
