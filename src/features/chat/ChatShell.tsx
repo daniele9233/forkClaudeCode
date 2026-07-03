@@ -12,6 +12,7 @@ import { useDevServerEvents } from "@/features/preview/useDevServerEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useQueueStore } from "@/stores/queue.store";
+import { useModelStore, splitModel } from "@/stores/model.store";
 import { openBestPreview } from "@/opencode/preview";
 import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
@@ -96,13 +97,10 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       const finalText = injectPreviewPolicy(injectSkills(text, skills));
 
       // Send with the explicitly selected model so the request never falls back
-      // to the engine's default provider (e.g. the Zen gateway, which would
-      // return "Invalid API key" with no Zen key). Format is "provider/model";
-      // the model id itself may contain slashes (e.g. openrouter/openai/gpt-4o).
-      const selected = config?.model ?? "";
-      const slash = selected.indexOf("/");
-      const providerID = slash > 0 ? selected.slice(0, slash) : undefined;
-      const modelID = slash > 0 ? selected.slice(slash + 1) : undefined;
+      // to the engine's default provider. kikkoCode's own selection wins over
+      // the engine config (which auth plugins like zai/GLM can pin).
+      const selected = useModelStore.getState().selected ?? config?.model ?? "";
+      const { providerID, modelID } = splitModel(selected);
 
       sendPrompt.mutate({ sessionId, text: finalText, agent: mode, providerID, modelID });
     },
@@ -147,8 +145,9 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const isDisabled = !isReady || sendPrompt.isPending || createSession.isPending;
 
   // The model you're currently connected to (for the online indicator).
+  const localSelected = useModelStore((s) => s.selected);
   const activeModelId = (() => {
-    const m = config?.model ?? "";
+    const m = localSelected ?? config?.model ?? "";
     const slash = m.indexOf("/");
     return slash > 0 ? m.slice(slash + 1) : m;
   })();

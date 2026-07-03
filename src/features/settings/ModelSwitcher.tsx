@@ -3,6 +3,7 @@ import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfig, useUpdateConfig } from "@/opencode/config";
 import { useProviders } from "@/opencode/context";
+import { useModelStore } from "@/stores/model.store";
 import { AddProviderKey } from "./AddProviderKey";
 
 /**
@@ -18,7 +19,12 @@ export function ModelSwitcher() {
   const { data: providers = [] } = useProviders();
   const updateConfig = useUpdateConfig();
 
-  const currentModel = config?.model ?? "";
+  // kikkoCode's own selection wins: the engine's config.model can be pinned by
+  // auth plugins (zai/GLM) and ignore updates — our store + per-prompt model
+  // param make the choice effective regardless.
+  const localSelected = useModelStore((s) => s.selected);
+  const setSelected = useModelStore((s) => s.setSelected);
+  const currentModel = localSelected ?? config?.model ?? "";
   const slash = currentModel.indexOf("/");
   const currentProviderId = slash > 0 ? currentModel.slice(0, slash) : "";
   const currentModelId = slash > 0 ? currentModel.slice(slash + 1) : currentModel;
@@ -40,6 +46,9 @@ export function ModelSwitcher() {
   }, [open]);
 
   const selectModel = (providerId: string, modelId: string) => {
+    // Effective immediately via our store (used as the per-prompt model param);
+    // config.update is best-effort to keep the engine's default in sync too.
+    setSelected(`${providerId}/${modelId}`);
     updateConfig.mutate({ model: `${providerId}/${modelId}` });
     setOpen(false);
   };

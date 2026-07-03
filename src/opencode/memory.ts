@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getClient } from "./client";
 import { rowInfo } from "./messageShape";
 import { useMemoryStore } from "@/stores/memory.store";
+import { useModelStore, splitModel } from "@/stores/model.store";
 
 /**
  * Persistent project memory — the "best possible" design for this architecture:
@@ -138,11 +139,14 @@ async function distill(sessionId: string): Promise<boolean> {
     hiddenId = created.data!.id;
     silentSessions.add(hiddenId);
 
+    // Same model the user selected (our store wins over pinned engine config).
+    const { providerID, modelID } = splitModel(useModelStore.getState().selected ?? "");
     const res = await getClient().session.prompt({
       path: { id: hiddenId },
       body: {
         parts: [{ type: "text", text: distillPrompt(memory, digest) }],
         agent: "plan",
+        ...(providerID && modelID ? { model: { providerID, modelID } } : {}),
       },
       throwOnError: true,
     });

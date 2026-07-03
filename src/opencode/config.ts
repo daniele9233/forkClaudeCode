@@ -8,6 +8,7 @@ import type {
 } from "@opencode-ai/sdk/client";
 import { getClient, initClient } from "./client";
 import { startEventStream, stopEventStream } from "./events";
+import { useModelStore } from "@/stores/model.store";
 
 export type { Config, Agent, McpLocalConfig, McpRemoteConfig };
 
@@ -222,12 +223,19 @@ export function useConnectProvider() {
         );
       }
 
-      // 4. Make it the active model (unseats any auto-selected default).
-      const cur = (await getClient().config.get({ throwOnError: true })).data as Config;
-      await getClient().config.update({
-        body: { ...cur, model: `${providerId}/${firstModel}` },
-        throwOnError: true,
-      });
+      // 4. Make it the active model. Our own store is what the send path uses
+      // (per-prompt model param — effective even when an auth plugin pins the
+      // engine's config.model); config.update is best-effort sync on top.
+      useModelStore.getState().setSelected(`${providerId}/${firstModel}`);
+      try {
+        const cur = (await getClient().config.get({ throwOnError: true })).data as Config;
+        await getClient().config.update({
+          body: { ...cur, model: `${providerId}/${firstModel}` },
+          throwOnError: true,
+        });
+      } catch {
+        /* engine config pinned/rejected — the store selection still applies */
+      }
       return { providerId, firstModel };
     },
     onSuccess: () => {

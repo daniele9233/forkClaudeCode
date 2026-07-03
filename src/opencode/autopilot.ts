@@ -3,6 +3,7 @@ import { getClient } from "./client";
 import { rowInfo } from "./messageShape";
 import { useAutopilotStore } from "@/stores/autopilot.store";
 import { useChatStore } from "@/stores/chat.store";
+import { useModelStore, splitModel } from "@/stores/model.store";
 import { notifyWhenUnfocused } from "@/lib/notify";
 
 /**
@@ -68,14 +69,16 @@ async function lastAssistantText(sessionId: string): Promise<string> {
 async function sendDirect(sessionId: string, text: string): Promise<void> {
   useChatStore.getState().setSessionRunning(sessionId, true);
   try {
-    // Use the explicitly configured model, like the normal send path.
-    const cfg = (await getClient().config.get({ throwOnError: true })).data as {
-      model?: string;
-    };
-    const selected = cfg?.model ?? "";
-    const slash = selected.indexOf("/");
-    const providerID = slash > 0 ? selected.slice(0, slash) : undefined;
-    const modelID = slash > 0 ? selected.slice(slash + 1) : undefined;
+    // Use the explicitly selected model, like the normal send path (our own
+    // store wins over the engine config, which auth plugins can pin).
+    let selected = useModelStore.getState().selected ?? "";
+    if (!selected) {
+      const cfg = (await getClient().config.get({ throwOnError: true })).data as {
+        model?: string;
+      };
+      selected = cfg?.model ?? "";
+    }
+    const { providerID, modelID } = splitModel(selected);
     await getClient().session.prompt({
       path: { id: sessionId },
       body: {

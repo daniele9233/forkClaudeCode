@@ -15,6 +15,30 @@
 
 ---
 
+## 2026-07-03 · Fix modello: la selezione di kikkoCode vince sul config del motore
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Caso reale (PC nuovo, engine 1.17.13 auto-loggato al piano free zai/GLM):
+DeepSeek connesso e visibile nel dropdown, ma **cliccare un modello non
+cambiava nulla** e il default restava `provider-auth-zai/glm-5`: il motore
+accetta `config.update({model})` ma il valore effettivo resta pinnato dal
+plugin di auth. Ergo: mai più dipendere dal config del motore per la selezione.
+
+- Nuovo `stores/model.store.ts` (persistito): `selected` ("provider/model") +
+  `splitModel` (gestisce model id con slash). **Il parametro `model` per-prompt
+  vince sempre in opencode** → la scelta è effettiva a prescindere dal config.
+- `ModelSwitcher`: click → store (effetto immediato, spunta inclusa) +
+  `config.update` best-effort per tenere il motore allineato quando possibile.
+- Send path (`ChatShell`), **autopilot**, **distillatore memoria** e
+  `usePromptCost`/indicatore online: tutti leggono store-first, fallback al
+  config. `useConnectProvider` step 4: setta lo store e tratta il
+  `config.update` come best-effort (try/catch).
+
+Frontend-only, niente ricompilazione Rust. Lint/build/30 test verdi.
+
+---
+
 ## 2026-07-02 · Memoria persistente di progetto 🧠 + Rules tab + import skill (12.21 + 12.22)
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

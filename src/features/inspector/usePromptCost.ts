@@ -1,5 +1,6 @@
 import { useConfig } from "@/opencode/config";
 import { useProviders } from "@/opencode/context";
+import { useModelStore } from "@/stores/model.store";
 import { useSessionStats } from "./useSessionStats";
 
 export interface PromptCost {
@@ -28,7 +29,8 @@ export function usePromptCost(draft: string): PromptCost {
   const { data: providers = [] } = useProviders();
   const stats = useSessionStats();
 
-  const model = config?.model ?? "";
+  const localSelected = useModelStore((s) => s.selected);
+  const model = localSelected ?? config?.model ?? "";
   const slash = model.indexOf("/");
   const providerId = slash > 0 ? model.slice(0, slash) : "";
   const modelId = slash > 0 ? model.slice(slash + 1) : model;
