@@ -15,6 +15,21 @@
 
 ---
 
+## 2026-07-03 · ModelSwitcher: stato "online" verde sul modello agganciato
+
+**Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+Richiesta UX: con 4+ modelli DeepSeek in lista non si capiva quale fosse quello
+attivo. Ora il modello agganciato è inconfondibile:
+- **riga nel dropdown**: pallino verde con glow + nome in verde semibold +
+  etichetta "ONLINE" + check verde (sfondo `--color-online`/10);
+- **pill nell'header**: pallino verde + nome modello in verde quando una
+  selezione è attiva.
+La persistenza c'era già (model.store persistito → la scelta sopravvive al
+riavvio dell'app). Frontend-only. Lint/build/30 test verdi.
+
+---
+
 ## 2026-07-03 · Fix modello: la selezione di kikkoCode vince sul config del motore
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

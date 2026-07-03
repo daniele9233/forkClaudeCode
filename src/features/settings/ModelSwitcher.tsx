@@ -70,7 +70,18 @@ export function ModelSwitcher() {
             {displayProvider}
           </span>
         )}
-        <span className="max-w-[140px] truncate font-medium">{displayModel}</span>
+        {/* Green "online" treatment when a model is locked in */}
+        {currentModel && (
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-online)] shadow-[0_0_6px_var(--color-online)]" />
+        )}
+        <span
+          className={cn(
+            "max-w-[140px] truncate font-medium",
+            currentModel && "text-[var(--color-online)]",
+          )}
+        >
+          {displayModel}
+        </span>
         <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
       </button>
 
@@ -104,20 +115,34 @@ export function ModelSwitcher() {
                         className={cn(
                           "flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
                           active
-                            ? "bg-[var(--primary)]/10 text-[var(--foreground)]"
+                            ? "bg-[var(--color-online)]/10"
                             : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]",
                         )}
                       >
-                        <span className="flex-1 truncate text-xs">
+                        {/* Online dot on the connected model */}
+                        {active && (
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-online)] shadow-[0_0_6px_var(--color-online)]" />
+                        )}
+                        <span
+                          className={cn(
+                            "flex-1 truncate text-xs",
+                            active && "font-semibold text-[var(--color-online)]",
+                          )}
+                        >
                           {model.name || modelId}
                         </span>
+                        {active && (
+                          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-[var(--color-online)]">
+                            online
+                          </span>
+                        )}
                         {model.limit?.context ? (
                           <span className="shrink-0 text-[9px] text-[var(--muted-foreground)]">
                             {(model.limit.context / 1000).toFixed(0)}K
                           </span>
                         ) : null}
                         {active && (
-                          <Check className="h-3 w-3 shrink-0 text-[var(--primary)]" />
+                          <Check className="h-3 w-3 shrink-0 text-[var(--color-online)]" />
                         )}
                       </button>
                     );
