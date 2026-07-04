@@ -15,6 +15,47 @@
 
 ---
 
+## 2026-07-04 · Studio full-stack front-end + watchdog anti-loop
+
+**Fase:** 12.25 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+**Punto 1 — le ricette Studio ora generano un PROGETTO reale, non un index.html:**
+- `src/skills/recipes.ts` — preambolo `STACK` condiviso a ogni brief: scaffold
+  Vite + React 19 + TS + Tailwind, animazioni (Framer Motion, GSAP+ScrollTrigger,
+  Lenis, CSS scroll-driven), 3D dove ha senso (React Three Fiber + drei / Spline,
+  .glb/.gltf ottimizzati Draco, dpr limitato, fallback statico), `npm run dev`
+  funzionante. Helper `brief(core)` = STACK + core + BAR.
+- `src/skills/catalog.ts` — nuova skill `creative-3d` (🧊: Three.js/R3F/drei/
+  Spline/shader/GLB, performance 60fps). Catalogo 19 → 20. Ricette 3D
+  (Glass Aurora, Skeuomorphic Product, Immersive Scroll) la referenziano.
+
+**Punto 2 — il prompt "pensa pensa" ma non scrive nulla / sembra in loop:**
+- `src/features/chat/MessageBubble.tsx` — `hasVisibleContent` conta solo parti
+  con testo reale (o tool). Prima una parte reasoning/text VUOTA (i reasoning
+  model e il free tier GLM/zai le emettono) faceva sparire i puntini "thinking"
+  lasciando un bubble bianco → sembrava freezato. Ora i puntini + label
+  "thinking…" restano finché non c'è contenuto visibile, e le parti vuote non
+  vengono renderizzate come box vuoti.
+- `src/stores/chat.store.ts` — `lastActivityAt: Map<sessionId, ms>` aggiornato
+  su updatePart/setMessage, azzerato all'avvio del run (setSessionRunning true).
+- `src/features/chat/useStallWatch.ts` — `useStallSeconds(sessionId)`: tick 1s
+  solo mentre il run è attivo, secondi dall'ultima attività.
+- `src/features/chat/StallBanner.tsx` + montato in `ChatShell` — dopo 25s di
+  silenzio durante un run mostra un banner ambra "elabora da Ns senza output" +
+  bottone Stop (suggerisce di cambiare modello se è un reasoning model).
+
+### Perché / decisione
+Il sintomo "loop che pensa senza scrivere" ha due cause coperte insieme: (a) UI
+che sembrava bloccata su parti vuote → fix di rendering; (b) run realmente lento/
+appeso → watchdog visibile con via d'uscita (Stop), senza timer in idle.
+
+### Gotcha / attenzione
+- Il watchdog NON killa da solo: mostra solo l'opzione. Volutamente non
+  invasivo (un run lungo legittimo non va interrotto a sorpresa).
+- `Part.sessionID` è la chiave per `lastActivityAt`; se un engine non lo
+  popola, il touch viene saltato (nessun crash, solo niente watchdog).
+
 ## 2026-07-04 · Studio: 10 ricette di web design + skill top-market
 
 **Fase:** 12.24 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

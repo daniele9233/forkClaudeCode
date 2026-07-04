@@ -11,6 +11,9 @@ interface ChatState {
   liveMessages: Map<string, Message>;
   /** Sessions currently running (waiting for EventSessionIdle). */
   runningSessions: Set<string>;
+  /** Last time (ms) any streaming activity arrived for a session — used by the
+   *  stall watchdog to tell "still working" from "stuck / looping". */
+  lastActivityAt: Map<string, number>;
 
   updatePart: (messageId: string, part: Part) => void;
   removePart: (messageId: string, partId: string) => void;
@@ -19,10 +22,22 @@ interface ChatState {
   clearSession: (sessionId: string) => void;
 }
 
+/** Record streaming activity for a session (helper — keeps the map fresh). */
+function touch(
+  map: Map<string, number>,
+  sessionId: string | undefined,
+): Map<string, number> {
+  if (!sessionId) return map;
+  const next = new Map(map);
+  next.set(sessionId, Date.now());
+  return next;
+}
+
 export const useChatStore = create<ChatState>((set) => ({
   liveParts: new Map(),
   liveMessages: new Map(),
   runningSessions: new Set(),
+  lastActivityAt: new Map(),
 
   updatePart: (messageId, part) =>
     set((s) => {
@@ -30,7 +45,8 @@ export const useChatStore = create<ChatState>((set) => ({
       const parts = new Map(next.get(messageId) ?? []);
       parts.set(part.id, part);
       next.set(messageId, parts);
-      return { liveParts: next };
+      const sid = (part as { sessionID?: string }).sessionID;
+      return { liveParts: next, lastActivityAt: touch(s.lastActivityAt, sid) };
     }),
 
   removePart: (messageId, partId) =>
@@ -46,7 +62,10 @@ export const useChatStore = create<ChatState>((set) => ({
     set((s) => {
       const next = new Map(s.liveMessages);
       next.set(msg.id, msg);
-      return { liveMessages: next };
+      return {
+        liveMessages: next,
+        lastActivityAt: touch(s.lastActivityAt, msg.sessionID),
+      };
     }),
 
   setSessionRunning: (sessionId, running) =>
@@ -54,7 +73,12 @@ export const useChatStore = create<ChatState>((set) => ({
       const next = new Set(s.runningSessions);
       if (running) next.add(sessionId);
       else next.delete(sessionId);
-      return { runningSessions: next };
+      // Reset the activity clock when a run starts, so the watchdog measures
+      // silence from the send, not from some stale earlier tick.
+      return {
+        runningSessions: next,
+        lastActivityAt: running ? touch(s.lastActivityAt, sessionId) : s.lastActivityAt,
+      };
     }),
 
   clearSession: (sessionId) =>

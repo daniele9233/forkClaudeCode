@@ -91,13 +91,21 @@ function AssistantBubble({ parts, isStreaming, error }: AssistantBubbleProps) {
     (p) => isTextPart(p) || isToolPart(p) || isReasoningPart(p),
   );
 
-  const hasContent = visibleParts.length > 0;
+  // "Content" the user can actually SEE. A reasoning/text part with empty text
+  // (reasoning models and the GLM/zai free tier emit these) doesn't count — so
+  // the thinking indicator stays up instead of leaving a blank, frozen-looking
+  // bubble ("pensa pensa ma non vedo nulla").
+  const hasVisibleContent = visibleParts.some((p) => {
+    if (isToolPart(p)) return true;
+    if (isTextPart(p) || isReasoningPart(p)) return (p.text ?? "").trim().length > 0;
+    return false;
+  });
 
   return (
     <div className="flex justify-start">
       <div className="max-w-[85%] min-w-0">
-        {!hasContent && isStreaming && (
-          <div className="flex items-center gap-2 text-[var(--muted-foreground)] text-sm py-1">
+        {!hasVisibleContent && isStreaming && (
+          <div className="flex items-center gap-2 py-1 text-sm text-[var(--muted-foreground)]">
             <span className="inline-flex gap-0.5">
               {[0, 1, 2].map((i) => (
                 <span
@@ -107,10 +115,12 @@ function AssistantBubble({ parts, isStreaming, error }: AssistantBubbleProps) {
                 />
               ))}
             </span>
+            <span className="hud-label opacity-70">thinking…</span>
           </div>
         )}
         {visibleParts.map((part) => {
           if (isTextPart(part)) {
+            if (!(part.text ?? "").trim()) return null;
             const isLastPart = visibleParts[visibleParts.length - 1] === part;
             return (
               <MarkdownContent
@@ -121,6 +131,9 @@ function AssistantBubble({ parts, isStreaming, error }: AssistantBubbleProps) {
             );
           }
           if (isReasoningPart(part)) {
+            // Skip empty reasoning parts — they'd render as a blank box that
+            // reads as "stuck". The thinking indicator covers this state.
+            if (!(part.text ?? "").trim()) return null;
             return (
               <div
                 key={part.id}
