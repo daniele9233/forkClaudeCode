@@ -606,7 +606,7 @@ function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
     : RECIPES;
 
   const launch = (prompt: string) => {
-    fill(prompt);
+    fill(prompt, "recipe");
     onClose();
   };
 

@@ -8,16 +8,21 @@ import { create } from "zustand";
  */
 interface ComposerState {
   pending: string | null;
+  /** Where the pending text came from — "recipe" marks a ready-made Studio brief
+   *  (already optimized, so the composer disables "Perfeziona" for it). */
+  source: string | null;
   nonce: number;
   /** Push text into the composer (replaces whatever is queued). */
-  fill: (text: string) => void;
+  fill: (text: string, source?: string) => void;
   /** Composer calls this once it has adopted the pending text. */
   consume: () => void;
 }
 
 export const useComposerStore = create<ComposerState>((set) => ({
   pending: null,
+  source: null,
   nonce: 0,
-  fill: (text) => set((s) => ({ pending: text, nonce: s.nonce + 1 })),
-  consume: () => set({ pending: null }),
+  fill: (text, source) =>
+    set((s) => ({ pending: text, source: source ?? null, nonce: s.nonce + 1 })),
+  consume: () => set({ pending: null, source: null }),
 }));

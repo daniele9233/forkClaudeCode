@@ -59,6 +59,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   // Prompt Enhancer: rewrite a rough draft into an expert brief (editable).
   const [enhancing, setEnhancing] = useState(false);
   const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  // True while the composer holds a ready-made Studio recipe (already optimized
+  // → "Perfeziona" is pointless and disabled). Cleared once the field is empty.
+  const [fromRecipe, setFromRecipe] = useState(false);
   // Autopilot launcher: when armed, sending starts an autonomous run with the
   // text as goal, capped by budget ($) and iterations.
   const [autoOn, setAutoOn] = useState(false);
@@ -88,24 +91,64 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
     ? styles.find((s) => s.id === styleActiveId)
     : undefined;
 
+  // Textarea auto-size that plays nice with the manual resize handle:
+  // - grows AND shrinks to fit the content (up to 60vh) until the user drags
+  //   the handle; after a manual resize we back off and respect their height,
+  //   so the box never fights the drag. A ResizeObserver detects manual drags.
+  const userResizedRef = useRef(false);
+  const autoGrowGuardRef = useRef(false);
+  const lastHeightRef = useRef(0);
+
+  const autoGrow = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el || userResizedRef.current) return;
+    autoGrowGuardRef.current = true;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.6))}px`;
+    requestAnimationFrame(() => {
+      autoGrowGuardRef.current = false;
+    });
+  }, []);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect.height ?? 0;
+      // Ignore our own auto-grow; a height change we didn't cause = manual drag.
+      if (autoGrowGuardRef.current) {
+        lastHeightRef.current = h;
+        return;
+      }
+      if (Math.abs(h - lastHeightRef.current) > 1 && lastHeightRef.current > 0) {
+        userResizedRef.current = true;
+      }
+      lastHeightRef.current = h;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // A Studio recipe (or any external source) can push a ready-made brief into
-  // the composer. Adopt it, focus, grow the textarea, then clear the channel.
+  // the composer. Adopt it, focus, size the textarea, then clear the channel.
   const composerNonce = useComposerStore((s) => s.nonce);
   useEffect(() => {
-    const { pending, consume } = useComposerStore.getState();
+    const { pending, source, consume } = useComposerStore.getState();
     if (pending == null) return;
     setText(pending);
+    setFromRecipe(source === "recipe");
     consume();
+    // A fresh brief starts auto-sized again (drop any prior manual height).
+    userResizedRef.current = false;
     const el = textareaRef.current;
     if (el) {
       requestAnimationFrame(() => {
         el.focus();
-        el.style.height = "auto";
-        el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.5))}px`;
+        autoGrow();
         el.setSelectionRange(el.value.length, el.value.length);
       });
     }
-  }, [composerNonce]);
+  }, [composerNonce, autoGrow]);
 
   const submit = useCallback(() => {
     const trimmed = text.trim();
@@ -123,6 +166,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
       onSend(trimmed, mode);
     }
     setText("");
+    setFromRecipe(false);
+    // Reset sizing: back to auto-grow from the minimum for the next prompt.
+    userResizedRef.current = false;
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -140,8 +186,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
         const el = textareaRef.current;
         if (!el) return;
         el.focus();
-        el.style.height = "auto";
-        el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.5))}px`;
+        autoGrow();
         el.setSelectionRange(el.value.length, el.value.length);
       });
     } catch (e) {
@@ -149,7 +194,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
     } finally {
       setEnhancing(false);
     }
-  }, [text, enhancing]);
+  }, [text, enhancing, autoGrow]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -159,13 +204,15 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
-    const el = e.target;
-    // Auto-grow up to half the viewport; the user can also drag the handle
-    // (resize-y) to make it larger for long prompts.
-    const cap = Math.round(window.innerHeight * 0.5);
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, cap)}px`;
+    const value = e.target.value;
+    setText(value);
+    // Editing an emptied field re-enables "Perfeziona" and re-arms auto-grow.
+    if (value.trim() === "") {
+      setFromRecipe(false);
+      userResizedRef.current = false;
+    }
+    // Auto-grow/shrink to fit (respects a prior manual resize).
+    autoGrow();
   };
 
   return (
@@ -224,17 +271,22 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
             />
           </span>
         )}
-        {/* Prompt Enhancer: rough draft → expert brief (editable before send) */}
+        {/* Prompt Enhancer: rough draft → expert brief (editable before send).
+            Disabled for Studio recipes — they're already optimized. */}
         <button
           onClick={() => void enhance()}
-          disabled={!text.trim() || enhancing}
-          title="Perfeziona: riscrive la tua richiesta in un brief esperto (poi puoi modificarlo e inviare)"
+          disabled={!text.trim() || enhancing || fromRecipe}
+          title={
+            fromRecipe
+              ? "Questa è una ricetta di Studio, già ottimizzata: Perfeziona non serve. Personalizza i dettagli e invia."
+              : "Perfeziona: riscrive la tua richiesta in un brief esperto (poi puoi modificarlo e inviare)"
+          }
           className={cn(
             "ml-1 flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-widest transition-colors",
             enhancing
               ? "bg-[var(--primary)]/15 text-[var(--primary)]"
               : "text-[var(--muted-foreground)] hover:bg-white/5 hover:text-[var(--foreground)]",
-            (!text.trim() || enhancing) && "cursor-not-allowed opacity-60",
+            (!text.trim() || enhancing || fromRecipe) && "cursor-not-allowed opacity-60",
           )}
         >
           {enhancing ? (
@@ -370,7 +422,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           className={cn(
             "flex-1 resize-y bg-transparent text-sm text-[var(--foreground)]",
             "placeholder:text-[var(--muted-foreground)] focus:outline-none",
-            "max-h-[50vh] min-h-[2.5rem] overflow-y-auto",
+            // Auto-grow caps at 60vh; the manual drag handle can go up to 85vh
+            // (bigger than the auto cap) and down to the min — both directions.
+            "max-h-[85vh] min-h-[2.5rem] overflow-y-auto",
           )}
         />
         {isRunning ? (

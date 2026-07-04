@@ -15,6 +15,29 @@
 
 ---
 
+## 2026-07-04 · Fix composer: Perfeziona off sulle ricette + resize libero
+
+**Fase:** 12.38 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+Tre fix richiesti dall'utente sul composer:
+1. **Perfeziona disabilitato sulle ricette** — `composer.store.fill(text, source)`;
+   le ricette Studio passano `source:"recipe"`; `ChatInput` marca `fromRecipe` e
+   disabilita il bottone Perfeziona (con tooltip "già ottimizzata"). Si riabilita
+   quando svuoti il campo.
+2. **Resize libero (su e giù)** — il vecchio `max-h-[50vh]` bloccava
+   l'ingrandimento manuale. Ora: auto-grow che cresce E si accorcia col
+   contenuto fino a 60vh, MA la maniglia manuale (`resize-y`) arriva fino a 85vh
+   (più dell'auto) e giù al minimo. Un `ResizeObserver` rileva il drag manuale e
+   da quel momento smette di auto-crescere (non litiga più col drag).
+3. **Resize dopo una ricetta** — caricando una ricetta si azzera lo stato di
+   resize manuale e si ridimensiona a contenuto; la maniglia funziona subito.
+
+### Gotcha / attenzione
+- Auto-grow e drag manuale coordinati via guard flag + ResizeObserver: quando
+  l'utente trascina, `userResized` blocca l'auto-grow finché non svuoti il campo
+  (o carichi una nuova ricetta).
+
 ## 2026-07-04 · Studio: 5 ricette scroll-media/video
 
 **Fase:** 12.37 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
