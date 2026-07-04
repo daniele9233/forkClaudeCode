@@ -15,6 +15,31 @@
 
 ---
 
+## 2026-07-04 · Skill DESIGN.md + 4 ricette spec-driven
+
+**Fase:** 12.29 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+- **`catalog.ts`** — nuova skill `design-md` (📋), dal metodo di
+  voltagent/awesome-design-md: prima scrivi un `DESIGN.md` (9 sezioni: tema,
+  palette hex+ruoli, tipografia, componenti+stati, layout/spacing, profondità,
+  do/don't, responsive, agent prompt guide), poi costruisci ogni pagina
+  attenendoti ad esso. Catalogo 23 → 24.
+- **`recipes.ts`** — +4 ricette enterprise che usano `design-md` (24 → 28):
+  Design System First (📋), Living Style Guide (🎛️), Productivity SaaS (🗂️),
+  Media / Consumer Tech (📺). Ognuna parte generando un DESIGN.md come fonte
+  di verità e ci si attiene.
+
+### Perché / decisione
+Il repo richiesto è una collezione di file DESIGN.md (spec di design system che
+l'agente legge). La resa migliore è una skill metodologica "documenta prima,
+costruisci dopo" che blocca la coerenza visiva su un sito multi-pagina — il
+punto debole tipico. Le 4 ricette la mettono in pratica.
+
+### Gotcha / attenzione
+- `design-md` è distinta da `design-system`: la prima è il DOCUMENTO-spec
+  (metodo), la seconda l'implementazione tokenizzata. Si completano.
+
 ## 2026-07-04 · Asset reali + QA multi-viewport & a11y
 
 **Fase:** 12.28 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

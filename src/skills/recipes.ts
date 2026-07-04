@@ -449,4 +449,73 @@ export const RECIPES: WebsiteRecipe[] = [
 - Sezioni: catalogo corsi (card con livello, durata, prezzo, rating, filtri), pagina corso (programma/curriculum, docente, recensioni, iscrizione), percorsi/certificazioni, come funziona, per aziende (B2B), FAQ, iscrizione con form.
 - Stile: amichevole ma professionale, tipografia chiara, palette calda accogliente con un accento, micro-interazioni motivanti (progress, badge), gerarchia didattica ordinata.`),
   },
+
+  /* ── DESIGN.md-driven — visual consistency locked by a spec doc ───── */
+
+  {
+    id: "designmd-flagship",
+    name: "Design System First",
+    emoji: "📋",
+    style: "Spec-driven premium",
+    layout: "Multi-section",
+    description: "Sito premium costruito a partire da un DESIGN.md coerente.",
+    accent: "#0ea5e9",
+    category: "enterprise",
+    skillIds: ["design-md", "web-architect", "type-color", "impeccable"],
+    prompt:
+      enterprise(`Costruisci un sito prodotto premium METTENDO PRIMA PER ISCRITTO il design system.
+- STEP 1: genera alla radice un file \`DESIGN.md\` con le 9 sezioni (tema & atmosfera, palette con hex + ruoli semantici, tipografia con tabella gerarchia, componenti con tutti gli stati, layout & spacing 8pt, profondità & ombre, do's & don'ts, responsive & touch target, agent prompt guide).
+- STEP 2: implementa i token UNA volta (CSS variables / Tailwind @theme) esattamente come da DESIGN.md, poi costruisci ogni sezione attenendoti rigorosamente al documento (nessun magic number).
+- Sezioni sito: nav, hero, feature, come funziona, prezzi, testimonianze, FAQ, CTA, footer — tutte coerenti con lo stesso linguaggio visivo.`),
+  },
+  {
+    id: "designmd-styleguide",
+    name: "Living Style Guide",
+    emoji: "🎛️",
+    style: "Brand system docs",
+    layout: "Docs + gallery",
+    description: "Style guide vivo: token, componenti, do/don't dal DESIGN.md.",
+    accent: "#7c3aed",
+    category: "enterprise",
+    skillIds: ["design-md", "design-system", "component-registry", "type-color"],
+    prompt:
+      enterprise(`Costruisci un LIVING STYLE GUIDE / sito di brand & design system (tipo un mini Storybook + brand book).
+- STEP 1: genera un \`DESIGN.md\` completo (9 sezioni) come fonte di verità.
+- Il sito DOCUMENTA e mostra quel design system: pagina token (colori con hex+ruolo, tipografia, spacing, ombre), gallery componenti con tutti gli stati (button, card, input, nav, badge) e snippet di codice copiabili, sezione do's & don'ts con esempi giusto/sbagliato, principi di layout e responsive, linee guida voce/brand.
+- Stile: pulito e autorevole, navigazione laterale, dark/light basati sui token, ricerca. Deve sembrare la documentazione di design di un'azienda seria.`),
+  },
+  {
+    id: "designmd-productivity",
+    name: "Productivity SaaS",
+    emoji: "🗂️",
+    style: "Calm, focused, spec-driven",
+    layout: "Bento + Z-flow",
+    description: "Software di produttività coerente, partendo da un DESIGN.md.",
+    accent: "#059669",
+    category: "enterprise",
+    skillIds: ["design-md", "web-architect", "bento-grid", "micro-interactions"],
+    prompt:
+      enterprise(`Costruisci il sito di un SOFTWARE DI PRODUTTIVITÀ (note, task, docs, collaborazione), coerente e focalizzato.
+- STEP 1: genera un \`DESIGN.md\` (9 sezioni) e attieniti ad esso in tutto il sito.
+- Hero: claim sul "fai di più con meno" + mockup pulito dell'app; palette calma e focalizzata.
+- Sezioni: capability in BENTO GRID, use case per team, integrazioni, sicurezza, prezzi per seat, testimonianze, CTA prova gratuita.
+- Stile: calmo e ordinato, whitespace, micro-interazioni discrete, gerarchia impeccabile — la coerenza è il punto di forza (ogni pagina identica nel linguaggio visivo).`),
+  },
+  {
+    id: "designmd-media",
+    name: "Media / Consumer Tech",
+    emoji: "📺",
+    style: "Bold consumer, spec-driven",
+    layout: "Editorial + cards",
+    description: "Prodotto media/consumer vivace ma coerente, da un DESIGN.md.",
+    accent: "#f43f5e",
+    category: "enterprise",
+    skillIds: ["design-md", "web-architect", "type-color", "gsap-motion"],
+    prompt:
+      enterprise(`Costruisci il sito di un PRODOTTO MEDIA / CONSUMER TECH (streaming, podcast, social, entertainment), vivace ma coerente.
+- STEP 1: genera un \`DESIGN.md\` (9 sezioni) e usalo come fonte di verità per mantenere coerenza pur con un look audace.
+- Hero: forte impatto visivo (immagine/contenuto in evidenza) + CTA "provalo"; energia consumer.
+- Sezioni: contenuti/feature in editoriale + card, come funziona, prezzi/piani, storie/creator, app download, footer.
+- Stile: bold e colorato ma disciplinato dai token, tipografia espressiva, motion vivace (GSAP) ma performante e reduced-motion safe.`),
+  },
 ];
