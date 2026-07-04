@@ -605,8 +605,13 @@ function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
       )
     : RECIPES;
 
-  const launch = (prompt: string) => {
-    fill(prompt, "recipe");
+  // Universal quality stack forced into EVERY recipe on top of its own skills:
+  // distinctive taste, real typography/color and correct motion craft — the
+  // baseline for awwwards-caliber output.
+  const RECIPE_BASE = ["impeccable", "type-color", "emil-motion"];
+  const launch = (recipe: (typeof RECIPES)[number]) => {
+    const ids = Array.from(new Set([...recipe.skillIds, ...RECIPE_BASE]));
+    fill(recipe.prompt, "recipe", ids);
     onClose();
   };
 
@@ -674,7 +679,7 @@ function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
               {group.map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => launch(r.prompt)}
+                  onClick={() => launch(r)}
                   title={`Inserisci il brief “${r.name}” nella chat`}
                   className="group relative flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--muted)]/40"
                 >

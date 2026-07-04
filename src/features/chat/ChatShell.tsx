@@ -88,10 +88,10 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         return;
       }
 
-      // Resolve which skills apply — slash command, keyword/phrase match, plus
-      // pinned and still-warm sticky skills from recent turns (fixes the "second
-      // prompt" problem: "ora fallo rosso" keeps the animation skill loaded).
-      const { planned, clean, freshIds } = planInjection(text);
+      // Resolve which skills apply — slash command, keyword/phrase match, the
+      // recipe's forced skills (all of them, no cap), plus pinned and still-warm
+      // sticky skills from recent turns (fixes the "second prompt" problem too).
+      const { planned, clean, freshIds } = planInjection(text, opts?.forcedSkillIds);
       const skills = planned.map((p) => p.skill);
 
       // Inject the playbooks + directives into the SYSTEM role (models obey the

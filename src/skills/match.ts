@@ -150,7 +150,7 @@ export function resolveSlash(
   return skill ? { skill, clean } : null;
 }
 
-export type PlanSource = "slash" | "match" | "pinned" | "sticky";
+export type PlanSource = "slash" | "match" | "recipe" | "pinned" | "sticky";
 export interface PlannedSkill {
   skill: Skill;
   source: PlanSource;
@@ -158,12 +158,17 @@ export interface PlannedSkill {
 
 /**
  * The full set of skills to apply for a prompt, combining (in priority order):
- * a slash command, keyword/phrase matches, user-pinned skills, and still-warm
- * sticky skills from recent turns. Pure — reads the store but mutates nothing;
- * both the composer preview and the send path use it. `freshIds` are the skills
- * matched THIS turn (slash/keyword), used to refresh stickiness after sending.
+ * a slash command, keyword/phrase matches, FORCED recipe skills (all of a Studio
+ * recipe's hand-picked skills — bypassing the 2-match cap so top-tier briefs get
+ * their full playbook stack), user-pinned skills, and still-warm sticky skills.
+ * Pure — reads the store but mutates nothing; both the composer preview and the
+ * send path use it. `freshIds` are the skills matched THIS turn (slash/keyword),
+ * used to refresh stickiness after sending (forced/pinned/sticky excluded).
  */
-export function planInjection(text: string): {
+export function planInjection(
+  text: string,
+  forcedIds: string[] = [],
+): {
   planned: PlannedSkill[];
   clean: string;
   freshIds: string[];
@@ -188,6 +193,9 @@ export function planInjection(text: string): {
   for (const s of scored) add(s, "match");
   const freshIds = planned.map((p) => p.skill.id);
 
+  // Recipe skills are force-injected in full — no cap — so a Studio brief runs
+  // its complete expert stack (architecture + style + type + motion + …).
+  for (const id of forcedIds) add(skillById(id), "recipe");
   for (const id of store.pinned) add(skillById(id), "pinned");
   for (const [id, turns] of Object.entries(store.sticky)) {
     if (turns > 0) add(skillById(id), "sticky");

@@ -15,6 +15,36 @@
 
 ---
 
+## 2026-07-04 · Ricette: iniezione FULL delle skill (no cap 2) + base awwwards
+
+**Fase:** 12.39 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+Problema segnalato: le ricette dichiaravano 4 skill ma all'invio ne venivano
+iniettate solo 2 (cap del matcher). Per siti awwwards-caliber non basta.
+- **`planInjection(text, forcedIds)`** — le skill forzate (della ricetta) sono
+  iniettate IN FULL, bypassando il cap di 2, con source "recipe"; non entrano
+  nelle sticky (freshIds escluso).
+- **`composer.store.fill(text, source, skillIds)`** — la ricetta porta i suoi
+  skillIds; `ChatInput` li tiene in `recipeSkillIds` (finché non svuoti/invii) e
+  li passa a `planInjection` (preview) e via `SendOpts.forcedSkillIds` all'invio.
+- **`ChatShell.handleSend`** usa `opts.forcedSkillIds`.
+- **Base awwwards**: ogni ricetta forza SEMPRE anche `impeccable` + `type-color`
+  + `emil-motion` (gusto, tipografia, motion craft) oltre alle sue → stack di
+  5–7 playbook reali per brief, non 2.
+
++1 test (53 totali).
+
+### Perché / decisione
+Risposta alla domanda dell'utente "2 skill bastano per awwwards?": no — ora le
+ricette girano il loro intero stack esperto + la base di qualità universale.
+
+### Gotcha / attenzione
+- Le skill forzate non diventano sticky (sono legate alla ricetta, non
+  "imparate"). Restano finché la ricetta è nel composer.
+- Più playbook = più contesto: è voluto sui lanci di ricetta (qualità), non sui
+  prompt liberi (che restano a max 2).
+
 ## 2026-07-04 · Fix composer: Perfeziona off sulle ricette + resize libero
 
 **Fase:** 12.38 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

@@ -97,4 +97,15 @@ describe("planInjection: sticky + pinned", () => {
     const bento = plan.planned.find((p) => p.skill.id === "bento-grid");
     expect(bento?.source).toBe("pinned");
   });
+
+  it("force-injects a recipe's FULL skill stack (bypasses the 2-cap)", () => {
+    const forced = ["web-architect", "bento-grid", "impeccable", "type-color"];
+    // Neutral prompt so nothing matches by keyword — all come from `forced`.
+    const plan = planInjection("procedi", forced);
+    const ids = plan.planned.map((p) => p.skill.id);
+    for (const id of forced) expect(ids).toContain(id);
+    // Forced recipe skills carry source "recipe" and are NOT marked sticky.
+    expect(plan.planned.find((p) => p.skill.id === "bento-grid")?.source).toBe("recipe");
+    expect(plan.freshIds).toHaveLength(0);
+  });
 });

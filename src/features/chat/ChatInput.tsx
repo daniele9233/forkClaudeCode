@@ -28,6 +28,8 @@ export type AgentMode = "build" | "plan";
 export interface SendOpts {
   /** Start an autopilot run with the text as goal. */
   autopilot?: { budgetUsd: number; maxIters: number };
+  /** Recipe skills to force-inject in full (bypasses the 2-match cap). */
+  forcedSkillIds?: string[];
 }
 
 interface Props {
@@ -62,6 +64,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   // True while the composer holds a ready-made Studio recipe (already optimized
   // → "Perfeziona" is pointless and disabled). Cleared once the field is empty.
   const [fromRecipe, setFromRecipe] = useState(false);
+  // A recipe's hand-picked skills, force-injected IN FULL on send (bypassing the
+  // 2-match cap) so a top-tier brief runs its whole expert stack.
+  const [recipeSkillIds, setRecipeSkillIds] = useState<string[]>([]);
   // Autopilot launcher: when armed, sending starts an autonomous run with the
   // text as goal, capped by budget ($) and iterations.
   const [autoOn, setAutoOn] = useState(false);
@@ -78,8 +83,8 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const togglePin = useSkillsStore((s) => s.togglePin);
   const clearSticky = useSkillsStore((s) => s.clearSticky);
   const planned = useMemo(
-    () => planInjection(text).planned,
-    [text, pinned, sticky, enabled, autoApply],
+    () => planInjection(text, recipeSkillIds).planned,
+    [text, recipeSkillIds, pinned, sticky, enabled, autoApply],
   );
   const hasSticky = Object.values(sticky).some((t) => t > 0);
 
@@ -133,10 +138,11 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   // the composer. Adopt it, focus, size the textarea, then clear the channel.
   const composerNonce = useComposerStore((s) => s.nonce);
   useEffect(() => {
-    const { pending, source, consume } = useComposerStore.getState();
+    const { pending, source, skillIds, consume } = useComposerStore.getState();
     if (pending == null) return;
     setText(pending);
     setFromRecipe(source === "recipe");
+    setRecipeSkillIds(source === "recipe" ? skillIds : []);
     consume();
     // A fresh brief starts auto-sized again (drop any prior manual height).
     userResizedRef.current = false;
@@ -155,24 +161,26 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
     // While the agent runs, sending is still allowed — the shell queues it
     // (NEXT queue) and fires it automatically when the agent goes idle.
     if (!trimmed || disabled) return;
+    const forcedSkillIds = recipeSkillIds.length ? recipeSkillIds : undefined;
     if (autoOn) {
       // Autopilot needs an idle session to take over.
       if (isRunning) return;
       const budgetUsd = Math.max(0.05, parseFloat(budget) || 1);
       const maxIters = Math.max(1, Math.min(50, parseInt(iters, 10) || 10));
-      onSend(trimmed, mode, { autopilot: { budgetUsd, maxIters } });
+      onSend(trimmed, mode, { autopilot: { budgetUsd, maxIters }, forcedSkillIds });
       setAutoOn(false);
     } else {
-      onSend(trimmed, mode);
+      onSend(trimmed, mode, { forcedSkillIds });
     }
     setText("");
     setFromRecipe(false);
+    setRecipeSkillIds([]);
     // Reset sizing: back to auto-grow from the minimum for the next prompt.
     userResizedRef.current = false;
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
-  }, [text, disabled, mode, onSend, autoOn, isRunning, budget, iters]);
+  }, [text, disabled, mode, onSend, autoOn, isRunning, budget, iters, recipeSkillIds]);
 
   const enhance = useCallback(async () => {
     const trimmed = text.trim();
@@ -209,6 +217,7 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
     // Editing an emptied field re-enables "Perfeziona" and re-arms auto-grow.
     if (value.trim() === "") {
       setFromRecipe(false);
+      setRecipeSkillIds([]);
       userResizedRef.current = false;
     }
     // Auto-grow/shrink to fit (respects a prior manual resize).
