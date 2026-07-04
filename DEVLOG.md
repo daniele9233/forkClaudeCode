@@ -15,6 +15,31 @@
 
 ---
 
+## 2026-07-04 · Indicatore visione del modello (👁 vede / non vede)
+
+**Fase:** 12.35 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+Ora si vede subito se il modello selezionato "vede le immagini" (serve per Audit
+visivo e stile da URL/screenshot).
+- **`opencode/modelCaps.ts`** (nuovo) — `modelSupportsVision(model)` (usa
+  `modalities.input.includes("image")`, fallback su `attachment`) + hook
+  `useModelVision()` per il modello selezionato.
+- **`ModelSwitcher`** — icona 👁/EyeOff accanto al nome nel chip header; ogni
+  modello nel menu con 👁 se vede; **riga di testo in fondo al menu**: "Questo
+  modello vede/NON vede le immagini: Audit e stile da URL/screenshot
+  funzionano/non funzioneranno".
+- **Scheda Stili** — riga sotto i bottoni di import che riflette il modello
+  attuale (verde se vede, ambra se no → uso l'HTML come ripiego).
+
+### Perché / decisione
+Richiesta utente: sapere in base al modello se le feature con visione
+funzioneranno, prima di usarle.
+
+### Gotcha / attenzione
+- `known:false` (modello non nel catalogo provider) → non mostro nulla invece di
+  dire erroneamente "non vede".
+
 ## 2026-07-04 · Style Memory: importa stile da URL / screenshot esterno
 
 **Fase:** 12.34 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

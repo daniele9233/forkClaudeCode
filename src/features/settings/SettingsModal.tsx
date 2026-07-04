@@ -27,11 +27,12 @@ import { RECIPES } from "@/skills/recipes";
 import { open } from "@tauri-apps/plugin-dialog";
 import { importSkillFromUrl } from "@/skills/importSkill";
 import { captureStyleFromUrl, captureStyleFromImage } from "@/opencode/style";
+import { useModelVision } from "@/opencode/modelCaps";
 import { useSkillsStore } from "@/stores/skills.store";
 import { useStylesStore } from "@/stores/styles.store";
 import { useComposerStore } from "@/stores/composer.store";
 import { useMemoryStore } from "@/stores/memory.store";
-import { Image as ImageIcon, Link as LinkIcon } from "lucide-react";
+import { Image as ImageIcon, Link as LinkIcon, Eye, EyeOff } from "lucide-react";
 import { RulesTab } from "./RulesTab";
 
 type Tab = "studio" | "styles" | "skills" | "agents" | "mcp" | "rules";
@@ -379,6 +380,7 @@ function StylesTab({ query }: { query: string }) {
   const renameStyle = useStylesStore((s) => s.renameStyle);
   const removeStyle = useStylesStore((s) => s.removeStyle);
   const addStyle = useStylesStore((s) => s.addStyle);
+  const { known: modelKnown, vision } = useModelVision();
   const [openId, setOpenId] = useState<string | null>(null);
 
   // Import a style from an external site (URL) or a screenshot image.
@@ -490,6 +492,19 @@ function StylesTab({ query }: { query: string }) {
           </button>
         </div>
         {importError && <p className="mt-1.5 text-[10px] text-red-400">{importError}</p>}
+        {modelKnown && (
+          <p
+            className={cn(
+              "mt-1.5 flex items-center gap-1 text-[10px]",
+              vision ? "text-[var(--color-online)]" : "text-amber-400",
+            )}
+          >
+            {vision ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+            {vision
+              ? "Il modello selezionato vede le immagini: URL/screenshot funzionano al meglio."
+              : "Il modello selezionato non vede le immagini: userò l'HTML (meno preciso). Per il top scegli un modello con 👁."}
+          </p>
+        )}
       </div>
 
       {filtered.length === 0 && (

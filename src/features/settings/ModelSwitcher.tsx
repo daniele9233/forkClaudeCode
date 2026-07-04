@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfig, useUpdateConfig } from "@/opencode/config";
 import { useProviders } from "@/opencode/context";
+import { modelSupportsVision } from "@/opencode/modelCaps";
 import { useModelStore } from "@/stores/model.store";
 import { AddProviderKey } from "./AddProviderKey";
 
@@ -35,6 +36,13 @@ export function ModelSwitcher() {
 
   // Only providers the user connected — hide the built-in Zen gateway.
   const visibleProviders = providers.filter((p) => p.id !== "opencode");
+
+  // Vision capability of the currently selected model (drives the "sees images"
+  // hint for the Audit + style-from-URL/screenshot features).
+  const currentModelObj = visibleProviders.find((p) => p.id === currentProviderId)
+    ?.models?.[currentModelId];
+  const currentKnown = !!currentModelObj;
+  const currentVision = modelSupportsVision(currentModelObj);
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +90,23 @@ export function ModelSwitcher() {
         >
           {displayModel}
         </span>
+        {/* Vision indicator: does the selected model see images? */}
+        {currentModel && currentKnown && (
+          <span
+            title={
+              currentVision
+                ? "Vede le immagini — Audit visivo e stile da URL/screenshot funzionano"
+                : "Non vede le immagini — Audit visivo e stile da URL/screenshot NON funzioneranno"
+            }
+            className="shrink-0"
+          >
+            {currentVision ? (
+              <Eye className="h-3 w-3 text-[var(--color-online)]" />
+            ) : (
+              <EyeOff className="h-3 w-3 text-amber-400" />
+            )}
+          </span>
+        )}
         <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
       </button>
 
@@ -136,6 +161,13 @@ export function ModelSwitcher() {
                             online
                           </span>
                         )}
+                        {/* Vision-capable models show an eye */}
+                        {modelSupportsVision(model) && (
+                          <Eye
+                            className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]"
+                            aria-label="Vede le immagini"
+                          />
+                        )}
                         {model.limit?.context ? (
                           <span className="shrink-0 text-[9px] text-[var(--muted-foreground)]">
                             {(model.limit.context / 1000).toFixed(0)}K
@@ -151,6 +183,27 @@ export function ModelSwitcher() {
               );
             })}
           </div>
+
+          {/* Written vision status of the selected model */}
+          {currentModel && currentKnown && (
+            <div
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 border-t border-[var(--border)] px-3 py-2 text-[10px] leading-relaxed",
+                currentVision ? "text-[var(--color-online)]" : "text-amber-400",
+              )}
+            >
+              {currentVision ? (
+                <Eye className="h-3.5 w-3.5 shrink-0" />
+              ) : (
+                <EyeOff className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span>
+                {currentVision
+                  ? "Questo modello vede le immagini: Audit visivo e stile da URL/screenshot funzionano."
+                  : "Questo modello NON vede le immagini: Audit visivo e stile da URL/screenshot non funzioneranno. Per quelli scegli un modello con l'icona 👁."}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
