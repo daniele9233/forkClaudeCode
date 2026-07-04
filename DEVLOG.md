@@ -15,6 +15,42 @@
 
 ---
 
+## 2026-07-04 · Agente web più esperto: audit design, taste packs, Web Designer mode, registry
+
+**Fase:** 12.26 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+Quattro leve per rendere l'agente più esperto di siti (scelte dall'utente):
+1. **Design Review automatico** — `PreviewPanel.tsx`: refactor di `captureAndPrompt`
+   (screenshot → prompt+immagine) e nuovo bottone **Audit** (icona ScanEye) che
+   manda un audit strutturato "Impeccable" (7 aree con voto /10: tipografia,
+   colore/contrasto, layout&spacing, composizione, profondità, stati&motion,
+   responsive) e chiede di APPLICARE i fix. La 📷 resta come review veloce.
+2. **Taste packs** — nuova skill `type-color` (🎨): abbinamenti font reali
+   (Space Grotesk+Hanken, Fraunces+Manrope, Clash+General Sans, Playfair+Source
+   Sans, Sora+IBM Plex, Bricolage+Public Sans; mai Inter/Arial) + 4 palette
+   accessibili con hex (neutri tintati, un accento, AA).
+3. **Registry componenti** — nuova skill `component-registry` (📦): shadcn/ui
+   init+add, Aceternity/Magic UI/React Bits, lucide, cva, tailwind-merge.
+4. **Web Designer mode sempre attivo** — `src/skills/webDesigner.ts`
+   (`injectWebDesigner`), flag persistito `webDesigner` in `skills.store`
+   (default on), iniettato in `ChatShell.handleSend` su prompt web (marker
+   `[[kikko-note]]`, stripato dalla UI). Toggle nella scheda Studio. Catalogo
+   skill 20 → 22. +3 test (37 totali).
+
+### Perché / decisione
+Il Design Review è il moltiplicatore più grande: l'agente *vede* la pagina e
+itera come un designer. Il Web Designer mode estende la qualità a OGNI richiesta
+web, non solo alle ricette Studio. Le due skill di gusto/registry colmano i due
+buchi tipici dell'output AI: font/colori anonimi e componenti riscritti a mano.
+
+### Gotcha / attenzione
+- Audit e 📷 richiedono un modello con VISIONE per guardare davvero lo
+  screenshot (deepseek-chat non vede immagini): il prompt dice esplicitamente
+  "se non vedi l'immagine dillo invece di indovinare".
+- Web Designer mode inietta solo su prompt web-related (stessa euristica
+  keyword del preview policy) per non sporcare i task non-web.
+
 ## 2026-07-04 · Studio full-stack front-end + watchdog anti-loop
 
 **Fase:** 12.25 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

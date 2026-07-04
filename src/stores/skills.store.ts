@@ -7,10 +7,13 @@ interface SkillsState {
   enabled: string[];
   /** When true, the best-matching enabled skill(s) are auto-applied on send. */
   autoApply: boolean;
+  /** When true, a senior front-end directive is prepended to every web prompt. */
+  webDesigner: boolean;
   /** User-imported skills (from GitHub raw URLs) — merged with the catalog. */
   custom: Skill[];
   setEnabled: (id: string, on: boolean) => void;
   setAutoApply: (on: boolean) => void;
+  setWebDesigner: (on: boolean) => void;
   isEnabled: (id: string) => boolean;
   addCustom: (skill: Skill) => void;
   removeCustom: (id: string) => void;
@@ -22,6 +25,7 @@ export const useSkillsStore = create<SkillsState>()(
       // Everything on by default so the router just works out of the box.
       enabled: SKILLS.map((s) => s.id),
       autoApply: true,
+      webDesigner: true,
       custom: [],
       setEnabled: (id, on) =>
         set((s) => ({
@@ -30,6 +34,7 @@ export const useSkillsStore = create<SkillsState>()(
             : s.enabled.filter((x) => x !== id),
         })),
       setAutoApply: (on) => set({ autoApply: on }),
+      setWebDesigner: (on) => set({ webDesigner: on }),
       isEnabled: (id) => get().enabled.includes(id),
       addCustom: (skill) =>
         set((s) => ({

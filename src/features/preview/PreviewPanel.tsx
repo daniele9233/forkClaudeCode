@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Wand2,
   Camera,
+  ScanEye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
@@ -207,10 +208,10 @@ Find the root cause in this project's source code and fix them. After fixing, br
   };
 
   // "The agent sees its page": headless-capture the previewed URL and attach
-  // the PNG to a visual self-review prompt. Design quality multiplier — needs
-  // a vision-capable model to actually look at the image.
+  // the PNG to a prompt. Design quality multiplier — needs a vision-capable
+  // model to actually look at the image.
   const [capturing, setCapturing] = useState(false);
-  const showPageToAgent = async () => {
+  const captureAndPrompt = async (text: string) => {
     if (!previewUrl || capturing || sendPrompt.isPending) return;
     setCapturing(true);
     try {
@@ -225,7 +226,7 @@ Find the root cause in this project's source code and fix them. After fixing, br
       }
       sendPrompt.mutate({
         sessionId,
-        text: `Attached is a screenshot of the web page you are building, previewed at ${previewUrl}. Look at it carefully and critique it like a senior product designer: layout, spacing, alignment, typography, visual hierarchy, contrast, consistency, responsiveness red flags. Then apply the most impactful improvements directly to the code. If you cannot see the attached image, say so explicitly instead of guessing.`,
+        text,
         files: [
           { type: "file", mime: "image/png", filename: "preview.png", url: fileUrl },
         ],
@@ -240,6 +241,30 @@ Find the root cause in this project's source code and fix them. After fixing, br
       setCapturing(false);
     }
   };
+
+  // Quick visual self-review (camera button).
+  const showPageToAgent = () =>
+    captureAndPrompt(
+      `Attached is a screenshot of the web page you are building, previewed at ${previewUrl}. Look at it carefully and critique it like a senior product designer: layout, spacing, alignment, typography, visual hierarchy, contrast, consistency, responsiveness red flags. Then apply the most impactful improvements directly to the code. If you cannot see the attached image, say so explicitly instead of guessing.`,
+    );
+
+  // Rigorous "Impeccable" design audit (scan button): a structured checklist a
+  // real design team would run, then apply the fixes.
+  const auditDesign = () =>
+    captureAndPrompt(
+      `Attached is a screenshot of the page previewed at ${previewUrl}. Run a rigorous DESIGN AUDIT as a senior front-end design team and then APPLY the fixes to the code.
+
+Score each area /10 and list concrete issues:
+1. Typography — distinctive typeface (NOT Inter/Arial/system defaults)? consistent modular scale? tracking/line-height/measure?
+2. Color — tinted neutrals (no pure #000/#fff)? one coherent accent? text contrast ≥ 4.5:1 (WCAG AA)? no gray text on colored backgrounds?
+3. Layout & spacing — clear focal point, visual hierarchy, 8pt rhythm, optical alignment, enough whitespace? not everything wrapped/nested in cards?
+4. Composition — varied section rhythm (not monotonous identical full-width blocks)? intentional, not templated?
+5. Depth & detail — tasteful layered/tinted shadows, consistent radius, real content (no lorem)?
+6. States & motion — hover/focus-visible/active/disabled/loading/empty/error covered? motion 150–250ms ease-out, no bounce, reduced-motion safe?
+7. Responsiveness — any red flags for 360px→ultrawide?
+
+For every issue below 8/10, make the concrete code change now. Prioritize what most removes the "AI-generated / templated" look. If you cannot see the image, say so explicitly instead of guessing.`,
+    );
 
   // After iframe loads a new page, ping the inspector script.
   const handleIframeLoad = () => {
@@ -324,6 +349,19 @@ Find the root cause in this project's source code and fix them. After fixing, br
             ) : (
               <Camera className="h-3.5 w-3.5" />
             )}
+          </button>
+        )}
+
+        {/* Rigorous design audit: screenshot → Impeccable checklist → fixes */}
+        {previewUrl && (
+          <button
+            onClick={() => void auditDesign()}
+            disabled={capturing || sendPrompt.isPending}
+            className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] transition-colors hover:bg-[var(--primary)]/15 hover:text-[var(--primary)] disabled:opacity-50"
+            title="Design audit: the agent scores the page on an Impeccable checklist and applies the fixes"
+          >
+            <ScanEye className="h-3.5 w-3.5" />
+            Audit
           </button>
         )}
 

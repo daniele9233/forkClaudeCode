@@ -368,6 +368,8 @@ function McpTab({ query }: { query: string }) {
 
 function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
   const fill = useComposerStore((s) => s.fill);
+  const webDesigner = useSkillsStore((s) => s.webDesigner);
+  const setWebDesigner = useSkillsStore((s) => s.setWebDesigner);
   const q = query.trim().toLowerCase();
   const recipes = q
     ? RECIPES.filter(
@@ -399,6 +401,27 @@ function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
           costruire all'agente un sito di ultima generazione.
         </p>
       </div>
+
+      {/* Always-on Web Designer mode */}
+      <button
+        onClick={() => setWebDesigner(!webDesigner)}
+        className="flex w-full items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3 text-left"
+      >
+        {webDesigner ? (
+          <ToggleRight className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+        ) : (
+          <ToggleLeft className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-medium text-[var(--foreground)]">
+            Modalità Web Designer {webDesigner ? "· attiva" : "· off"}
+          </div>
+          <div className="text-[10px] text-[var(--muted-foreground)]">
+            Applica una mentalità da team di 30 esperti front-end a <b>ogni</b> richiesta
+            web, non solo alle ricette.
+          </div>
+        </div>
+      </button>
 
       {recipes.length === 0 && (
         <p className="py-6 text-center text-xs text-[var(--muted-foreground)]">

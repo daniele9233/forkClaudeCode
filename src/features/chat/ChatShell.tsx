@@ -7,6 +7,7 @@ import { useConfig } from "@/opencode/config";
 import { useSkillsStore } from "@/stores/skills.store";
 import { matchSkills, injectSkills } from "@/skills/match";
 import { injectPreviewPolicy } from "@/skills/previewPolicy";
+import { injectWebDesigner } from "@/skills/webDesigner";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useDevServerEvents } from "@/features/preview/useDevServerEvents";
 import { useUIStore } from "@/stores/ui.store";
@@ -94,8 +95,13 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       const skills = autoApplySkills ? matchSkills(text, skillsEnabled) : [];
       // Also inject the hidden preview/dev-server policy on web-related prompts,
       // so the agent lets kikkoCode manage the preview instead of spawning
-      // detached servers or opening the browser.
-      const finalText = injectPreviewPolicy(injectSkills(text, skills));
+      // detached servers or opening the browser. Web Designer mode (if on) adds
+      // an always-on senior front-end directive on top.
+      const webDesigner = useSkillsStore.getState().webDesigner;
+      const finalText = injectWebDesigner(
+        injectPreviewPolicy(injectSkills(text, skills)),
+        webDesigner,
+      );
 
       // Send with the explicitly selected model so the request never falls back
       // to the engine's default provider. kikkoCode's own selection wins over
