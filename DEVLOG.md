@@ -15,6 +15,41 @@
 
 ---
 
+## 2026-07-04 · Style Memory 🎨 — salva uno stile e riusalo
+
+**Fase:** 12.33 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+Crei un sito che ti piace → salvi il suo stile → lo riusi su altri siti.
+- **`src/opencode/style.ts`** (nuovo) — `captureStyle()`: sessione nascosta
+  plan-mode (read-only, `[kikko]`, silenziata, cancellata) che con approccio
+  IBRIDO restituisce il `DESIGN.md` del progetto se esiste, altrimenti lo
+  distilla leggendo styling/token/componenti reali. Funziona con qualsiasi
+  modello (legge codice, niente visione).
+- **`src/stores/styles.store.ts`** (nuovo) — libreria persistente `SavedStyle`
+  {id,name,spec,accent,createdAt}, `activeId`; `addStyle/rename/remove/setActive`;
+  `activeStyleDirective()` per l'iniezione. Accent estratto dal primo hex.
+- **`ChatShell`** — lo stile attivo è iniettato nel ruolo **system** a ogni
+  invio (prima delle skill): "build strictly to this saved design system…".
+- **`ChatInput`** — chip 🎨 dello stile attivo con ✕ per disattivarlo.
+- **`PreviewPanel`** — bottone **🎨 Stile**: cattura + salva + attiva (nome dal
+  nome cartella progetto); esito nel log dell'anteprima.
+- **`SettingsModal`** — nuova scheda **Stili**: card con swatch accento, nome
+  rinominabile inline, Usa/In uso (attiva/disattiva), elimina, DESIGN.md
+  espandibile. Badge tab mostra "N·on" quando uno è attivo.
+- **+3 test** (`styles.store.test.ts`), 50 totali.
+
+### Perché / decisione
+Richiesta utente (scelta: ibrido codice+DESIGN.md). Riusa i pattern esistenti
+(sessioni nascoste + system-role injection). Uno stile = un DESIGN.md salvato,
+riutilizzabile tra progetti diversi (persistito in localStorage, non nel repo).
+
+### Gotcha / attenzione
+- La cattura gira sul motore (sidecar): serve l'app avviata; è una chiamata LLM
+  di qualche secondo (spinner sul bottone).
+- Lo stile attivo si applica a OGNI invio finché non lo disattivi (chip ✕ o
+  Impostazioni → Stili → In uso).
+
 ## 2026-07-04 · Skill engine v2: sticky, slash+pin, system-role, semantic, negative/exclusion
 
 **Fase:** 12.32 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

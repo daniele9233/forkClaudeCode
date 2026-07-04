@@ -8,6 +8,7 @@ import { useSkillsStore } from "@/stores/skills.store";
 import { planInjection, buildSkillSystem, tagSkills } from "@/skills/match";
 import { previewPolicyNote } from "@/skills/previewPolicy";
 import { webDesignerDirective } from "@/skills/webDesigner";
+import { activeStyleDirective } from "@/stores/styles.store";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useDevServerEvents } from "@/features/preview/useDevServerEvents";
 import { useUIStore } from "@/stores/ui.store";
@@ -98,6 +99,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       // text). The user message stays clean; hidden id-tags only drive the chips.
       const webDesignerOn = useSkillsStore.getState().webDesigner;
       const systemParts = [
+        activeStyleDirective(),
         buildSkillSystem(skills),
         webDesignerDirective(clean, webDesignerOn),
         previewPolicyNote(clean),

@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Sparkles,
   ArrowUpRight,
+  Palette,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
@@ -24,11 +26,12 @@ import { activeCatalog } from "@/skills/match";
 import { RECIPES } from "@/skills/recipes";
 import { importSkillFromUrl } from "@/skills/importSkill";
 import { useSkillsStore } from "@/stores/skills.store";
+import { useStylesStore } from "@/stores/styles.store";
 import { useComposerStore } from "@/stores/composer.store";
 import { useMemoryStore } from "@/stores/memory.store";
 import { RulesTab } from "./RulesTab";
 
-type Tab = "studio" | "skills" | "agents" | "mcp" | "rules";
+type Tab = "studio" | "styles" | "skills" | "agents" | "mcp" | "rules";
 
 /* ── Skills tab ──────────────────────────────────────────────── */
 
@@ -360,6 +363,110 @@ function McpTab({ query }: { query: string }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Styles tab (saved reusable design languages) ─────────────── */
+
+function StylesTab({ query }: { query: string }) {
+  const styles = useStylesStore((s) => s.styles);
+  const activeId = useStylesStore((s) => s.activeId);
+  const setActive = useStylesStore((s) => s.setActive);
+  const renameStyle = useStylesStore((s) => s.renameStyle);
+  const removeStyle = useStylesStore((s) => s.removeStyle);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const q = query.trim().toLowerCase();
+  const filtered = q ? styles.filter((s) => s.name.toLowerCase().includes(q)) : styles;
+
+  return (
+    <div className="space-y-2">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/10 p-2.5 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+        Gli <b className="text-[var(--foreground)]">stili salvati</b> sono il linguaggio
+        visivo (DESIGN.md) di un sito che ti è piaciuto. Salvane uno dal pulsante{" "}
+        <b className="text-[var(--foreground)]">🎨 Stile</b> nella barra dell'anteprima;
+        poi attivane uno qui e l'agente costruirà i prossimi siti con lo stesso identico
+        stile.
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="py-6 text-center text-xs text-[var(--muted-foreground)]">
+          {q
+            ? `Nessuno stile per “${query}”`
+            : "Ancora nessuno stile salvato. Apri l'anteprima di un sito e premi 🎨 Stile."}
+        </p>
+      )}
+
+      {filtered.map((s) => {
+        const isActive = activeId === s.id;
+        const isOpen = openId === s.id;
+        return (
+          <div
+            key={s.id}
+            className={cn(
+              "rounded-lg border p-3 transition-colors",
+              isActive
+                ? "border-[var(--primary)]/50 bg-[var(--primary)]/5"
+                : "border-[var(--border)] bg-[var(--muted)]/20",
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className="h-4 w-4 shrink-0 rounded-full"
+                style={{ background: s.accent }}
+                aria-hidden
+              />
+              <input
+                value={s.name}
+                onChange={(e) => renameStyle(s.id, e.target.value)}
+                className="min-w-0 flex-1 bg-transparent text-xs font-medium text-[var(--foreground)] outline-none focus:underline"
+                title="Rinomina lo stile"
+              />
+              <button
+                onClick={() => setActive(isActive ? null : s.id)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors",
+                  isActive
+                    ? "bg-[var(--primary)]/20 text-[var(--primary)]"
+                    : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
+                )}
+                title={isActive ? "In uso — clicca per disattivare" : "Usa questo stile"}
+              >
+                {isActive ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Palette className="h-3 w-3" />
+                )}
+                {isActive ? "In uso" : "Usa"}
+              </button>
+              <button
+                onClick={() => removeStyle(s.id)}
+                title="Elimina stile"
+                className="shrink-0 rounded p-0.5 text-[var(--muted-foreground)] hover:bg-red-950/40 hover:text-red-400"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <button
+              onClick={() => setOpenId(isOpen ? null : s.id)}
+              className="mt-2 flex items-center gap-1 text-[10px] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            >
+              {isOpen ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              DESIGN.md ({s.spec.length} caratteri)
+            </button>
+            {isOpen && (
+              <pre className="mt-1.5 max-h-56 overflow-y-auto whitespace-pre-wrap rounded border border-[var(--border)] bg-[var(--color-forge-950)] p-2 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+                {s.spec}
+              </pre>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -715,8 +822,16 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const mcpConnected = mcpNames.filter((n) => mcpStatus[n]?.connected).length;
   const autoMemorize = useMemoryStore((s) => s.autoMemorize);
 
+  const savedStyles = useStylesStore((s) => s.styles);
+  const activeStyleId = useStylesStore((s) => s.activeId);
+
   const TABS: { id: Tab; label: string; count: string }[] = [
     { id: "studio", label: "Studio", count: String(RECIPES.length) },
+    {
+      id: "styles",
+      label: "Stili",
+      count: activeStyleId ? `${savedStyles.length}·on` : String(savedStyles.length),
+    },
     {
       id: "skills",
       label: "Skills",
@@ -794,13 +909,15 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               placeholder={
                 tab === "studio"
                   ? "Cerca ricette di design…"
-                  : tab === "skills"
-                    ? "Search skills…"
-                    : tab === "agents"
-                      ? "Search agents, tools…"
-                      : tab === "rules"
-                        ? "(search not used here)"
-                        : "Search MCP servers…"
+                  : tab === "styles"
+                    ? "Cerca stili salvati…"
+                    : tab === "skills"
+                      ? "Search skills…"
+                      : tab === "agents"
+                        ? "Search agents, tools…"
+                        : tab === "rules"
+                          ? "(search not used here)"
+                          : "Search MCP servers…"
               }
               className="h-7 flex-1 bg-transparent text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
             />
@@ -820,6 +937,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         <div className="flex-1 overflow-y-auto p-4">
           <ErrorBoundary label="settings">
             {tab === "studio" && <StudioTab query={query} onClose={onClose} />}
+            {tab === "styles" && <StylesTab query={query} />}
             {tab === "skills" && <SkillManagerTab query={query} />}
             {tab === "agents" && <SkillsTab query={query} />}
             {tab === "mcp" && <McpTab query={query} />}

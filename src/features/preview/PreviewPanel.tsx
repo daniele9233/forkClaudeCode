@@ -14,12 +14,16 @@ import {
   Camera,
   ScanEye,
   Accessibility,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useDevServerStore } from "@/stores/devserver.store";
 import { usePageErrorsStore, type PageError } from "@/stores/pageErrors.store";
 import { useQAStore } from "@/stores/qa.store";
+import { useStylesStore } from "@/stores/styles.store";
+import { useWorkspaceStore, baseName } from "@/stores/workspace.store";
+import { captureStyle } from "@/opencode/style";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession } from "@/opencode/session";
 import { useSelectionStore, type SelectedElement } from "@/stores/selection.store";
@@ -325,6 +329,32 @@ Fix everything below 8/10 now, mobile-first. Prioritize what removes the "AI-gen
     }
   };
 
+  // Style Memory: distill this project's visual language into a reusable saved
+  // style (DESIGN.md), activate it, so you can reapply the exact look later.
+  const [savingStyle, setSavingStyle] = useState(false);
+  const saveStyle = async () => {
+    if (savingStyle) return;
+    setSavingStyle(true);
+    try {
+      const spec = await captureStyle();
+      const dir = useWorkspaceStore.getState().currentDir;
+      const name = `${dir ? baseName(dir) : "Progetto"} — stile`;
+      const id = useStylesStore.getState().addStyle(name, spec);
+      useStylesStore.getState().setActive(id);
+      useDevServerStore
+        .getState()
+        .appendLog(
+          `[style] salvato e attivato: ${name} (gestiscilo in Impostazioni → Stili)`,
+        );
+    } catch (e) {
+      useDevServerStore
+        .getState()
+        .appendLog(`[style] ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSavingStyle(false);
+    }
+  };
+
   // Automated a11y/QA scan: ask the injected script to audit the live DOM,
   // then show the findings with a one-click "fix with agent".
   const runA11yScan = () => {
@@ -480,6 +510,21 @@ Guidelines: add real alt text; label every control; ensure text contrast ≥ 4.5
             A11y
           </button>
         )}
+
+        {/* Save this project's visual style for reuse on future sites */}
+        <button
+          onClick={() => void saveStyle()}
+          disabled={savingStyle}
+          className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] transition-colors hover:bg-[var(--primary)]/15 hover:text-[var(--primary)] disabled:opacity-50"
+          title="Salva stile: memorizza il linguaggio visivo di questo sito per riusarlo su altri progetti"
+        >
+          {savingStyle ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Palette className="h-3.5 w-3.5" />
+          )}
+          Stile
+        </button>
 
         {/* QA findings badge — reopen the drawer once a scan has run */}
         {qaRan && (

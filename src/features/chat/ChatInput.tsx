@@ -10,12 +10,15 @@ import {
   Loader2,
   Pin,
   RotateCcw,
+  Palette,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { usePromptCost } from "@/features/inspector/usePromptCost";
 import { fmtNum } from "@/features/inspector/useSessionStats";
 import { useSkillsStore } from "@/stores/skills.store";
+import { useStylesStore } from "@/stores/styles.store";
 import { useComposerStore } from "@/stores/composer.store";
 import { enhancePrompt } from "@/opencode/enhance";
 import { planInjection } from "@/skills/match";
@@ -76,6 +79,14 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
     [text, pinned, sticky, enabled, autoApply],
   );
   const hasSticky = Object.values(sticky).some((t) => t > 0);
+
+  // Active saved style (injected into every send until deactivated).
+  const styleActiveId = useStylesStore((s) => s.activeId);
+  const styles = useStylesStore((s) => s.styles);
+  const setActiveStyle = useStylesStore((s) => s.setActive);
+  const activeStyle = styleActiveId
+    ? styles.find((s) => s.id === styleActiveId)
+    : undefined;
 
   // A Studio recipe (or any external source) can push a ready-made brief into
   // the composer. Adopt it, focus, grow the textarea, then clear the channel.
@@ -270,6 +281,27 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
       {enhanceError && (
         <div className="border-b border-[var(--border)] px-3 py-1.5 text-[10px] text-red-400">
           Perfeziona non riuscito: {enhanceError}
+        </div>
+      )}
+
+      {/* Active saved style — applied to every send until you turn it off */}
+      {!isRunning && activeStyle && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border)] px-3 py-1.5">
+          <span className="hud-label text-[var(--muted-foreground)]/60">stile</span>
+          <span
+            className="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-medium"
+            style={{ background: `${activeStyle.accent}22`, color: activeStyle.accent }}
+          >
+            <Palette className="h-2.5 w-2.5" />
+            {activeStyle.name}
+            <button
+              onClick={() => setActiveStyle(null)}
+              title="Disattiva stile"
+              className="ml-0.5 rounded hover:bg-black/10"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </span>
         </div>
       )}
 
