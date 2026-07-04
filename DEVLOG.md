@@ -15,6 +15,46 @@
 
 ---
 
+## 2026-07-04 · Skill engine v2: sticky, slash+pin, system-role, semantic, negative/exclusion
+
+**Fase:** 12.32 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (le 5 aree)
+1. **Sticky Skills** — `skills.store`: `sticky: Record<id,turni>` + `noteActivated`
+   (decadimento −1/turno, refresh a STICKY_TURNS=3 per le skill che scattano).
+   Risolve il "secondo prompt": "ora fallo rosso" mantiene attiva la skill motion.
+2. **Slash + Pinning** — `resolveSlash("/motion …")` forza una skill (bypassa lo
+   score, taglia il comando); i chip "will apply" sono ora **cliccabili**:
+   click = fissa/sfissa (`pinned` nello store), le pinnate valgono tutta la
+   sessione; bottone **reset** per svuotare le sticky.
+3. **System-role injection** — i playbook + direttive (webDesigner, preview
+   policy) vanno nel ruolo **`system`** (SDK `session.prompt` supporta `system`),
+   il messaggio utente resta pulito (solo id-tag nascosti per i chip). I modelli
+   obbediscono molto più stabilmente. `session.ts` passa `system`.
+4. **Matching ibrido** — mappa `SYNONYMS` (es. muovere/fade → motion) espande i
+   token prima dello scoring; nuovo campo `phrases` (frasi d'esempio, +3). Così
+   "fai muovere / effetto fade" aggancia motion senza la keyword esatta.
+5. **Negative keywords + exclusion** — `negativeKeywords` (es. "senza animazioni"
+   → sopprime motion) e `excludes` (neubrutalism ⟂ minimalism: mai insieme,
+   vince il punteggio più alto). Greedy pick con controllo conflitti.
+
+Nuove funzioni in `match.ts`: `resolveSlash`, `planInjection` (combina
+slash+match+pinned+sticky, puro), `buildSkillSystem`, `tagSkills`. `injectSkills`
+mantenuto per i test/round-trip. UI chip riscritti (pin/sticky/reset). +8 test
+(`skillsEngine.test.ts`), 47 totali.
+
+### Perché / decisione
+Feedback tecnico dell'utente: con matching solo-keyword il sistema perde le
+skill al secondo prompt, non ha override manuale, mescola system e user, fallisce
+sui sinonimi e sui conflitti. Tutte e 5 le aree affrontate.
+
+### Gotcha / attenzione
+- `sticky` è runtime-only (persist `partialize` esclude sticky; pinned sì).
+- `planInjection` legge lo store ma non muta; `noteActivated` chiamato solo nel
+  send path (non nel preview dei chip).
+- L'iniezione nel system NON rompe i chip: `tagSkills` mette id-marker vuoti nel
+  testo utente, `parseSkills` li estrae e li toglie come prima.
+
 ## 2026-07-04 · Prompt Enhancer ✨ (il fix del problema "prompt")
 
 **Fase:** 12.31 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

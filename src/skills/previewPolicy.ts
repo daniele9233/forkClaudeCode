@@ -44,3 +44,9 @@ export function injectPreviewPolicy(text: string): string {
   if (!KEYWORDS.some((k) => lower.includes(k))) return text;
   return `${NOTE_OPEN}\n${POLICY}\n${NOTE_CLOSE}\n\n${text}`;
 }
+
+/** The raw policy for SYSTEM-role injection, or null when not web-related. */
+export function previewPolicyNote(text: string): string | null {
+  const lower = text.toLowerCase();
+  return KEYWORDS.some((k) => lower.includes(k)) ? POLICY : null;
+}

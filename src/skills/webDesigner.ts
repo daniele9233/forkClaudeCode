@@ -53,3 +53,10 @@ export function injectWebDesigner(text: string, enabled: boolean): string {
   if (!KEYWORDS.some((k) => lower.includes(k))) return text;
   return `${NOTE_OPEN}\n${DIRECTIVE}\n${NOTE_CLOSE}\n\n${text}`;
 }
+
+/** The raw directive for SYSTEM-role injection, or null when it shouldn't apply. */
+export function webDesignerDirective(text: string, enabled: boolean): string | null {
+  if (!enabled) return null;
+  const lower = text.toLowerCase();
+  return KEYWORDS.some((k) => lower.includes(k)) ? DIRECTIVE : null;
+}

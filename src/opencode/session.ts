@@ -76,6 +76,9 @@ interface SendPromptInput {
   modelID?: string;
   providerID?: string;
   agent?: string;
+  /** System-role instructions (skill playbooks + directives) — kept out of the
+   *  user message so the model follows them more reliably. */
+  system?: string;
   /** Extra file parts (e.g. a preview screenshot for visual review). */
   files?: FilePartInput[];
 }
@@ -99,6 +102,7 @@ export function useSendPrompt() {
       modelID,
       providerID,
       agent,
+      system,
       files,
     }: SendPromptInput) => {
       const res = await getClient().session.prompt({
@@ -107,6 +111,7 @@ export function useSendPrompt() {
           parts: [{ type: "text", text }, ...(files ?? [])],
           ...(modelID && providerID ? { model: { modelID, providerID } } : {}),
           ...(agent ? { agent } : {}),
+          ...(system ? { system } : {}),
         },
         throwOnError: true,
       });

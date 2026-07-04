@@ -20,6 +20,17 @@ export interface Skill {
   body: string;
   /** Optional credit / inspiration. */
   source?: string;
+  /**
+   * Explicit slash-command alias (e.g. "motion" → `/motion …`). Optional — the
+   * matcher also accepts a `/keyword` or `/id`, so this is only for a nicer name.
+   */
+  command?: string;
+  /** Example phrases (multi-word) that also trigger this skill — semantic net. */
+  phrases?: string[];
+  /** If any of these appear in the prompt, SUPPRESS this skill (e.g. "no animations"). */
+  negativeKeywords?: string[];
+  /** Skill ids that are mutually exclusive with this one (keep the higher-scored). */
+  excludes?: string[];
 }
 
 export const SKILLS: Skill[] = [
@@ -416,6 +427,7 @@ export const SKILLS: Skill[] = [
       "- Keep it usable: strong focus states, AA contrast, restrained motion. Bold ≠ chaotic — repeat the system.",
     ].join("\n"),
     source: "Neubrutalism (Gumroad-style)",
+    excludes: ["minimalism"],
   },
   {
     id: "neumorphism",
@@ -499,6 +511,7 @@ export const SKILLS: Skill[] = [
       "- Motion is minimal and slow (long ease-out fades, subtle image reveals). Every element must justify its presence — remove the rest.",
     ].join("\n"),
     source: "Swiss / editorial design",
+    excludes: ["neubrutalism"],
   },
   {
     id: "web-layouts",
@@ -688,6 +701,28 @@ export const SKILLS: Skill[] = [
       "SELF-CHECK: no transition:all, no scale(0), no ease-in on UI, no >300ms UI durations, popover origin correct, exit faster than enter.",
     ].join("\n"),
     source: "emilkowalski/skills · animations.dev",
+    command: "motion",
+    phrases: [
+      "fai muovere",
+      "far muovere",
+      "effetto fade",
+      "fade in",
+      "slide in",
+      "far scorrere",
+      "transizione fluida",
+      "animazione fluida",
+      "make it move",
+      "smooth transition",
+    ],
+    negativeKeywords: [
+      "senza animazioni",
+      "niente animazioni",
+      "nessuna animazione",
+      "no animation",
+      "no animations",
+      "no motion",
+      "statico",
+    ],
   },
   {
     id: "design-md",

@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import {
   SendHorizontal,
   Square,
@@ -8,6 +8,8 @@ import {
   Rocket,
   Sparkles,
   Loader2,
+  Pin,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
@@ -16,7 +18,7 @@ import { fmtNum } from "@/features/inspector/useSessionStats";
 import { useSkillsStore } from "@/stores/skills.store";
 import { useComposerStore } from "@/stores/composer.store";
 import { enhancePrompt } from "@/opencode/enhance";
-import { matchSkills } from "@/skills/match";
+import { planInjection } from "@/skills/match";
 
 export type AgentMode = "build" | "plan";
 
@@ -61,9 +63,19 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const [iters, setIters] = useState("10");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cost = usePromptCost(text);
-  const skillsEnabled = useSkillsStore((s) => s.enabled);
-  const autoApplySkills = useSkillsStore((s) => s.autoApply);
-  const matched = autoApplySkills ? matchSkills(text, skillsEnabled) : [];
+  // Subscribe to the skill inputs so the "will apply" chips recompute when the
+  // prompt, pins, sticky warmth or settings change.
+  const pinned = useSkillsStore((s) => s.pinned);
+  const sticky = useSkillsStore((s) => s.sticky);
+  const enabled = useSkillsStore((s) => s.enabled);
+  const autoApply = useSkillsStore((s) => s.autoApply);
+  const togglePin = useSkillsStore((s) => s.togglePin);
+  const clearSticky = useSkillsStore((s) => s.clearSticky);
+  const planned = useMemo(
+    () => planInjection(text).planned,
+    [text, pinned, sticky, enabled, autoApply],
+  );
+  const hasSticky = Object.values(sticky).some((t) => t > 0);
 
   // A Studio recipe (or any external source) can push a ready-made brief into
   // the composer. Adopt it, focus, grow the textarea, then clear the channel.
@@ -261,19 +273,49 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
         </div>
       )}
 
-      {/* Live "skills that will auto-apply" chips */}
-      {!isRunning && matched.length > 0 && (
+      {/* Live "skills that will apply" chips — click to pin/unpin; sticky &
+          pinned skills persist across turns. */}
+      {!isRunning && planned.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border)] px-3 py-1.5">
           <span className="hud-label text-[var(--muted-foreground)]/60">will apply</span>
-          {matched.map((s) => (
-            <span
-              key={s.id}
-              title={s.description}
-              className="flex items-center gap-1 rounded-sm bg-[var(--primary)]/15 px-1.5 py-0.5 text-[10px] font-medium text-[var(--primary)]"
+          {planned.map(({ skill, source }) => {
+            const isPinned = source === "pinned" || pinned.includes(skill.id);
+            return (
+              <button
+                key={skill.id}
+                onClick={() => togglePin(skill.id)}
+                title={
+                  (isPinned
+                    ? "Fissata per la sessione — clicca per sfissare\n\n"
+                    : source === "sticky"
+                      ? "Attiva ancora per qualche turno — clicca per fissarla\n\n"
+                      : "Clicca per fissare questa skill per la sessione\n\n") +
+                  skill.description
+                }
+                className={cn(
+                  "flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+                  isPinned
+                    ? "bg-[var(--primary)]/25 text-[var(--primary)] ring-1 ring-[var(--primary)]/40"
+                    : source === "sticky"
+                      ? "bg-[var(--muted)]/60 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                      : "bg-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/25",
+                )}
+              >
+                {skill.emoji} {skill.name}
+                {isPinned && <Pin className="h-2.5 w-2.5 fill-current" />}
+              </button>
+            );
+          })}
+          {hasSticky && (
+            <button
+              onClick={clearSticky}
+              title="Reset: dimentica le skill 'calde' dei turni precedenti"
+              className="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)]/70 hover:text-[var(--foreground)]"
             >
-              {s.emoji} {s.name}
-            </span>
-          ))}
+              <RotateCcw className="h-2.5 w-2.5" />
+              reset
+            </button>
+          )}
         </div>
       )}
 

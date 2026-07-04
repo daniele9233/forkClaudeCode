@@ -5,9 +5,9 @@ import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
 import { useConfig } from "@/opencode/config";
 import { useSkillsStore } from "@/stores/skills.store";
-import { matchSkills, injectSkills } from "@/skills/match";
-import { injectPreviewPolicy } from "@/skills/previewPolicy";
-import { injectWebDesigner } from "@/skills/webDesigner";
+import { planInjection, buildSkillSystem, tagSkills } from "@/skills/match";
+import { previewPolicyNote } from "@/skills/previewPolicy";
+import { webDesignerDirective } from "@/skills/webDesigner";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
 import { useDevServerEvents } from "@/features/preview/useDevServerEvents";
 import { useUIStore } from "@/stores/ui.store";
@@ -52,8 +52,6 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
   const createSession = useCreateSession();
   const abortSession = useAbortSession();
   const { data: config } = useConfig();
-  const skillsEnabled = useSkillsStore((s) => s.enabled);
-  const autoApplySkills = useSkillsStore((s) => s.autoApply);
   const terminalActive = bottomOpen && bottomTab === "terminal";
 
   const queueItems = useQueueStore((s) => s.items);
@@ -89,19 +87,23 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         return;
       }
 
-      // Auto-apply matching skills: inject their playbooks into the prompt (the
-      // user describes the goal, the matcher picks the skill). Markers let the
-      // chat strip the injected text and show a badge instead.
-      const skills = autoApplySkills ? matchSkills(text, skillsEnabled) : [];
-      // Also inject the hidden preview/dev-server policy on web-related prompts,
-      // so the agent lets kikkoCode manage the preview instead of spawning
-      // detached servers or opening the browser. Web Designer mode (if on) adds
-      // an always-on senior front-end directive on top.
-      const webDesigner = useSkillsStore.getState().webDesigner;
-      const finalText = injectWebDesigner(
-        injectPreviewPolicy(injectSkills(text, skills)),
-        webDesigner,
-      );
+      // Resolve which skills apply — slash command, keyword/phrase match, plus
+      // pinned and still-warm sticky skills from recent turns (fixes the "second
+      // prompt" problem: "ora fallo rosso" keeps the animation skill loaded).
+      const { planned, clean, freshIds } = planInjection(text);
+      const skills = planned.map((p) => p.skill);
+
+      // Inject the playbooks + directives into the SYSTEM role (models obey the
+      // system message far more reliably than instructions mixed into the user's
+      // text). The user message stays clean; hidden id-tags only drive the chips.
+      const webDesignerOn = useSkillsStore.getState().webDesigner;
+      const systemParts = [
+        buildSkillSystem(skills),
+        webDesignerDirective(clean, webDesignerOn),
+        previewPolicyNote(clean),
+      ].filter((x): x is string => !!x);
+      const system = systemParts.length ? systemParts.join("\n\n---\n\n") : undefined;
+      const userText = tagSkills(clean, skills);
 
       // Send with the explicitly selected model so the request never falls back
       // to the engine's default provider. kikkoCode's own selection wins over
@@ -109,7 +111,16 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       const selected = useModelStore.getState().selected ?? config?.model ?? "";
       const { providerID, modelID } = splitModel(selected);
 
-      sendPrompt.mutate({ sessionId, text: finalText, agent: mode, providerID, modelID });
+      sendPrompt.mutate({
+        sessionId,
+        text: userText,
+        system,
+        agent: mode,
+        providerID,
+        modelID,
+      });
+      // Keep the just-matched skills warm for the next few turns.
+      useSkillsStore.getState().noteActivated(freshIds);
     },
     [
       activeSessionId,
@@ -119,8 +130,6 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       sendPrompt,
       setActiveSession,
       config?.model,
-      autoApplySkills,
-      skillsEnabled,
     ],
   );
 
