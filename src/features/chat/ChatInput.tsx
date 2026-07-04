@@ -1,10 +1,11 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { SendHorizontal, Square, Hammer, Map, ListPlus, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { usePromptCost } from "@/features/inspector/usePromptCost";
 import { fmtNum } from "@/features/inspector/useSessionStats";
 import { useSkillsStore } from "@/stores/skills.store";
+import { useComposerStore } from "@/stores/composer.store";
 import { matchSkills } from "@/skills/match";
 
 export type AgentMode = "build" | "plan";
@@ -50,6 +51,25 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const skillsEnabled = useSkillsStore((s) => s.enabled);
   const autoApplySkills = useSkillsStore((s) => s.autoApply);
   const matched = autoApplySkills ? matchSkills(text, skillsEnabled) : [];
+
+  // A Studio recipe (or any external source) can push a ready-made brief into
+  // the composer. Adopt it, focus, grow the textarea, then clear the channel.
+  const composerNonce = useComposerStore((s) => s.nonce);
+  useEffect(() => {
+    const { pending, consume } = useComposerStore.getState();
+    if (pending == null) return;
+    setText(pending);
+    consume();
+    const el = textareaRef.current;
+    if (el) {
+      requestAnimationFrame(() => {
+        el.focus();
+        el.style.height = "auto";
+        el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.5))}px`;
+        el.setSelectionRange(el.value.length, el.value.length);
+      });
+    }
+  }, [composerNonce]);
 
   const submit = useCallback(() => {
     const trimmed = text.trim();

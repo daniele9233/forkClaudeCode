@@ -15,6 +15,46 @@
 
 ---
 
+## 2026-07-04 · Studio: 10 ricette di web design + skill top-market
+
+**Fase:** 12.24 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+- **`src/skills/catalog.ts`** — catalogo skill da 12 → 19. Nuove:
+  `impeccable` (💎, evita i tell-tale del design AI generico: no Inter/Arial,
+  no grigio-su-colore, no nero puro, no card annidate, no easing elastico —
+  da pbakaus/impeccable), `neubrutalism` (🟨), `neumorphism` (🔘, con fix
+  a11y sul contrasto debole), `skeuomorphism` (🧴), `minimalism` editoriale
+  (⬜), `web-layouts` (📐: F/Z-shape, split-screen, asimmetrico, masonry
+  Pinterest), `web-architect` (🏛️: sito multi-sezione completo end-to-end).
+- **`src/skills/recipes.ts`** (nuovo) — 10 `WebsiteRecipe` che combinano
+  stile + layout in un brief pronto e self-contained (in italiano, con i
+  termini di design in inglese per il matcher): Bento SaaS, Glass Aurora AI,
+  Neubrutalist Agency, Soft Neumorphic, Editorial Minimal, Skeuomorphic
+  Product, Pinterest Gallery, Split Duotone, Z-Pattern Startup, Immersive
+  Scroll. Ogni ricetta cita le skill che sfrutta + un accento colore.
+- **`src/stores/composer.store.ts`** (nuovo) — canale one-shot `fill`/`consume`
+  (+ `nonce`) per spingere testo nel composer da fuori.
+- **`src/features/chat/ChatInput.tsx`** — adotta il `pending` del composer,
+  focus + auto-grow del textarea.
+- **`src/features/settings/SettingsModal.tsx`** — nuova scheda **Studio**
+  (default) con card cliccabili delle 10 ricette + spiegazione di cosa sono
+  le skill in cima alla scheda Skills.
+- **`src/skills/recipes.test.ts`** (nuovo) — 4 test (10 ricette, id unici,
+  skillId validi, brief sostanziosi). Totale 34 test verdi.
+
+### Perché / decisione
+La richiesta era specializzare l'agente in siti web professionali e rendere
+comprensibile la sezione skill. I brief sono **self-contained** così non
+dipendono dal cap di 2 skill del matcher; i keyword che contengono attivano
+comunque le skill giuste come guida extra. La scheda Studio è la porta
+d'ingresso "clicca e vai" richiesta ("10 prompt diversi").
+
+### Gotcha / attenzione
+- `matchSkills` resta a max 2: la ricchezza viene dal brief, non da N skill.
+- Le ricette sono in italiano ma i termini stilistici sono in inglese: serve
+  per il matcher e per il modello. Non tradurli.
+
 ## 2026-07-03 · ModelSwitcher: stato "online" verde sul modello agganciato
 
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

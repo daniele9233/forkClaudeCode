@@ -11,6 +11,8 @@ import {
   Search as SearchIcon,
   ChevronDown,
   ChevronRight,
+  Sparkles,
+  ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
@@ -19,12 +21,14 @@ import { useAgents, useMcpStatus, useConfig, useUpdateConfig } from "@/opencode/
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
 import { SKILLS } from "@/skills/catalog";
 import { activeCatalog } from "@/skills/match";
+import { RECIPES } from "@/skills/recipes";
 import { importSkillFromUrl } from "@/skills/importSkill";
 import { useSkillsStore } from "@/stores/skills.store";
+import { useComposerStore } from "@/stores/composer.store";
 import { useMemoryStore } from "@/stores/memory.store";
 import { RulesTab } from "./RulesTab";
 
-type Tab = "skills" | "agents" | "mcp" | "rules";
+type Tab = "studio" | "skills" | "agents" | "mcp" | "rules";
 
 /* ── Skills tab ──────────────────────────────────────────────── */
 
@@ -360,6 +364,88 @@ function McpTab({ query }: { query: string }) {
   );
 }
 
+/* ── Studio tab (one-click website design recipes) ────────────── */
+
+function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
+  const fill = useComposerStore((s) => s.fill);
+  const q = query.trim().toLowerCase();
+  const recipes = q
+    ? RECIPES.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.style.toLowerCase().includes(q) ||
+          r.layout.toLowerCase().includes(q) ||
+          r.description.toLowerCase().includes(q),
+      )
+    : RECIPES;
+
+  const launch = (prompt: string) => {
+    fill(prompt);
+    onClose();
+  };
+
+  return (
+    <div className="space-y-2.5">
+      {/* What this is */}
+      <div className="rounded-lg border border-[var(--primary)]/25 bg-[var(--primary)]/5 p-3">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--foreground)]">
+          <Sparkles className="h-3.5 w-3.5 text-[var(--primary)]" />
+          Studio · 10 ricette di design
+        </div>
+        <p className="mt-1 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+          Ogni ricetta è un briefing pronto che combina uno <b>stile</b> e un{" "}
+          <b>layout</b> professionale e richiama in automatico le skill migliori. Clicca
+          una ricetta: il testo viene inserito nella chat, poi premi invio per far
+          costruire all'agente un sito di ultima generazione.
+        </p>
+      </div>
+
+      {recipes.length === 0 && (
+        <p className="py-6 text-center text-xs text-[var(--muted-foreground)]">
+          Nessuna ricetta per “{query}”
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        {recipes.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => launch(r.prompt)}
+            title={`Inserisci il brief “${r.name}” nella chat`}
+            className="group relative flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--muted)]/40"
+          >
+            {/* Accent wash */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full opacity-30 blur-2xl transition-opacity group-hover:opacity-60"
+              style={{ background: r.accent }}
+            />
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-lg leading-none">{r.emoji}</span>
+              <ArrowUpRight className="h-3.5 w-3.5 text-[var(--muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100" />
+            </div>
+            <div className="text-xs font-semibold text-[var(--foreground)]">{r.name}</div>
+            <p className="mt-0.5 line-clamp-2 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+              {r.description}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1">
+              <span
+                className="rounded-sm px-1.5 py-0.5 text-[9px] font-medium"
+                style={{ background: `${r.accent}22`, color: r.accent }}
+              >
+                {r.style}
+              </span>
+              <span className="rounded-sm bg-[var(--muted)] px-1.5 py-0.5 text-[9px] text-[var(--muted-foreground)]">
+                {r.layout}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Skills tab (kikkoCode skill playbooks) ───────────────────── */
 
 function SkillManagerTab({ query }: { query: string }) {
@@ -407,6 +493,14 @@ function SkillManagerTab({ query }: { query: string }) {
 
   return (
     <div className="space-y-2">
+      {/* What skills are */}
+      <p className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/10 p-2.5 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+        Le <b className="text-[var(--foreground)]">skill</b> sono playbook di un esperto.
+        Quando la tua richiesta contiene le loro parole-chiave, la skill viene iniettata
+        in automatico nel prompt e l'agente la segue. Per iniziare subito usa la scheda{" "}
+        <b className="text-[var(--foreground)]">Studio</b>.
+      </p>
+
       {/* Auto-apply master toggle */}
       <button
         onClick={() => setAutoApply(!autoApply)}
@@ -562,7 +656,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
-  const [tab, setTab] = useState<Tab>("skills");
+  const [tab, setTab] = useState<Tab>("studio");
   const [query, setQuery] = useState("");
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -577,6 +671,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const autoMemorize = useMemoryStore((s) => s.autoMemorize);
 
   const TABS: { id: Tab; label: string; count: string }[] = [
+    { id: "studio", label: "Studio", count: String(RECIPES.length) },
     {
       id: "skills",
       label: "Skills",
@@ -652,13 +747,15 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={
-                tab === "skills"
-                  ? "Search skills…"
-                  : tab === "agents"
-                    ? "Search agents, tools…"
-                    : tab === "rules"
-                      ? "(search not used here)"
-                      : "Search MCP servers…"
+                tab === "studio"
+                  ? "Cerca ricette di design…"
+                  : tab === "skills"
+                    ? "Search skills…"
+                    : tab === "agents"
+                      ? "Search agents, tools…"
+                      : tab === "rules"
+                        ? "(search not used here)"
+                        : "Search MCP servers…"
               }
               className="h-7 flex-1 bg-transparent text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
             />
@@ -677,6 +774,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         {/* Tab content — boundary keeps a bad engine payload from blanking the app */}
         <div className="flex-1 overflow-y-auto p-4">
           <ErrorBoundary label="settings">
+            {tab === "studio" && <StudioTab query={query} onClose={onClose} />}
             {tab === "skills" && <SkillManagerTab query={query} />}
             {tab === "agents" && <SkillsTab query={query} />}
             {tab === "mcp" && <McpTab query={query} />}
