@@ -5,8 +5,9 @@ import { SKILLS } from "./catalog";
 const skillIds = new Set(SKILLS.map((s) => s.id));
 
 describe("studio recipes", () => {
-  it("ships exactly 10 recipes", () => {
-    expect(RECIPES).toHaveLength(10);
+  it("ships a rich catalog (style starters + enterprise verticals)", () => {
+    expect(RECIPES.length).toBeGreaterThanOrEqual(20);
+    expect(RECIPES.some((r) => r.category === "enterprise")).toBe(true);
   });
 
   it("has unique ids", () => {

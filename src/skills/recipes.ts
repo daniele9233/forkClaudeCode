@@ -25,8 +25,31 @@ export interface WebsiteRecipe {
   accent: string;
   /** Skills this recipe leans on (for the "uses" chips). */
   skillIds: string[];
+  /**
+   * Grouping in the Studio tab. "style" = design-language starters;
+   * "enterprise" = full, sellable, industry-specific websites. Defaults to
+   * "style" when omitted.
+   */
+  category?: "style" | "enterprise";
   /** The full brief dropped into the composer on click. */
   prompt: string;
+}
+
+/**
+ * Extra hard requirements appended ONLY to enterprise briefs — the bar that
+ * makes the result a real, sellable ($10k+) product, not a demo. Kept separate
+ * from BAR so the design starters stay lightweight.
+ */
+const ENTERPRISE = `Livello ENTERPRISE (deve poter essere venduto a un cliente reale):
+- Multi-pagina con routing (React Router): Home + le pagine interne pertinenti (es. Features/Solutions, Pricing, About, Blog/Resources, Contact, Legal). Nav e footer completi e coerenti.
+- Conversione: CTA chiare e ripetute, form reali (validati, stati success/error), lead capture, social proof forte (loghi, numeri, case study, testimonial), trust (sicurezza, certificazioni, FAQ).
+- Contenuti credibili e specifici del settore (copy professionale, non placeholder), microcopy curato, SEO di base (title/meta/OpenGraph, heading semantici, sitemap-ready).
+- Design-system solido: token centralizzati, componenti riusabili (Button/Card/Input/Badge/Section), dark/light se sensato, stati completi ovunque.
+- Qualità produzione: performance (lazy-load, immagini ottimizzate, code-split per route), accessibilità AA reale, i18n-ready dove utile, pronto al deploy.`;
+
+/** Compose a full ENTERPRISE brief: stack + core + enterprise bar + quality bar. */
+function enterprise(core: string): string {
+  return `${STACK}\n\n${core.trim()}\n\n${ENTERPRISE}\n\n${BAR}`;
 }
 
 /**
@@ -198,5 +221,232 @@ export const RECIPES: WebsiteRecipe[] = [
 - 3D/creative: un momento 3D (React Three Fiber o Spline) legato allo scroll come climax della storia; fallback statico.
 - Stile: composizione asimmetrica/broken-grid, tipografia oversize come elemento grafico, immagini full-width con overlay, palette coerente.
 - Sezioni: hero cinematografico, capitoli della storia (ognuno con un layout diverso), momento di prodotto pinnato, prova sociale, CTA finale, footer.`),
+  },
+
+  /* ── Enterprise verticals — full, sellable ($10k+) websites ──────── */
+
+  {
+    id: "fintech-neobank",
+    name: "Fintech / Neobank",
+    emoji: "🏦",
+    style: "Clean corporate + data",
+    layout: "Dashboard hero + grid",
+    description: "Piattaforma bancaria/fintech: fiducia, sicurezza, numeri.",
+    accent: "#2563eb",
+    category: "enterprise",
+    skillIds: ["web-architect", "type-color", "component-registry", "design-system"],
+    prompt:
+      enterprise(`Costruisci il sito di una PIATTAFORMA FINTECH / NEOBANK B2C+B2B, professionale e affidabile.
+- Hero: headline sul valore + un mockup di dashboard/app con dati (grafici, saldo, transazioni) accanto; barra di trust (licenze, sicurezza, "regolamentato").
+- Sezioni: prodotti (conti, carte, pagamenti, investimenti), come funziona, sicurezza & compliance (crittografia, 2FA), pricing trasparente, integrazioni/API, testimonial + numeri (utenti, volumi), FAQ, CTA "apri conto".
+- Stile: corporate pulito, palette blu fiducia + neutri tintati, data-viz sobria (usa componenti chart), micro-interazioni discrete. Serietà bancaria, mai giocattoloso.`),
+  },
+  {
+    id: "cybersecurity-enterprise",
+    name: "Cybersecurity",
+    emoji: "🛡️",
+    style: "Dark techy + trust",
+    layout: "Z-flow + feature grid",
+    description: "Security enterprise: autorevole, tecnica, orientata al CISO.",
+    accent: "#22d3ee",
+    category: "enterprise",
+    skillIds: ["web-architect", "glass-aurora", "type-color", "aceternity-magic"],
+    prompt:
+      enterprise(`Costruisci il sito di una PIATTAFORMA DI CYBERSECURITY enterprise (rivolto a CISO/IT).
+- Hero scuro ad alto impatto: claim sulla protezione, animazione sottile (griglia/rete/threat map), badge di certificazioni (SOC2, ISO 27001, GDPR).
+- Sezioni: piattaforma/moduli (XDR, threat intel, zero-trust), come funziona (diagramma architettura), metriche (minacce bloccate, MTTR), casi studio per settore, integrazioni, risorse (whitepaper/report), demo request form.
+- Stile: dark, accenti ciano/verde tech, tipografia precisa, glow misurato, code/terminal snippet dove utile. Autorevole e rassicurante.`),
+  },
+  {
+    id: "healthtech-medical",
+    name: "HealthTech / Medical",
+    emoji: "🩺",
+    style: "Calm, trustworthy, accessible",
+    layout: "F-shape + cards",
+    description: "Sanità/medtech: calmo, accessibile, orientato alla fiducia.",
+    accent: "#0d9488",
+    category: "enterprise",
+    skillIds: ["web-architect", "a11y-guardian", "type-color", "responsive-master"],
+    prompt:
+      enterprise(`Costruisci il sito di una PIATTAFORMA HEALTHTECH / clinica digitale (telemedicina, cartella clinica, prenotazioni).
+- Hero rassicurante: immagine calda umana + claim sul beneficio di salute; CTA "prenota"/"inizia".
+- Sezioni: servizi/specialità, come funziona (3 step), medici/team con foto, sicurezza dati (HIPAA/GDPR), prezzi/coperture, storie pazienti, FAQ, prenotazione con form.
+- Stile: palette calma (verde/teal + neutri caldi), spazi ariosi, tipografia leggibilissima, ACCESSIBILITÀ impeccabile (AA+, focus, contrasto, target ≥44px). Tono empatico e professionale.`),
+  },
+  {
+    id: "realestate-luxury",
+    name: "Luxury Real Estate",
+    emoji: "🏛️",
+    style: "Cinematic editorial",
+    layout: "Full-bleed + split",
+    description: "Immobiliare di lusso: immagini full-bleed, eleganza, tour.",
+    accent: "#a16207",
+    category: "enterprise",
+    skillIds: ["web-architect", "minimalism", "smooth-scroll", "gsap-motion"],
+    prompt:
+      enterprise(`Costruisci il sito di un'agenzia IMMOBILIARE DI LUSSO / sviluppo residenziale premium.
+- Hero: immagine full-bleed cinematografica della proprietà + titolo elegante; smooth scroll (Lenis) e reveal raffinati.
+- Sezioni: proprietà in evidenza (galleria filtrabile con prezzo/zona/camere), scheda proprietà (gallery, planimetrie, mappa, tour 360/video), il team/agenti, servizi (compravendita, gestione), storie/press, contatto con form richiesta visita.
+- Stile: editoriale di lusso, whitespace, serif elegante + sans pulito, palette oro/greige sobria, fotografia protagonista. Percezione premium alta.`),
+  },
+  {
+    id: "lawfirm-corporate",
+    name: "Law Firm / Advisory",
+    emoji: "⚖️",
+    style: "Authoritative editorial",
+    layout: "F-shape serif",
+    description: "Studio legale/consulenza: autorevole, sobrio, credibile.",
+    accent: "#1e3a5f",
+    category: "enterprise",
+    skillIds: ["web-architect", "minimalism", "type-color", "impeccable"],
+    prompt:
+      enterprise(`Costruisci il sito di uno STUDIO LEGALE / società di consulenza professionale di alto livello.
+- Hero sobrio e autorevole: claim di competenza + prova (anni, casi, settori); niente fronzoli.
+- Sezioni: aree di pratica/servizi, professionisti (bio, foto, credenziali), casi/risultati (con numeri dove possibile), settori serviti, insight/blog legale, riconoscimenti/press, contatti + form consulenza.
+- Stile: editoriale autorevole, serif elegante per i titoli + sans leggibile, palette blu notte/bordeaux + neutri, griglia rigorosa, tono istituzionale e affidabile.`),
+  },
+  {
+    id: "ecommerce-d2c",
+    name: "D2C E-commerce Brand",
+    emoji: "🛍️",
+    style: "Premium product brand",
+    layout: "Editorial + grid",
+    description: "Brand D2C premium: storytelling prodotto + conversione.",
+    accent: "#db2777",
+    category: "enterprise",
+    skillIds: ["web-architect", "micro-interactions", "type-color", "gsap-motion"],
+    prompt:
+      enterprise(`Costruisci lo storefront di un BRAND D2C PREMIUM (prodotto fisico: beauty, food, design, apparel).
+- Hero brand-first: prodotto eroe con fotografia/still-life curata + claim; scroll reveal eleganti.
+- Sezioni: storytelling del prodotto (benefici, ingredienti/materiali, come si usa), griglia catalogo, pagina prodotto (galleria, varianti, add-to-cart, recensioni, bundle), sostenibilità/valori, UGC/social proof, newsletter, footer ricco.
+- Stile: editoriale premium con forte identità di brand, tipografia distintiva, micro-interazioni deliziose su add-to-cart e hover, palette del brand. Orientato alla conversione (AOV, trust badge, spedizione).`),
+  },
+  {
+    id: "web3-protocol",
+    name: "Web3 / Crypto Protocol",
+    emoji: "🪙",
+    style: "Futuristic glass + 3D",
+    layout: "Split + immersive",
+    description: "Protocollo web3/crypto: futuristico, animato, tecnico.",
+    accent: "#7c3aed",
+    category: "enterprise",
+    skillIds: ["web-architect", "glass-aurora", "creative-3d", "aceternity-magic"],
+    prompt:
+      enterprise(`Costruisci il sito di un PROTOCOLLO WEB3 / prodotto crypto (DeFi, L2, wallet, infra).
+- Hero futuristico: claim + oggetto/particellare 3D (React Three Fiber) o scena Spline, sfondo aurora/glow; stats on-chain (TVL, tx, holder).
+- Sezioni: come funziona (architettura/diagramma), prodotti/moduli, tokenomics (grafici), sicurezza/audit, ecosistema/partner, roadmap, docs/dev CTA, community.
+- Stile: glassmorphism scuro, gradient/glow misurati, tipografia tech, animazioni performanti. Innovativo ma credibile (audit, trasparenza), niente look "scam".`),
+  },
+  {
+    id: "ai-saas-enterprise",
+    name: "Enterprise AI Platform",
+    emoji: "🤖",
+    style: "Modern gradient + technical",
+    layout: "Bento + Z-flow",
+    description: "Piattaforma AI enterprise: moderna, tecnica, scalabile.",
+    accent: "#8b5cf6",
+    category: "enterprise",
+    skillIds: ["web-architect", "bento-grid", "aceternity-magic", "type-color"],
+    prompt:
+      enterprise(`Costruisci il sito di una PIATTAFORMA AI ENTERPRISE (LLM/agenti/automazione per aziende).
+- Hero: claim sul valore business + demo interattiva/prompt playground o mockup; loghi clienti enterprise.
+- Sezioni: capabilities in BENTO GRID, use case per funzione/settore, come funziona (pipeline/architettura), sicurezza & governance (dati, privacy, SOC2), integrazioni, pricing enterprise (+ "contatta il sales"), risorse/docs, CTA demo.
+- Stile: moderno con accenti gradient tasteful, un solo effetto firma per sezione, tipografia pulita, data/diagrammi chiari. Percezione "leader di categoria".`),
+  },
+  {
+    id: "devtool-api",
+    name: "Developer Tool / API",
+    emoji: "⌨️",
+    style: "Code-forward dark",
+    layout: "Split code + docs",
+    description: "Dev tool/API: code-first, scuro, per sviluppatori.",
+    accent: "#10b981",
+    category: "enterprise",
+    skillIds: ["web-architect", "component-registry", "type-color", "micro-interactions"],
+    prompt:
+      enterprise(`Costruisci il sito di un DEVELOPER TOOL / PIATTAFORMA API (infra, database, CI, SDK).
+- Hero code-forward: claim + blocco di codice reale con tab multi-linguaggio (curl/JS/Python) e copy button; "npm install" in evidenza.
+- Sezioni: feature per sviluppatori, quickstart (3 step con codice), esempi/ricette, performance/benchmark, pricing usage-based, docs/reference CTA, community (GitHub stars, Discord), changelog.
+- Stile: scuro, mono per il codice + sans pulito per il testo, accenti verde/emerald, micro-interazioni sui code block, syntax highlight. Tono tecnico e credibile.`),
+  },
+  {
+    id: "agency-award",
+    name: "Award-winning Agency",
+    emoji: "🏆",
+    style: "Immersive bold",
+    layout: "Asymmetrical + scroll",
+    description: "Agenzia creativa da premio: immersiva, audace, portfolio.",
+    accent: "#ef4444",
+    category: "enterprise",
+    skillIds: ["web-architect", "smooth-scroll", "gsap-motion", "creative-3d"],
+    prompt:
+      enterprise(`Costruisci il sito di un'AGENZIA CREATIVA/DIGITALE da premio (livello Awwwards).
+- Hero audace: tipografia oversize come grafica, smooth scroll (Lenis), reveal e transizioni cinematografiche (GSAP), eventuale tocco 3D.
+- Sezioni: lavori/case study (griglia asimmetrica con hover ricchi → pagina case study immersiva con risultati), servizi, approccio/processo, team, riconoscimenti/press, contatto con form progetto.
+- Stile: composizione asimmetrica/broken-grid, forte personalità, palette decisa, motion protagonista ma 60fps e reduced-motion safe. Deve gridare "studio top".`),
+  },
+  {
+    id: "hospitality-luxury",
+    name: "Luxury Hospitality",
+    emoji: "🏝️",
+    style: "Sensorial editorial",
+    layout: "Full-bleed + booking",
+    description: "Hotel/resort di lusso: sensoriale, elegante, prenotazione.",
+    accent: "#b45309",
+    category: "enterprise",
+    skillIds: ["web-architect", "minimalism", "smooth-scroll", "type-color"],
+    prompt:
+      enterprise(`Costruisci il sito di un HOTEL / RESORT / brand di HOSPITALITY di lusso.
+- Hero: immagine/video full-bleed evocativo + claim sensoriale; widget di prenotazione (date, ospiti) prominente.
+- Sezioni: camere & suite (galleria, servizi, prezzi), esperienze (spa, ristorante, attività), gallery, la location/storia, offerte, recensioni, prenota (form/booking), contatti & mappa.
+- Stile: editoriale sensoriale, whitespace, serif elegante, fotografia protagonista, palette calda naturale, motion lento e raffinato. Percezione 5 stelle.`),
+  },
+  {
+    id: "corporate-b2b",
+    name: "Corporate B2B / Consulting",
+    emoji: "🏢",
+    style: "Trust corporate",
+    layout: "Structured grid",
+    description: "Azienda B2B/consulenza: fiducia, case study, solidità.",
+    accent: "#0f766e",
+    category: "enterprise",
+    skillIds: ["web-architect", "design-system", "type-color", "impeccable"],
+    prompt:
+      enterprise(`Costruisci il sito di un'AZIENDA B2B / società di consulenza o servizi enterprise.
+- Hero professionale: claim su risultato di business + prova (clienti, numeri, settori); CTA "parla con noi".
+- Sezioni: soluzioni/servizi per esigenza, settori serviti, case study con risultati misurabili (KPI), metodo/processo, team leadership, partner/certificazioni, insight/blog, careers, contatti + form qualificato.
+- Stile: corporate solido ma moderno (non anonimo), design-system coerente, palette professionale con un accento, griglia rigorosa, tono competente e affidabile.`),
+  },
+  {
+    id: "saas-analytics",
+    name: "Analytics / Data Platform",
+    emoji: "📊",
+    style: "Dashboard-driven bento",
+    layout: "Bento + charts",
+    description: "Piattaforma analytics/dati: dashboard, grafici, insight.",
+    accent: "#3b82f6",
+    category: "enterprise",
+    skillIds: ["web-architect", "bento-grid", "component-registry", "design-system"],
+    prompt:
+      enterprise(`Costruisci il sito di una PIATTAFORMA ANALYTICS / BUSINESS INTELLIGENCE (dashboard, dati, insight).
+- Hero: claim + mockup di dashboard reale con grafici (usa componenti chart: line/bar/area), toggle live.
+- Sezioni: capability in BENTO GRID con mini-visualizzazioni, use case per team (marketing/finance/product), integrazioni sorgenti dati, sicurezza/governance, pricing per seat/volume, testimonial con KPI, CTA prova gratuita.
+- Stile: pulito e data-first, palette blu + neutri tintati, data-viz coerente e leggibile (accessibile), micro-interazioni sui numeri. Percezione "strumento serio".`),
+  },
+  {
+    id: "education-lms",
+    name: "Education / LMS",
+    emoji: "🎓",
+    style: "Friendly structured",
+    layout: "Cards + Z-flow",
+    description: "Piattaforma corsi/e-learning: chiara, motivante, conversione.",
+    accent: "#f59e0b",
+    category: "enterprise",
+    skillIds: ["web-architect", "micro-interactions", "type-color", "responsive-master"],
+    prompt:
+      enterprise(`Costruisci il sito di una PIATTAFORMA EDUCATION / e-learning / LMS (corsi online, bootcamp, academy).
+- Hero: claim sul risultato di apprendimento/carriera + CTA "inizia"; prova sociale (studenti, rating, aziende dove lavorano i diplomati).
+- Sezioni: catalogo corsi (card con livello, durata, prezzo, rating, filtri), pagina corso (programma/curriculum, docente, recensioni, iscrizione), percorsi/certificazioni, come funziona, per aziende (B2B), FAQ, iscrizione con form.
+- Stile: amichevole ma professionale, tipografia chiara, palette calda accogliente con un accento, micro-interazioni motivanti (progress, badge), gerarchia didattica ordinata.`),
   },
 ];

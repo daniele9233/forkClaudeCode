@@ -392,13 +392,13 @@ function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
       <div className="rounded-lg border border-[var(--primary)]/25 bg-[var(--primary)]/5 p-3">
         <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--foreground)]">
           <Sparkles className="h-3.5 w-3.5 text-[var(--primary)]" />
-          Studio · 10 ricette di design
+          Studio · {RECIPES.length} ricette pronte
         </div>
         <p className="mt-1 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
-          Ogni ricetta è un briefing pronto che combina uno <b>stile</b> e un{" "}
-          <b>layout</b> professionale e richiama in automatico le skill migliori. Clicca
-          una ricetta: il testo viene inserito nella chat, poi premi invio per far
-          costruire all'agente un sito di ultima generazione.
+          Ogni ricetta è un briefing pronto (già scritto correttamente per usare le
+          skill). Clicca: il prompt entra nella chat, premi invio e l'agente costruisce il
+          sito. <b>Enterprise</b> = siti completi full-stack, di livello vendibile;{" "}
+          <b>Stili</b> = starter di linguaggio visivo.
         </p>
       </div>
 
@@ -429,42 +429,64 @@ function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
-        {recipes.map((r) => (
-          <button
-            key={r.id}
-            onClick={() => launch(r.prompt)}
-            title={`Inserisci il brief “${r.name}” nella chat`}
-            className="group relative flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--muted)]/40"
-          >
-            {/* Accent wash */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full opacity-30 blur-2xl transition-opacity group-hover:opacity-60"
-              style={{ background: r.accent }}
-            />
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-lg leading-none">{r.emoji}</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-[var(--muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100" />
-            </div>
-            <div className="text-xs font-semibold text-[var(--foreground)]">{r.name}</div>
-            <p className="mt-0.5 line-clamp-2 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
-              {r.description}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              <span
-                className="rounded-sm px-1.5 py-0.5 text-[9px] font-medium"
-                style={{ background: `${r.accent}22`, color: r.accent }}
-              >
-                {r.style}
-              </span>
-              <span className="rounded-sm bg-[var(--muted)] px-1.5 py-0.5 text-[9px] text-[var(--muted-foreground)]">
-                {r.layout}
+      {/* Enterprise verticals first (the sellable, full sites), then style starters */}
+      {(
+        [
+          ["enterprise", "Enterprise · siti completi vendibili"],
+          ["style", "Stili · starter di linguaggio visivo"],
+        ] as const
+      ).map(([cat, label]) => {
+        const group = recipes.filter((r) => (r.category ?? "style") === cat);
+        if (group.length === 0) return null;
+        return (
+          <div key={cat}>
+            <div className="mb-1.5 mt-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+              {label}
+              <span className="rounded bg-[var(--muted)] px-1 tabular-nums">
+                {group.length}
               </span>
             </div>
-          </button>
-        ))}
-      </div>
+            <div className="grid grid-cols-2 gap-2">
+              {group.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => launch(r.prompt)}
+                  title={`Inserisci il brief “${r.name}” nella chat`}
+                  className="group relative flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--muted)]/40"
+                >
+                  {/* Accent wash */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full opacity-30 blur-2xl transition-opacity group-hover:opacity-60"
+                    style={{ background: r.accent }}
+                  />
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-lg leading-none">{r.emoji}</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 text-[var(--muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                  <div className="text-xs font-semibold text-[var(--foreground)]">
+                    {r.name}
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+                    {r.description}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span
+                      className="rounded-sm px-1.5 py-0.5 text-[9px] font-medium"
+                      style={{ background: `${r.accent}22`, color: r.accent }}
+                    >
+                      {r.style}
+                    </span>
+                    <span className="rounded-sm bg-[var(--muted)] px-1.5 py-0.5 text-[9px] text-[var(--muted-foreground)]">
+                      {r.layout}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

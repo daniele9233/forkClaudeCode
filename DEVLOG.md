@@ -15,6 +15,38 @@
 
 ---
 
+## 2026-07-04 · Studio +14 ricette enterprise (siti full-stack vendibili)
+
+**Fase:** 12.27 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+- **`src/skills/recipes.ts`** — 10 → **24 ricette**. Aggiunte 14 verticali
+  ENTERPRISE (siti completi, di livello vendibile): Fintech/Neobank, Cybersecurity,
+  HealthTech, Luxury Real Estate, Law Firm, D2C E-commerce, Web3/Crypto, Enterprise
+  AI, Developer Tool/API, Award Agency, Luxury Hospitality, Corporate B2B,
+  Analytics/Data, Education/LMS. Nuovo campo opzionale `category`
+  ("style" | "enterprise"). Nuovo preambolo `ENTERPRISE` + helper `enterprise()`
+  che, sopra STACK+BAR, impone multi-pagina con routing, conversione (form reali,
+  social proof, trust), SEO base, design-system, performance/a11y/deploy-ready.
+- **`src/features/settings/SettingsModal.tsx`** — la scheda Studio ora raggruppa
+  le card in due sezioni con intestazione+conteggio: "Enterprise · siti completi
+  vendibili" (prima) e "Stili · starter di linguaggio visivo". Testo esplicativo
+  aggiornato; il badge del tab usa `RECIPES.length` (auto).
+- **`src/skills/recipes.test.ts`** — asserzione aggiornata: ≥20 ricette e almeno
+  una `enterprise`.
+
+### Perché / decisione
+Richiesta esplicita: prompt corretti e pronti per siti enterprise rivendibili
+($10k+), full-stack e professionali. Le ricette enterprise sono briefing già
+scritti per attivare le skill giuste e alzano l'asticella a "prodotto per un
+cliente reale" (routing multi-pagina, conversione, trust, SEO, produzione).
+
+### Gotcha / attenzione
+- `enterprise()` è dichiarata prima di `STACK`/`BAR` nel file ma li usa solo a
+  call-time (costruzione dell'array RECIPES, dopo le const) → nessun TDZ.
+- 24 card: la scheda Studio scrolla; il raggruppamento per categoria tiene
+  l'elenco leggibile.
+
 ## 2026-07-04 · Agente web più esperto: audit design, taste packs, Web Designer mode, registry
 
 **Fase:** 12.26 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
