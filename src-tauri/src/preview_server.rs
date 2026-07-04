@@ -374,10 +374,28 @@ const INSPECTOR_JS: &str = r#"
   window.addEventListener('error', function (e) {
     if (e && e.message) {
       pushErr('js', e.message, (e.filename || '') + (e.lineno ? ':' + e.lineno : ''));
-    } else if (e && e.target && (e.target.src || e.target.href)) {
-      // capture-phase catches resource load failures (img/script/css)
-      pushErr('resource', 'failed to load: ' + (e.target.src || e.target.href),
-        e.target.tagName ? e.target.tagName.toLowerCase() : undefined);
+      return;
+    }
+    var t = e && e.target;
+    if (!t) return;
+    // Auto-heal a broken <img> so the preview looks realistic immediately:
+    // swap the 404'd src for a real Lorem Picsum photo sized to the element.
+    // (Preview-only — the agent should still fix the source. Guard against loops.)
+    if (t.tagName === 'IMG' && !t.dataset.kikkoHealed) {
+      var orig = t.src;
+      t.dataset.kikkoHealed = '1';
+      var r = t.getBoundingClientRect();
+      var w = Math.max(16, Math.round(r.width || parseInt(t.getAttribute('width')) || 800));
+      var h = Math.max(16, Math.round(r.height || parseInt(t.getAttribute('height')) || Math.round(w * 0.66)));
+      var seed = encodeURIComponent(((t.alt || 'img').replace(/[^a-z0-9]+/gi, '-') || 'img').slice(0, 24));
+      t.src = 'https://picsum.photos/seed/' + seed + '/' + w + '/' + h;
+      pushErr('resource', 'broken image auto-healed to Picsum (fix the src in code): ' + (orig || ''), 'img');
+      return;
+    }
+    if (t.src || t.href) {
+      // capture-phase catches resource load failures (script/css/other)
+      pushErr('resource', 'failed to load: ' + (t.src || t.href),
+        t.tagName ? t.tagName.toLowerCase() : undefined);
     }
   }, true);
   window.addEventListener('unhandledrejection', function (e) {

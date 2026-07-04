@@ -42,6 +42,21 @@ describe("synonyms / phrases", () => {
   });
 });
 
+describe("asset & media skills", () => {
+  it("triggers scroll-media on scroll video / sequence intent", () => {
+    const hits = matchSkills(
+      "voglio uno scroll video con image sequence frame by frame",
+      allIds,
+      3,
+    );
+    expect(hits.some((s) => s.id === "scroll-media")).toBe(true);
+  });
+  it("triggers asset-generation on image intent", () => {
+    const hits = matchSkills("aggiungi immagini hero reali senza placeholder", allIds, 3);
+    expect(hits.some((s) => s.id === "asset-generation")).toBe(true);
+  });
+});
+
 describe("slash commands", () => {
   it("forces a skill and strips the command", () => {
     const r = resolveSlash("/motion fai un bottone che pulsa", allIds);

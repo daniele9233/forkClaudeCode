@@ -14,7 +14,7 @@ const DIRECTIVE = `You are operating as a senior front-end design team (as if 30
 - Motion: purposeful micro-interactions (150–250ms ease-out, custom cubic-bezier, no bounce/elastic), always reduced-motion safe.
 - Anti-patterns to avoid: overused fonts, gray text on colored backgrounds, everything wrapped/nested in cards, monotonous identical full-width sections.
 - When building a site, prefer a real project (Vite + React + TS + Tailwind) with battle-tested components (shadcn/ui + Aceternity/Magic UI) over a lone static HTML file, unless the user asks otherwise.
-- Real assets, never gray placeholders: fill every image slot with something intentional (generated via an image tool if available, otherwise hand-crafted SVG/gradient/pattern), plus a favicon and an OG image; optimize (AVIF/WebP, responsive, lazy, no layout shift).
+- Real assets, never gray placeholders and NEVER broken/fake image URLs (no 404s): use real photos via https://picsum.photos/seed/<kw>/<w>/<h> (or a gen tool / Unsplash-Pexels key if available) and inline SVG for icons/illustrations; plus a favicon and an OG image; optimize (AVIF/WebP, responsive, lazy, explicit dimensions).
 Self-review before finishing: "what makes this look templated?" — and fix it.`;
 
 const KEYWORDS = [

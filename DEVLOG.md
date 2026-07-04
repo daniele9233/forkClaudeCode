@@ -15,6 +15,44 @@
 
 ---
 
+## 2026-07-04 · Asset realistici (no link rotti) + skill video/scroll + pipeline frame
+
+**Fase:** 12.36 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (tutte e 3 in sequenza)
+1. **Asset realistici + auto-heal:**
+   - `asset-generation` (skill) potenziata: REGOLA DURA "mai box grigi, mai URL
+     finti/404". Foto reali senza chiave via **Lorem Picsum**
+     (`picsum.photos/seed/<kw>/<w>/<h>`), SVG inline per icone/illustrazioni,
+     Unsplash/Pexels solo se c'è una key, gen tool se disponibile. + keyword
+     picsum/unsplash/pexels/404.
+   - `webDesigner` (direttiva sempre-attiva) aggiornata sulla stessa linea.
+   - **Auto-heal nell'anteprima** (`preview_server.rs` INSPECTOR_JS): quando un
+     `<img>` va in 404, lo script sostituisce al volo il src con un Picsum
+     dimensionato all'elemento → preview subito realistica (guard anti-loop via
+     `dataset.kikkoHealed`), e lo segnala nell'error radar.
+2. **Skill `scroll-media` (🎞️):** image-sequence su canvas (stile AirPods,
+   100–300 frame, GSAP ScrollTrigger pin+scrub), video scrubbing/scroll-controlled
+   video, background video reale (Pexels/Coverr/Mixkit), reduced-motion fallback,
+   performance.
+3. **Skill `video-pipeline` (🎥):** produce i media — genera start/end frame →
+   video se c'è un gen tool, altrimenti stock reale; estrae 100–300 frame con
+   **ffmpeg** (comandi esatti) + conversione WebP; wiring al canvas; guardrail
+   "niente URL frame inventati, se manca ffmpeg ripiega su video reale".
+
+Catalogo skill 25 → 27. +2 test (52 totali).
+
+### Perché / decisione
+Richiesta utente (tutte in sequenza). Higgsfield è a crediti e legato alla mia
+sessione, non all'app: le skill usano "un gen tool se presente", altrimenti
+Picsum/stock/ffmpeg — così funziona SEMPRE senza chiavi.
+
+### Gotcha / attenzione
+- L'auto-heal agisce solo nella PREVIEW (non nel codice): l'agente deve
+  comunque correggere il src; il radar lo segnala.
+- `video-pipeline` richiede ffmpeg installato per l'estrazione frame; senza,
+  ripiego su video reale scrubbato. Rust toccato (INSPECTOR_JS) → compila la CI.
+
 ## 2026-07-04 · Indicatore visione del modello (👁 vede / non vede)
 
 **Fase:** 12.35 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
