@@ -23,6 +23,7 @@ import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
 import { usePermissionStore } from "@/stores/permission.store";
 import { useTodoStore } from "@/stores/todo.store";
+import { useAutopilotStore } from "@/stores/autopilot.store";
 import { getClient } from "./client";
 
 /**
@@ -82,12 +83,19 @@ export function useChatEvents() {
           });
         // Refresh the review panel (files touched during the run).
         queryClient.invalidateQueries({ queryKey: ["files"] });
-        // Autopilot: decide continue / done / budget-hit for this session.
-        void autopilotOnIdle(sid);
-        // Project memory: distill durable knowledge into AGENTS.md (throttled).
-        void memoryOnIdle(sid);
         // If the agent produced a web page, auto-open/refresh it in the preview.
         void syncStaticPreviewOnIdle();
+        // Autopilot: decide continue / done / budget-hit for this session.
+        void autopilotOnIdle(sid);
+
+        // While an autopilot run owns this session, EACH round goes idle — but
+        // the goal isn't finished, so skip the "task finished" notification and
+        // the memory distiller (autopilot fires its own notifications on finish).
+        const auto = useAutopilotStore.getState();
+        if (auto.active && auto.sessionId === sid) return;
+
+        // Project memory: distill durable knowledge into AGENTS.md (throttled).
+        void memoryOnIdle(sid);
         // Desktop heads-up if the user is in another window.
         void notifyWhenUnfocused(
           "kikkoCode",
