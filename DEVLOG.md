@@ -15,6 +15,21 @@
 
 ---
 
+## 2026-07-04 · Studio: 5 ricette scroll-media/video
+
+**Fase:** 12.37 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+La skill `scroll-media` non era richiamata da nessuna ricetta Studio → aggiunte
+5 ricette che la usano (28 → 33): Product Reveal (AirPods, image-sequence
+pinnata), Cinematic Scroll Video (scrubbing), Frame-by-frame Story
+(scrollytelling multi-capitolo), Real Video Landing (hero video reale),
+Fashion Lookbook Reel (reel + sequenze). Ognuna aggancia `scroll-media`
+(+ `video-pipeline` dove serve).
+
+### Gotcha / attenzione
+- Nessuna: solo dati (recipes.ts). Test recipes verifica gli skillId validi.
+
 ## 2026-07-04 · Asset realistici (no link rotti) + skill video/scroll + pipeline frame
 
 **Fase:** 12.36 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

@@ -518,4 +518,83 @@ export const RECIPES: WebsiteRecipe[] = [
 - Sezioni: contenuti/feature in editoriale + card, come funziona, prezzi/piani, storie/creator, app download, footer.
 - Stile: bold e colorato ma disciplinato dai token, tipografia espressiva, motion vivace (GSAP) ma performante e reduced-motion safe.`),
   },
+
+  /* ── Scroll-media & video — sequenze frame, video scrubbing, video reale ── */
+
+  {
+    id: "scroll-product-reveal",
+    name: "Product Reveal (AirPods)",
+    emoji: "🎞️",
+    style: "Cinematic product",
+    layout: "Pinned image-sequence",
+    description: "Hero prodotto che si assembla/ruota con sequenza frame allo scroll.",
+    accent: "#0ea5e9",
+    category: "enterprise",
+    skillIds: ["scroll-media", "video-pipeline", "web-architect", "hero-page"],
+    prompt:
+      enterprise(`Costruisci il sito di lancio di un PRODOTTO con un hero a SCROLL IMAGE-SEQUENCE stile Apple AirPods: il prodotto ruota/si assembla mentre scrolli.
+- Sequenza: 100–300 frame disegnati su un \`<canvas>\` pilotato dallo scroll (GSAP ScrollTrigger, sezione pinnata + scrub). Precarica il primo frame, lazy-load del resto, frame in WebP ridimensionati. Fallback reduced-motion: un'unica still del prodotto.
+- Media: se manca il set di frame, genera/usa un video reale e ricava i frame (pipeline ffmpeg); niente URL frame inventati.
+- Sezioni: hero-sequence pinnato, feature del prodotto, specifiche, galleria, acquista, footer.`),
+  },
+  {
+    id: "scroll-cinematic-video",
+    name: "Cinematic Scroll Video",
+    emoji: "🎬",
+    style: "Cinematic brand film",
+    layout: "Video scrubbing",
+    description: "Brand film il cui avanzamento è pilotato dallo scroll (scrubbing).",
+    accent: "#6366f1",
+    skillIds: ["scroll-media", "gsap-motion", "smooth-scroll", "hero-page"],
+    prompt:
+      brief(`Costruisci una landing brand cinematografica con VIDEO SCROLL-CONTROLLED (scrubbing): il \`currentTime\` di un video muto pilotato dal progresso di scroll, con testi che compaiono a momenti chiave.
+- Usa un video reale corto (stock gratuito Pexels/Coverr) muted + playsinline + poster; per la massima fluidità valuta l'image-sequence su canvas al posto dello scrub diretto.
+- Smooth scroll (Lenis), sezioni testo sincronizzate ai timestamp, pausa quando offscreen, reduced-motion safe (mostra un poster + testo).
+- Sezioni: hero video scrubbato, capitoli del racconto, CTA finale, footer.`),
+  },
+  {
+    id: "scroll-frame-story",
+    name: "Frame-by-frame Story",
+    emoji: "📽️",
+    style: "Scrollytelling frames",
+    layout: "Multi-chapter canvas",
+    description: "Storia lunga con una sequenza di frame per ogni capitolo.",
+    accent: "#0d9488",
+    skillIds: ["scroll-media", "video-pipeline", "smooth-scroll", "web-layouts"],
+    prompt:
+      brief(`Costruisci un sito di STORYTELLING immersivo dove ogni capitolo è una SEQUENZA DI FRAME frame-by-frame su canvas guidata dallo scroll.
+- Ogni capitolo: sezione pinnata con la propria image-sequence (100–200 frame WebP), testo che entra staggered; transizioni pulite tra capitoli.
+- Media: estrai i frame da video reali con ffmpeg (o generali se c'è un gen tool); cache decodificata, precarico progressivo, fallback reduced-motion (key frame statici).
+- Composizione asimmetrica, tipografia oversize, indicatore di progresso.`),
+  },
+  {
+    id: "scroll-real-video-landing",
+    name: "Real Video Landing",
+    emoji: "📹",
+    style: "Product + real video",
+    layout: "Video hero + sections",
+    description: "Landing SaaS/prodotto con hero a video reale di sfondo.",
+    accent: "#2563eb",
+    category: "enterprise",
+    skillIds: ["scroll-media", "web-architect", "aceternity-magic", "type-color"],
+    prompt:
+      enterprise(`Costruisci una landing di prodotto/SaaS con HERO A VIDEO REALE di sfondo (stock gratuito Pexels/Coverr/Mixkit): loop muted playsinline + poster + overlay per il contrasto del testo, WebM+MP4, lazy e compresso.
+- Il video resta di supporto, non disturba la leggibilità; pausa quando offscreen; su mobile mostra il poster statico.
+- Sezioni: hero video + headline e CTA, feature, come funziona, social proof, pricing, FAQ, CTA finale, footer — tutto veloce e performante.`),
+  },
+  {
+    id: "scroll-fashion-reel",
+    name: "Fashion Lookbook Reel",
+    emoji: "👗",
+    style: "Editorial fashion",
+    layout: "Reels + sequences",
+    description: "Sito moda con reel scroll-controlled e sequenze immagini.",
+    accent: "#db2777",
+    skillIds: ["scroll-media", "minimalism", "gsap-motion", "asset-generation"],
+    prompt:
+      brief(`Costruisci un sito fashion/lookbook editoriale che alterna REEL VIDEO scroll-controlled e SEQUENZE DI IMMAGINI dei capi.
+- Hero: reel muto scrubbato dallo scroll o image-sequence del capo; look editoriale, whitespace, tipografia display.
+- Sezioni: collezioni alternate (reel + still), lookbook a griglia, dettagli capo, contatti; immagini REALI (mai placeholder grigi: Picsum/gen tool + trattamento duotone/grana).
+- Motion raffinato (GSAP), reduced-motion safe, tutto lazy e 60fps.`),
+  },
 ];
