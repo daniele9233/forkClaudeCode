@@ -1,11 +1,21 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { SendHorizontal, Square, Hammer, Map, ListPlus, Rocket } from "lucide-react";
+import {
+  SendHorizontal,
+  Square,
+  Hammer,
+  Map,
+  ListPlus,
+  Rocket,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { usePromptCost } from "@/features/inspector/usePromptCost";
 import { fmtNum } from "@/features/inspector/useSessionStats";
 import { useSkillsStore } from "@/stores/skills.store";
 import { useComposerStore } from "@/stores/composer.store";
+import { enhancePrompt } from "@/opencode/enhance";
 import { matchSkills } from "@/skills/match";
 
 export type AgentMode = "build" | "plan";
@@ -41,6 +51,9 @@ const MODES: { value: AgentMode; label: string; icon: React.ReactNode; title: st
 export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<AgentMode>("build");
+  // Prompt Enhancer: rewrite a rough draft into an expert brief (editable).
+  const [enhancing, setEnhancing] = useState(false);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
   // Autopilot launcher: when armed, sending starts an autonomous run with the
   // text as goal, capped by budget ($) and iterations.
   const [autoOn, setAutoOn] = useState(false);
@@ -91,6 +104,29 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
       textareaRef.current.style.height = "auto";
     }
   }, [text, disabled, mode, onSend, autoOn, isRunning, budget, iters]);
+
+  const enhance = useCallback(async () => {
+    const trimmed = text.trim();
+    if (!trimmed || enhancing) return;
+    setEnhancing(true);
+    setEnhanceError(null);
+    try {
+      const better = await enhancePrompt(trimmed);
+      setText(better);
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.focus();
+        el.style.height = "auto";
+        el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.5))}px`;
+        el.setSelectionRange(el.value.length, el.value.length);
+      });
+    } catch (e) {
+      setEnhanceError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEnhancing(false);
+    }
+  }, [text, enhancing]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -165,6 +201,26 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
             />
           </span>
         )}
+        {/* Prompt Enhancer: rough draft → expert brief (editable before send) */}
+        <button
+          onClick={() => void enhance()}
+          disabled={!text.trim() || enhancing}
+          title="Perfeziona: riscrive la tua richiesta in un brief esperto (poi puoi modificarlo e inviare)"
+          className={cn(
+            "ml-1 flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-widest transition-colors",
+            enhancing
+              ? "bg-[var(--primary)]/15 text-[var(--primary)]"
+              : "text-[var(--muted-foreground)] hover:bg-white/5 hover:text-[var(--foreground)]",
+            (!text.trim() || enhancing) && "cursor-not-allowed opacity-60",
+          )}
+        >
+          {enhancing ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Sparkles className="h-3 w-3" />
+          )}
+          {enhancing ? "Perfeziono…" : "Perfeziona"}
+        </button>
         {isRunning ? (
           <span className="hud-label ml-auto pr-1 text-[var(--primary)]">● running</span>
         ) : (
@@ -197,6 +253,13 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
           </span>
         )}
       </div>
+
+      {/* Prompt Enhancer error (rare) */}
+      {enhanceError && (
+        <div className="border-b border-[var(--border)] px-3 py-1.5 text-[10px] text-red-400">
+          Perfeziona non riuscito: {enhanceError}
+        </div>
+      )}
 
       {/* Live "skills that will auto-apply" chips */}
       {!isRunning && matched.length > 0 && (

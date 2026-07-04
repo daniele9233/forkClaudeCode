@@ -15,6 +15,38 @@
 
 ---
 
+## 2026-07-04 · Prompt Enhancer ✨ (il fix del problema "prompt")
+
+**Fase:** 12.31 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+Il problema più grande: skill ottime ma prompt scarso → sito brutto. Fix =
+riscrivere l'intento grezzo in un brief esperto PRIMA di inviare.
+- **`src/opencode/enhance.ts`** (nuovo) — `enhancePrompt(rough)`: sessione
+  nascosta throwaway (plan mode = read-only, silenziata come il distillatore di
+  memoria, titolo `[kikko]`, cancellata dopo) che riscrive la richiesta in un
+  brief esperto (deduce tipo sito, sceglie stile+layout, sezioni con contenuti
+  reali, direzione brand/palette/font, stack, animazioni con easing corretto,
+  asset, barra qualità). Usa il modello selezionato (`model.store`). Non lancia
+  mai: torna il testo migliorato (o l'originale se fallisce).
+- **`src/opencode/memory.ts`** — esposti `markSilent`/`unmarkSilent` (registro
+  sessioni silenziose condiviso, prima privato).
+- **`src/features/chat/ChatInput.tsx`** — bottone **✨ Perfeziona** nella riga
+  modalità: riscrive la bozza in place (editabile), spinner "Perfeziono…",
+  riga d'errore se fallisce. L'utente resta nel loop (rivede e invia).
+
+### Perché / decisione
+Scelta dall'utente tra 3 proposte. È la leva universale: funziona su qualsiasi
+input, riusa l'infrastruttura delle sessioni nascoste, e insegna all'utente a
+scrivere meglio mostrando il brief. Human-in-the-loop: il risultato è
+modificabile, non inviato in automatico.
+
+### Gotcha / attenzione
+- La sessione enhancer è `[kikko]` → già filtrata dal sidebar e silenziata
+  (niente notifiche/preview/autopilot).
+- È una chiamata LLM extra (qualche secondo): spinner sul bottone; in caso di
+  errore la bozza originale resta intatta.
+
 ## 2026-07-04 · Skill Motion Craft (Emil Kowalski)
 
 **Fase:** 12.30 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

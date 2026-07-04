@@ -29,6 +29,14 @@ const silentSessions = new Set<string>();
 export function isSilentSession(id: string): boolean {
   return silentSessions.has(id);
 }
+/** Register/unregister a hidden internal session (shared with other features
+ *  like the prompt enhancer so they're silenced the same way). */
+export function markSilent(id: string): void {
+  silentSessions.add(id);
+}
+export function unmarkSilent(id: string): void {
+  silentSessions.delete(id);
+}
 
 /** Throttle bookkeeping: last distilled message-count per session. */
 const distilledUpTo = new Map<string, number>();
