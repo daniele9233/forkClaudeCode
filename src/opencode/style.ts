@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import type { TextPartInput, FilePartInput } from "@opencode-ai/sdk/client";
 import { getClient } from "./client";
 import { markSilent, unmarkSilent } from "./memory";
 import { useModelStore, splitModel } from "@/stores/model.store";
@@ -45,11 +47,27 @@ function sanitize(reply: string): string {
   return out.slice(0, MAX_OUTPUT);
 }
 
-/**
- * Capture the current project's style as a DESIGN.md spec. Throws with a clear
- * message on failure (empty result, engine error) so the UI can surface it.
- */
-export async function captureStyle(): Promise<string> {
+/** Distill prompt for an EXTERNAL site (from a screenshot and/or its HTML). */
+const EXTERNAL_PROMPT = `Sei un design engineer senior. Ti fornisco un sito web (uno screenshot e/o il suo HTML/CSS). Estrai il suo LINGUAGGIO VISIVO in un unico DESIGN.md riutilizzabile per costruire ALTRI siti con lo stesso identico stile.
+Se vedi lo screenshot, basati soprattutto su quello; altrimenti usa l'HTML/CSS allegato. Se non riesci a percepire né l'immagine né il codice, rispondi ESATTAMENTE con "NO_STYLE".
+
+Il DESIGN.md deve avere queste sezioni con VALORI CONCRETI (hex reali, nomi font reali, numeri):
+- Tema & atmosfera
+- Palette & ruoli (hex + ruolo)
+- Tipografia (font + scala)
+- Componenti (button, card, input, nav con stati)
+- Layout & spacing
+- Profondità & ombre
+- Do's & Don'ts
+- Responsive
+- Prompt guide (2 righe)
+
+Rispondi con SOLO il contenuto del DESIGN.md in markdown: niente preamboli, niente code fence attorno al tutto.`;
+
+/** Run a hidden plan-mode distiller with the given parts; returns the spec. */
+async function runDistiller(
+  parts: Array<TextPartInput | FilePartInput>,
+): Promise<string> {
   let hiddenId: string | null = null;
   try {
     const created = await getClient().session.create({
@@ -63,21 +81,23 @@ export async function captureStyle(): Promise<string> {
     const res = await getClient().session.prompt({
       path: { id: hiddenId },
       body: {
-        parts: [{ type: "text", text: CAPTURE_PROMPT }],
+        parts,
         agent: "plan",
         ...(providerID && modelID ? { model: { providerID, modelID } } : {}),
       },
       throwOnError: true,
     });
 
-    const parts = (res.data?.parts ?? []) as Array<{ type: string; text?: string }>;
-    const reply = parts
+    const out = (res.data?.parts ?? []) as Array<{ type: string; text?: string }>;
+    const reply = out
       .filter((p) => p.type === "text" && typeof p.text === "string")
       .map((p) => p.text)
       .join("\n");
     const spec = sanitize(reply);
-    if (spec.length < 40) {
-      throw new Error("non sono riuscito a ricavare uno stile dal progetto");
+    if (spec.length < 40 || /^NO_STYLE\b/i.test(spec)) {
+      throw new Error(
+        "non sono riuscito a ricavare uno stile (per un URL/screenshot serve un modello con visione, oppure il sito non era leggibile)",
+      );
     }
     return spec;
   } finally {
@@ -91,4 +111,58 @@ export async function captureStyle(): Promise<string> {
         .finally(() => unmarkSilent(id));
     }
   }
+}
+
+/**
+ * Capture the CURRENT project's style as a DESIGN.md spec (hybrid: existing
+ * DESIGN.md or distilled from the code).
+ */
+export async function captureStyle(): Promise<string> {
+  return runDistiller([{ type: "text", text: CAPTURE_PROMPT }]);
+}
+
+/** Build a file part from a local PNG path (as returned by capture_preview). */
+function imagePart(path: string, filename: string): FilePartInput {
+  const url = "file://" + (path.startsWith("/") ? "" : "/") + path.replace(/\\/g, "/");
+  return { type: "file", mime: "image/png", filename, url };
+}
+
+/**
+ * Capture a style from an EXTERNAL URL: screenshots the page (works on any URL)
+ * AND fetches its HTML/CSS, then distills. A vision model uses the screenshot; a
+ * text model falls back to the HTML — best-effort on both, needs at least one.
+ */
+export async function captureStyleFromUrl(rawUrl: string): Promise<string> {
+  const url = /^https?:\/\//i.test(rawUrl.trim())
+    ? rawUrl.trim()
+    : `https://${rawUrl.trim()}`;
+
+  const shot = await invoke<string>("capture_preview", {
+    url,
+    width: 1440,
+    height: 1600,
+  }).catch(() => null);
+
+  const html = await invoke<string>("fetch_text", { url })
+    .then((t) => t.slice(0, 12_000))
+    .catch(() => null);
+
+  if (!shot && !html) {
+    throw new Error(`non sono riuscito a leggere ${url} (né screenshot né HTML)`);
+  }
+
+  const text = html
+    ? `${EXTERNAL_PROMPT}\n\nHTML/CSS del sito (${url}):\n"""\n${html}\n"""`
+    : `${EXTERNAL_PROMPT}\n\nSito: ${url}`;
+  const parts: Array<TextPartInput | FilePartInput> = [{ type: "text", text }];
+  if (shot) parts.push(imagePart(shot, "site.png"));
+  return runDistiller(parts);
+}
+
+/** Capture a style from a local screenshot image (absolute path). */
+export async function captureStyleFromImage(path: string): Promise<string> {
+  return runDistiller([
+    { type: "text", text: EXTERNAL_PROMPT },
+    imagePart(path, "reference.png"),
+  ]);
 }

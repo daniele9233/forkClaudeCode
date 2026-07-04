@@ -15,6 +15,33 @@
 
 ---
 
+## 2026-07-04 · Style Memory: importa stile da URL / screenshot esterno
+
+**Fase:** 12.34 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+Ora puoi "rubare" il look di un sito che ammiri (non tuo).
+- **`opencode/style.ts`** — refactor in `runDistiller(parts)` condiviso; nuove
+  `captureStyleFromUrl(url)` e `captureStyleFromImage(path)`. Per l'URL:
+  screenshot via `capture_preview` (qualsiasi URL) **+** HTML via `fetch_text`,
+  entrambi best-effort → un modello con visione usa lo screenshot, uno testuale
+  ripiega sull'HTML. Se non percepisce nulla, il distiller risponde `NO_STYLE`
+  → errore chiaro. Immagine: file part (dialog nativo → path assoluto).
+- **`SettingsModal` → scheda Stili** — box "Importa uno stile": input URL +
+  bottone **URL**, bottone **Immagine** (dialog `@tauri-apps/plugin-dialog`).
+  Salva+attiva lo stile importato; spinner e riga d'errore.
+
+### Perché / decisione
+Scelta utente. Estende la Style Memory da "salva il tuo stile" a "clona il look
+di qualsiasi sito". Zero nuovo Rust: riuso `capture_preview` (ora con width/
+height) e `fetch_text`.
+
+### Gotcha / attenzione
+- URL/screenshot rendono al meglio con un modello con **visione**; l'HTML è il
+  fallback per i modelli testuali (meno preciso sui siti molto JS).
+- Alcuni siti bloccano lo screenshot headless o il fetch: se falliscono entrambi
+  → errore esplicito, nessuno stile creato.
+
 ## 2026-07-04 · Style Memory 🎨 — salva uno stile e riusalo
 
 **Fase:** 12.33 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

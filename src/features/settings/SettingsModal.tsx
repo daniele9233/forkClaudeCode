@@ -24,11 +24,14 @@ import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
 import { SKILLS } from "@/skills/catalog";
 import { activeCatalog } from "@/skills/match";
 import { RECIPES } from "@/skills/recipes";
+import { open } from "@tauri-apps/plugin-dialog";
 import { importSkillFromUrl } from "@/skills/importSkill";
+import { captureStyleFromUrl, captureStyleFromImage } from "@/opencode/style";
 import { useSkillsStore } from "@/stores/skills.store";
 import { useStylesStore } from "@/stores/styles.store";
 import { useComposerStore } from "@/stores/composer.store";
 import { useMemoryStore } from "@/stores/memory.store";
+import { Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { RulesTab } from "./RulesTab";
 
 type Tab = "studio" | "styles" | "skills" | "agents" | "mcp" | "rules";
@@ -375,7 +378,60 @@ function StylesTab({ query }: { query: string }) {
   const setActive = useStylesStore((s) => s.setActive);
   const renameStyle = useStylesStore((s) => s.renameStyle);
   const removeStyle = useStylesStore((s) => s.removeStyle);
+  const addStyle = useStylesStore((s) => s.addStyle);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  // Import a style from an external site (URL) or a screenshot image.
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState<null | "url" | "image">(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const saveAndActivate = (name: string, spec: string) => {
+    setActive(addStyle(name, spec));
+  };
+
+  const importFromUrl = async () => {
+    const url = importUrl.trim();
+    if (!url || importing) return;
+    setImporting("url");
+    setImportError(null);
+    try {
+      const spec = await captureStyleFromUrl(url);
+      let host = url;
+      try {
+        host = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname;
+      } catch {
+        /* keep raw */
+      }
+      saveAndActivate(`${host} — stile`, spec);
+      setImportUrl("");
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImporting(null);
+    }
+  };
+
+  const importFromImage = async () => {
+    if (importing) return;
+    const picked = await open({
+      multiple: false,
+      filters: [{ name: "Immagini", extensions: ["png", "jpg", "jpeg", "webp"] }],
+    });
+    const path = typeof picked === "string" ? picked : null;
+    if (!path) return;
+    setImporting("image");
+    setImportError(null);
+    try {
+      const spec = await captureStyleFromImage(path);
+      const name = (path.split(/[\\/]/).pop() ?? "immagine").replace(/\.[^.]+$/, "");
+      saveAndActivate(`${name} — stile`, spec);
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImporting(null);
+    }
+  };
 
   const q = query.trim().toLowerCase();
   const filtered = q ? styles.filter((s) => s.name.toLowerCase().includes(q)) : styles;
@@ -384,10 +440,56 @@ function StylesTab({ query }: { query: string }) {
     <div className="space-y-2">
       <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/10 p-2.5 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
         Gli <b className="text-[var(--foreground)]">stili salvati</b> sono il linguaggio
-        visivo (DESIGN.md) di un sito che ti è piaciuto. Salvane uno dal pulsante{" "}
-        <b className="text-[var(--foreground)]">🎨 Stile</b> nella barra dell'anteprima;
-        poi attivane uno qui e l'agente costruirà i prossimi siti con lo stesso identico
-        stile.
+        visivo (DESIGN.md) di un sito. Salvane uno dal pulsante{" "}
+        <b className="text-[var(--foreground)]">🎨 Stile</b> nell'anteprima (il tuo sito),
+        oppure importane uno qui sotto da un <b>URL</b> o da uno <b>screenshot</b> di un
+        sito che ti piace.{" "}
+        <i>(URL/immagine rendono al meglio con un modello con visione.)</i>
+      </div>
+
+      {/* Import from external URL / image */}
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/20 p-3">
+        <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+          Importa uno stile
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded border border-[var(--border)] bg-transparent px-2">
+            <LinkIcon className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]" />
+            <input
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void importFromUrl()}
+              placeholder="https://sito-che-mi-piace.com"
+              className="h-7 min-w-0 flex-1 bg-transparent font-mono text-[10px] text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)]"
+            />
+          </div>
+          <button
+            onClick={() => void importFromUrl()}
+            disabled={!importUrl.trim() || !!importing}
+            className="flex h-7 shrink-0 items-center gap-1 rounded bg-[var(--primary)] px-2.5 text-[10px] font-bold uppercase tracking-wider text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-40"
+          >
+            {importing === "url" ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Plus className="h-3 w-3" />
+            )}
+            URL
+          </button>
+          <button
+            onClick={() => void importFromImage()}
+            disabled={!!importing}
+            title="Importa da uno screenshot"
+            className="flex h-7 shrink-0 items-center gap-1 rounded border border-[var(--border)] px-2.5 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-40"
+          >
+            {importing === "image" ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <ImageIcon className="h-3 w-3" />
+            )}
+            Immagine
+          </button>
+        </div>
+        {importError && <p className="mt-1.5 text-[10px] text-red-400">{importError}</p>}
       </div>
 
       {filtered.length === 0 && (
