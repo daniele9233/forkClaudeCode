@@ -15,6 +15,29 @@
 
 ---
 
+## 2026-07-04 · Skill Motion Craft (Emil Kowalski)
+
+**Fase:** 12.30 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+- **`catalog.ts`** — nuova skill `emil-motion` (🎞️), condensata dal playbook di
+  Emil Kowalski (emilkowalski/skills · animations.dev): quando animare, easing
+  (mai ease-in su UI, curve custom), durate < 300ms, mai scale(0), transizioni
+  vs keyframes, timing asimmetrico, stagger, performance (solo transform/opacity,
+  Framer x/y non HW-accelerati), a11y reduced-motion. Catalogo 24 → 25.
+  Si attiva su keyword animation/easing/transition/spring/drawer/toast/motion.
+
+### Perché / decisione
+L'utente ha segnalato le skill di Emil (i comandi `npx skills add …`). È il
+sapere dove i coding agent sbagliano di più (easing, scale(0), transition:all,
+durate). L'ho reso skill nativa (iniezione prompt) invece di dipendere dalla CLI
+`skills`, così funziona nel nostro sistema e si combina con le altre.
+
+### Gotcha / attenzione
+- Le altre due skill del repo (review-animations, animation-vocabulary) sono
+  tooling per un altro harness; la sostanza è in emil-design-eng, che ho
+  incorporato. La checklist "review" è già coperta dal bottone Audit.
+
 ## 2026-07-04 · Skill DESIGN.md + 4 ricette spec-driven
 
 **Fase:** 12.29 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
