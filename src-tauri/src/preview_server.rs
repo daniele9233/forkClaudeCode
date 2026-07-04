@@ -219,6 +219,113 @@ const INSPECTOR_JS: &str = r#"
     hide();
   }
 
+  /* --- A11y / QA audit (on demand) ------------------------------------
+   * The app sends {type:'forgia:audit'}; we scan the DOM for concrete,
+   * high-signal accessibility problems and post them back. Heuristic but
+   * real — enough to hand the agent an accurate fix list. */
+  function relLum(r, g, b) {
+    var a = [r, g, b].map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+  }
+  function parseRGB(s) {
+    var m = s && s.match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    var p = m[1].split(',').map(function (x) { return parseFloat(x); });
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  }
+  function effectiveBg(el) {
+    var node = el;
+    while (node && node.nodeType === 1) {
+      var c = parseRGB(getComputedStyle(node).backgroundColor);
+      if (c && c.a > 0.5) return c;
+      node = node.parentElement;
+    }
+    return { r: 255, g: 255, b: 255, a: 1 };
+  }
+  function contrast(fg, bg) {
+    var l1 = relLum(fg.r, fg.g, fg.b), l2 = relLum(bg.r, bg.g, bg.b);
+    var hi = Math.max(l1, l2), lo = Math.min(l1, l2);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  function selOf(el) {
+    try { return cssPath(el); } catch (e) { return el.tagName ? el.tagName.toLowerCase() : '?'; }
+  }
+  function runAudit() {
+    var f = [];
+    function add(rule, message, el) {
+      if (f.length >= 40) return;
+      f.push({
+        rule: rule,
+        message: String(message).slice(0, 200),
+        selector: el ? selOf(el).slice(0, 160) : undefined,
+      });
+    }
+    if (!document.documentElement.getAttribute('lang'))
+      add('lang', '<html> has no lang attribute');
+    document.querySelectorAll('img').forEach(function (img) {
+      if (!img.hasAttribute('alt')) add('img-alt', 'image without alt attribute', img);
+    });
+    document.querySelectorAll('a,button,[role="button"]').forEach(function (el) {
+      var name = (el.getAttribute('aria-label') || el.textContent || el.title || '').trim();
+      var hasImg = el.querySelector && el.querySelector('img[alt]:not([alt=""])');
+      if (!name && !hasImg)
+        add('name', el.tagName.toLowerCase() + ' has no accessible name', el);
+    });
+    document.querySelectorAll('input,select,textarea').forEach(function (el) {
+      if (el.type === 'hidden') return;
+      var labelled =
+        el.getAttribute('aria-label') ||
+        el.getAttribute('aria-labelledby') ||
+        (el.closest && el.closest('label'));
+      if (!labelled && el.id) {
+        try { labelled = document.querySelector('label[for="' + CSS.escape(el.id) + '"]'); } catch (e) {}
+      }
+      if (!labelled) add('label', 'form field without an associated label', el);
+    });
+    var nodes = document.querySelectorAll('p,span,a,li,button,h1,h2,h3,h4,h5,label,small');
+    var checked = 0;
+    for (var i = 0; i < nodes.length && checked < 120; i++) {
+      var el = nodes[i];
+      var own = '';
+      for (var c = 0; c < el.childNodes.length; c++) {
+        if (el.childNodes[c].nodeType === 3) own += el.childNodes[c].textContent;
+      }
+      own = own.trim();
+      if (!own) continue;
+      var st = getComputedStyle(el);
+      if (st.visibility === 'hidden' || st.display === 'none' || parseFloat(st.opacity) < 0.1) continue;
+      var fg = parseRGB(st.color);
+      if (!fg) continue;
+      var ratio = contrast(fg, effectiveBg(el));
+      var size = parseFloat(st.fontSize) || 16;
+      var bold = (parseInt(st.fontWeight) || 400) >= 700;
+      var min = size >= 24 || (size >= 18.66 && bold) ? 3 : 4.5;
+      checked++;
+      if (ratio < min)
+        add('contrast', 'low contrast ' + ratio.toFixed(2) + ':1 (needs ' + min + ':1) — "' + own.slice(0, 30) + '"', el);
+    }
+    var hs = document.querySelectorAll('h1,h2,h3,h4,h5,h6');
+    var prev = 0;
+    for (var j = 0; j < hs.length; j++) {
+      var lvl = parseInt(hs[j].tagName[1]);
+      if (prev && lvl > prev + 1) { add('heading-order', 'heading jumps from h' + prev + ' to h' + lvl, hs[j]); break; }
+      prev = lvl;
+    }
+    var taps = document.querySelectorAll('a,button,[role="button"],input,select');
+    var tcount = 0;
+    for (var k = 0; k < taps.length && tcount < 40; k++) {
+      var r = taps[k].getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue;
+      tcount++;
+      if (r.width > 0 && r.height > 0 && (r.width < 40 || r.height < 40))
+        add('tap-target', 'tap target ' + Math.round(r.width) + '×' + Math.round(r.height) + 'px (< 44px)', taps[k]);
+    }
+    return f;
+  }
+
   window.addEventListener('message', function (e) {
     if (!e.data || typeof e.data !== 'object') return;
     var t = e.data.type;
@@ -226,6 +333,12 @@ const INSPECTOR_JS: &str = r#"
     else if (t === 'forgia:disable') disable();
     else if (t === 'forgia:ping') {
       try { window.parent.postMessage({ type: 'forgia:pong' }, '*'); } catch (ex) {}
+    } else if (t === 'forgia:audit') {
+      try {
+        window.parent.postMessage({ type: 'forgia:audit-result', findings: runAudit() }, '*');
+      } catch (ex) {
+        try { window.parent.postMessage({ type: 'forgia:audit-result', findings: [], error: String(ex) }, '*'); } catch (e2) {}
+      }
     }
   });
 

@@ -582,7 +582,11 @@ async fn discard_file_changes(
 /// return the PNG path. This is what lets the agent literally SEE the page it
 /// built: the frontend attaches the image to a prompt for visual self-review.
 #[tauri::command]
-async fn capture_preview(url: String) -> Result<String, String> {
+async fn capture_preview(
+    url: String,
+    width: Option<u32>,
+    height: Option<u32>,
+) -> Result<String, String> {
     let url = url.trim().to_string();
     if url.is_empty() {
         return Err("no preview URL to capture".into());
@@ -590,11 +594,17 @@ async fn capture_preview(url: String) -> Result<String, String> {
     let browser = find_browser()
         .ok_or("no Chromium-based browser (Edge/Chrome) found for the screenshot")?;
 
+    // Viewport for the shot — defaults to a desktop 1440×900, but the QA
+    // multi-viewport audit passes phone/tablet widths to check responsiveness.
+    let w = width.unwrap_or(1440).clamp(240, 3840);
+    let h = height.unwrap_or(900).clamp(320, 4000);
+    let window_size = format!("--window-size={w},{h}");
+
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis())
         .unwrap_or(0);
-    let out_path = std::env::temp_dir().join(format!("kikko-preview-{stamp}.png"));
+    let out_path = std::env::temp_dir().join(format!("kikko-preview-{stamp}-{w}.png"));
 
     let run = tokio::process::Command::new(&browser)
         .args([
@@ -602,7 +612,7 @@ async fn capture_preview(url: String) -> Result<String, String> {
             "--disable-gpu",
             "--hide-scrollbars",
             "--force-device-scale-factor=1",
-            "--window-size=1440,900",
+            &window_size,
             // A little settling time so SPAs finish their first paint.
             "--virtual-time-budget=4000",
             &format!("--screenshot={}", out_path.display()),

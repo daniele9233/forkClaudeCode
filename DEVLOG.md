@@ -15,6 +15,46 @@
 
 ---
 
+## 2026-07-04 · Asset reali + QA multi-viewport & a11y
+
+**Fase:** 12.28 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+**1) Generazione asset reali (skill):**
+- `catalog.ts` — nuova skill `asset-generation` (🖼️): usa un tool/MCP di
+  image-gen se disponibile, altrimenti asset procedurali (SVG, gradienti/mesh,
+  grana feTurbulence, favicon SVG, OG image via @vercel/og), + pipeline di
+  ottimizzazione (AVIF/WebP, srcset, lazy, no CLS, blur-up, vite-imagetools).
+  Catalogo 22 → 23.
+- `webDesigner.ts` — la direttiva sempre-attiva ora include "asset reali, mai
+  placeholder grigi + favicon + OG image".
+
+**2) QA visivo multi-viewport + a11y automatico (anteprima):**
+- **Rust `capture_preview(url, width?, height?)`** — screenshot a viewport
+  arbitrario (default 1440×900, clamp), nome file per larghezza.
+- **Audit multi-viewport** (`PreviewPanel.auditResponsive`) — cattura la pagina
+  a 390/768/1440 e manda le 3 immagini all'agente con una checklist Impeccable
+  mobile-first, poi applica i fix. Il bottone "Audit" ora fa questo.
+- **A11y radar automatico** — nuovo auditor iniettato in `INSPECTOR_JS`
+  (preview_server.rs): su `forgia:audit` scansiona il DOM (lang, alt, nomi
+  accessibili, label, CONTRASTO calcolato, ordine heading, tap target < 44px) e
+  risponde `forgia:audit-result`. Bottone "A11y" + `qa.store` + drawer con i
+  findings e "Fix with agent" (prompt costruito dai findings). +2 test (39).
+
+### Perché / decisione
+Le due leve scelte dall'utente. Gli asset sono il buco tipico dell'output AI
+(box grigi) → skill che copre sia image-gen che procedurale (sempre funziona).
+Il QA passa da "una schermata" a "3 breakpoint + check a11y deterministici
+correggibili in un click" — un vero radar di qualità, non solo vision.
+
+### Gotcha / attenzione
+- L'auditor a11y è euristico (contrasto/alt/label/heading/tap): copre l'80%,
+  non sostituisce test manuali tastiera/screen-reader (detto nel drawer).
+- L'audit multi-viewport cattura 3 volte in sequenza (~10–15s) e serve un
+  modello con VISIONE per leggere gli screenshot.
+- Rust toccato (capture_preview + INSPECTOR_JS) → compila la CI; verificato per
+  struttura (raw string bilanciata, nessun terminatore `"#` nel JS aggiunto).
+
 ## 2026-07-04 · Studio +14 ricette enterprise (siti full-stack vendibili)
 
 **Fase:** 12.27 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

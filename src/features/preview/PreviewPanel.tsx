@@ -13,11 +13,13 @@ import {
   Wand2,
   Camera,
   ScanEye,
+  Accessibility,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useDevServerStore } from "@/stores/devserver.store";
 import { usePageErrorsStore, type PageError } from "@/stores/pageErrors.store";
+import { useQAStore } from "@/stores/qa.store";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession } from "@/opencode/session";
 import { useSelectionStore, type SelectedElement } from "@/stores/selection.store";
@@ -59,6 +61,12 @@ export function PreviewPanel() {
   const errorDrawerOpen = usePageErrorsStore((s) => s.drawerOpen);
   const toggleErrorDrawer = usePageErrorsStore((s) => s.toggleDrawer);
   const clearPageErrors = usePageErrorsStore((s) => s.clear);
+
+  // QA radar: on-demand accessibility/contrast findings from the injected script.
+  const qaFindings = useQAStore((s) => s.findings);
+  const qaScanning = useQAStore((s) => s.scanning);
+  const qaOpen = useQAStore((s) => s.open);
+  const qaRan = useQAStore((s) => s.ran);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
   const setActiveSession = useSessionStore((s) => s.setActiveSession);
   const sendPrompt = useSendPrompt();
@@ -97,8 +105,9 @@ export function PreviewPanel() {
     clearSelection();
     setInspectorReady(false);
     setSelectionMode(false);
-    // A new page starts with a clean error radar.
+    // A new page starts with a clean error + QA radar.
     usePageErrorsStore.getState().clear();
+    useQAStore.getState().clear();
   }, [previewUrl, clearSelection, setInspectorReady, setSelectionMode]);
 
   // Stable ref so the message listener always sees current selectionMode
@@ -145,6 +154,11 @@ export function PreviewPanel() {
           if (err && typeof err.message === "string") {
             usePageErrorsStore.getState().addError(err);
           }
+          break;
+        }
+        case "forgia:audit-result": {
+          const list = (e.data as { findings?: unknown }).findings;
+          useQAStore.getState().setFindings(Array.isArray(list) ? (list as never[]) : []);
           break;
         }
       }
@@ -248,23 +262,104 @@ Find the root cause in this project's source code and fix them. After fixing, br
       `Attached is a screenshot of the web page you are building, previewed at ${previewUrl}. Look at it carefully and critique it like a senior product designer: layout, spacing, alignment, typography, visual hierarchy, contrast, consistency, responsiveness red flags. Then apply the most impactful improvements directly to the code. If you cannot see the attached image, say so explicitly instead of guessing.`,
     );
 
-  // Rigorous "Impeccable" design audit (scan button): a structured checklist a
-  // real design team would run, then apply the fixes.
-  const auditDesign = () =>
-    captureAndPrompt(
-      `Attached is a screenshot of the page previewed at ${previewUrl}. Run a rigorous DESIGN AUDIT as a senior front-end design team and then APPLY the fixes to the code.
+  // Multi-viewport design audit (scan button): capture the SAME page at phone,
+  // tablet and desktop widths and hand all three to the agent with a rigorous
+  // "Impeccable" checklist — a real team always checks the breakpoints.
+  const auditResponsive = async () => {
+    if (!previewUrl || capturing || sendPrompt.isPending) return;
+    setCapturing(true);
+    try {
+      const viewports = [
+        { label: "mobile", w: 390, h: 844 },
+        { label: "tablet", w: 768, h: 1024 },
+        { label: "desktop", w: 1440, h: 900 },
+      ];
+      const files: {
+        type: "file";
+        mime: string;
+        filename: string;
+        url: string;
+      }[] = [];
+      for (const v of viewports) {
+        const path = await invoke<string>("capture_preview", {
+          url: previewUrl,
+          width: v.w,
+          height: v.h,
+        });
+        const fileUrl =
+          "file://" + (path.startsWith("/") ? "" : "/") + path.replace(/\\/g, "/");
+        files.push({
+          type: "file",
+          mime: "image/png",
+          filename: `${v.label}-${v.w}.png`,
+          url: fileUrl,
+        });
+      }
+      let sessionId = activeSessionId;
+      if (!sessionId) {
+        const s = await createSession.mutateAsync({});
+        sessionId = s.id;
+        setActiveSession(sessionId);
+      }
+      sendPrompt.mutate({
+        sessionId,
+        text: `Attached are 3 screenshots of ${previewUrl} at MOBILE (390px), TABLET (768px) and DESKTOP (1440px). Run a rigorous MULTI-VIEWPORT DESIGN AUDIT as a senior front-end team, then APPLY the fixes to the code.
 
-Score each area /10 and list concrete issues:
-1. Typography — distinctive typeface (NOT Inter/Arial/system defaults)? consistent modular scale? tracking/line-height/measure?
-2. Color — tinted neutrals (no pure #000/#fff)? one coherent accent? text contrast ≥ 4.5:1 (WCAG AA)? no gray text on colored backgrounds?
-3. Layout & spacing — clear focal point, visual hierarchy, 8pt rhythm, optical alignment, enough whitespace? not everything wrapped/nested in cards?
-4. Composition — varied section rhythm (not monotonous identical full-width blocks)? intentional, not templated?
-5. Depth & detail — tasteful layered/tinted shadows, consistent radius, real content (no lorem)?
-6. States & motion — hover/focus-visible/active/disabled/loading/empty/error covered? motion 150–250ms ease-out, no bounce, reduced-motion safe?
-7. Responsiveness — any red flags for 360px→ultrawide?
+Score /10 and list concrete issues per area:
+1. Responsiveness — does each breakpoint look intentional? overflow, cramped/oversized text, broken grids, tap targets < 44px, wasted space? (compare the 3 shots)
+2. Typography — distinctive typeface (NOT Inter/Arial/defaults)? modular scale? fluid sizing across viewports?
+3. Color & contrast — tinted neutrals (no pure #000/#fff)? one accent? text contrast ≥ 4.5:1 (AA)?
+4. Layout & spacing — clear focal point, 8pt rhythm, optical alignment, whitespace; not everything nested in cards?
+5. Composition — varied section rhythm, not templated/monotonous?
+6. States & motion — hover/focus/active/disabled/loading/empty/error; 150–250ms ease-out, no bounce, reduced-motion safe.
 
-For every issue below 8/10, make the concrete code change now. Prioritize what most removes the "AI-generated / templated" look. If you cannot see the image, say so explicitly instead of guessing.`,
-    );
+Fix everything below 8/10 now, mobile-first. Prioritize what removes the "AI-generated / templated" look. If you cannot see the images, say so explicitly instead of guessing.`,
+        files,
+      });
+    } catch (e) {
+      useDevServerStore
+        .getState()
+        .appendLog(`[audit] ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  // Automated a11y/QA scan: ask the injected script to audit the live DOM,
+  // then show the findings with a one-click "fix with agent".
+  const runA11yScan = () => {
+    useQAStore.getState().clear();
+    useQAStore.getState().setScanning(true);
+    sendToIframe({ type: "forgia:audit" });
+    // Fallback: if the page never answers (no inspector yet), stop spinning.
+    setTimeout(() => {
+      if (useQAStore.getState().scanning) useQAStore.getState().setFindings([]);
+    }, 4000);
+  };
+
+  const fixA11y = async () => {
+    if (qaFindings.length === 0 || sendPrompt.isPending) return;
+    const list = qaFindings
+      .slice(0, 30)
+      .map(
+        (f, i) =>
+          `${i + 1}. [${f.rule}] ${f.message}${f.selector ? ` — \`${f.selector}\`` : ""}`,
+      )
+      .join("\n");
+    const prompt = `An automated accessibility scan of ${previewUrl ?? "the page"} found these issues. Fix them in the source code (WCAG 2.2 AA), then briefly note what you changed:
+
+${list}
+
+Guidelines: add real alt text; label every control; ensure text contrast ≥ 4.5:1 (3:1 for large text) by tinting colors, not by adding boxes; fix heading order; make tap targets ≥ 44px; set <html lang>. Don't regress the visual design.`;
+    let sessionId = activeSessionId;
+    if (!sessionId) {
+      const s = await createSession.mutateAsync({});
+      sessionId = s.id;
+      setActiveSession(sessionId);
+    }
+    sendPrompt.mutate({ sessionId, text: prompt });
+    useQAStore.getState().clear();
+  };
 
   // After iframe loads a new page, ping the inspector script.
   const handleIframeLoad = () => {
@@ -352,16 +447,56 @@ For every issue below 8/10, make the concrete code change now. Prioritize what m
           </button>
         )}
 
-        {/* Rigorous design audit: screenshot → Impeccable checklist → fixes */}
+        {/* Multi-viewport design audit: 3 breakpoints → Impeccable checklist → fixes */}
         {previewUrl && (
           <button
-            onClick={() => void auditDesign()}
+            onClick={() => void auditResponsive()}
             disabled={capturing || sendPrompt.isPending}
             className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] transition-colors hover:bg-[var(--primary)]/15 hover:text-[var(--primary)] disabled:opacity-50"
-            title="Design audit: the agent scores the page on an Impeccable checklist and applies the fixes"
+            title="Design audit across mobile/tablet/desktop: the agent scores the page on an Impeccable checklist and applies the fixes"
           >
-            <ScanEye className="h-3.5 w-3.5" />
+            {capturing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <ScanEye className="h-3.5 w-3.5" />
+            )}
             Audit
+          </button>
+        )}
+
+        {/* Automated a11y / contrast scan of the live page */}
+        {previewUrl && (
+          <button
+            onClick={runA11yScan}
+            disabled={qaScanning}
+            className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] transition-colors hover:bg-[var(--primary)]/15 hover:text-[var(--primary)] disabled:opacity-50"
+            title="Accessibility scan: check the live page for contrast, alt text, labels, tap targets…"
+          >
+            {qaScanning ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Accessibility className="h-3.5 w-3.5" />
+            )}
+            A11y
+          </button>
+        )}
+
+        {/* QA findings badge — reopen the drawer once a scan has run */}
+        {qaRan && (
+          <button
+            onClick={() => useQAStore.getState().toggleOpen()}
+            className={cn(
+              "flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[10px] font-bold transition-colors",
+              qaFindings.length === 0
+                ? "bg-[var(--color-online)]/15 text-[var(--color-online)]"
+                : qaOpen
+                  ? "bg-amber-500/25 text-amber-300 ring-1 ring-amber-400/50"
+                  : "bg-amber-500/15 text-amber-400 hover:bg-amber-500/25",
+            )}
+            title={`${qaFindings.length} accessibility issue(s)`}
+          >
+            <Accessibility className="h-3.5 w-3.5" />
+            {qaFindings.length}
           </button>
         )}
 
@@ -455,6 +590,60 @@ For every issue below 8/10, make the concrete code change now. Prioritize what m
               captured live from the page
             </span>
           </div>
+        </div>
+      )}
+
+      {/* QA / a11y drawer — accessibility findings + one-click fix */}
+      {qaOpen && qaRan && (
+        <div className="shrink-0 border-b border-amber-500/30 bg-amber-950/20">
+          {qaFindings.length === 0 ? (
+            <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-[var(--color-online)]">
+              <Accessibility className="h-3.5 w-3.5" />
+              Nessun problema di accessibilità evidente. (Controllo euristico — per un
+              audit completo servono anche test manuali con tastiera e screen reader.)
+            </div>
+          ) : (
+            <>
+              <div className="max-h-40 overflow-y-auto px-3 py-2">
+                {qaFindings.map((f, i) => (
+                  <div key={i} className="flex gap-2 py-1 font-mono text-[11px]">
+                    <span className="shrink-0 rounded bg-amber-500/20 px-1 uppercase text-amber-400">
+                      {f.rule}
+                    </span>
+                    <span className="min-w-0 flex-1 break-words text-amber-200/90">
+                      {f.message}
+                      {f.selector && (
+                        <span className="text-amber-300/50"> — {f.selector}</span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 border-t border-amber-500/20 px-3 py-1.5">
+                <button
+                  onClick={() => void fixA11y()}
+                  disabled={sendPrompt.isPending}
+                  className="flex items-center gap-1.5 rounded bg-amber-500/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {sendPrompt.isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-3 w-3" />
+                  )}
+                  Fix with agent
+                </button>
+                <button
+                  onClick={() => useQAStore.getState().clear()}
+                  className="rounded px-2 py-1 text-[10px] uppercase tracking-wider text-amber-300/70 transition-colors hover:bg-amber-500/10 hover:text-amber-200"
+                >
+                  Clear
+                </button>
+                <span className="ml-auto text-[10px] text-amber-300/50">
+                  {qaFindings.length} problemi · scan euristico
+                </span>
+              </div>
+            </>
+          )}
         </div>
       )}
 
