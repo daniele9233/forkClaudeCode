@@ -44,6 +44,32 @@ See `PROGETTO.md` for the full spec and `docs/` for architecture decisions
 Tauri 2 · React 19 + TypeScript + Vite · Zustand + TanStack Query · Tailwind
 CSS v4 · shadcn/ui · Motion · Monaco · xterm.js · Lucide.
 
+## Install (Windows) — no developer tools needed
+
+If you just want to **use** kikkoCode, you don't need Rust, Node, or pnpm. Open
+**Windows PowerShell** and run this one line:
+
+```powershell
+irm "https://raw.githubusercontent.com/daniele9233/forkClaudeCode/claude/opencode-project-setup-1i59cg/scripts/install.ps1" | iex
+```
+
+It downloads the latest published release and runs the installer for you. The
+OpenCode engine is bundled inside — nothing else to set up. Launch kikkoCode
+from the Start menu; a short wizard helps you connect an AI provider on first
+run (your API keys stay on your machine).
+
+To remove it later:
+
+```powershell
+irm "https://raw.githubusercontent.com/daniele9233/forkClaudeCode/claude/opencode-project-setup-1i59cg/scripts/uninstall.ps1" | iex
+```
+
+> **Maintainer note:** the one-liner installs the latest _published_ GitHub
+> release. To produce one, push a version tag (`git tag v0.1.0 && git push origin v0.1.0`) —
+> this triggers `.github/workflows/release.yml`, which builds the Windows
+> installer and attaches it to a **draft** release. Open the repo's Releases
+> page, edit that draft, and click **Publish** once so the installer can find it.
+
 ## Getting started (development)
 
 **Prerequisites:** Node 22 + [pnpm](https://pnpm.io) 10, the Rust toolchain, the

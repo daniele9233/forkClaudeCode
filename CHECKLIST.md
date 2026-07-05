@@ -12,6 +12,7 @@
 
 > Voce più recente in cima. Formato: `data — fatto — scoperto — riprendere da`.
 
+- _2026-07-05 — **Installazione Windows one-command (12.44).** Per far installare l'app a un amico non tecnico senza dipendenze: `scripts/install.ps1` (one-liner `irm ".../install.ps1" | iex` → API GitHub `/releases/latest` → asset `.exe`/`.msi` → download in %TEMP% → lancia; motore OpenCode già bundlato) + `scripts/uninstall.ps1` (registro HKLM/HKCU → uninstaller) + sezione README "Install (Windows)". Riusa la pipeline `release.yml` (tag `v*` → CI → release draft). **Gotcha:** `/releases/latest` ignora le draft → il manutentore deve pubblicare la release una volta (documentato). 62 test verdi (invariati). **Riprendere da:** pubblicare la prima release (tag `v0.1.0`) per validare il one-liner end-to-end._
 - _2026-07-04 — **Prompt drag-to-resize (12.43).** Barra "grip" in cima al composer con la stessa logica pointer del pannello inferiore (`startComposerResize`, clamp 40px→85vh, su=più alto); tolto il resize-y nativo → maniglia unica e coerente. 62 test verdi._
 - _2026-07-04 — **Skill RKE2/Rancher + documenti cliente (12.42).** Verificato: nessun MCP Rancher dedicato affidabile → RKE2 coperto dal K8s MCP (kubeconfig RKE2), desc preset aggiornata. Skill `rke2-rancher` (🐮: install/HA, kube-vip/MetalLB, Longhorn, Fleet, etcd snapshot, CIS, air-gap, upgrade) + `work-docs` (📋: TAD/Deployment Guide/Verbale di Consegna con frontespizio, controllo doc, TOC, runbook, RACI, firme, appendice, glossario → DOCX reale via python-docx/pandoc + PDF). Catalogo 30→32. 62 test verdi (+2). **Riprendere da:** eventuale "Verify radar" infra + dropzone PDF._
 - _2026-07-04 — **MCP one-click + skill verticali (12.41).** Scheda MCP: sezione "Consigliati" con **Kubernetes** e **Playwright/Browser** collegabili in un click (aggiunge entry `local` a config.mcp). 3 nuove skill (catalogo 27→30): `devops` (⎈ Ansible/K8s/Helm: idempotenza, RBAC, limits, security, validazione+dry-run), `doc-engineering` (📄 OCR/PDF→JSON/DOCX/XLSX/PDF), `job-search` (💼 CV→struttura, scraping etico via Playwright, matching). 60 test verdi (+3). **Riprendere da:** verifica in-app (MCP consigliati richiedono npx/kubeconfig/browser)._
@@ -86,7 +87,7 @@
 - [x] **0.4** Definisci i **design token** (palette 4–6 hex, scala tipografica display/body/mono, spacing) — `PROGETTO.md` §10 _(inglobato in 0.3: palette forge-950…50 + amber accent, font display/body/mono, spacing, radii in `@theme` di index.css)_
 - [x] **0.5** CI minima (build + lint + format) + cartella `docs/` per gli ADR _(`.github/workflows/ci.yml`: frontend lint+build+format check; rust job con webkit2gtk; `.prettierrc`)_
 
-## Fase 1 — Integrazione col motore OpenCode ⭐ *(da fare per prima)*
+## Fase 1 — Integrazione col motore OpenCode ⭐ _(da fare per prima)_
 
 - [x] **1.1** Installa OpenCode; avvia `opencode serve`; apri l'OpenAPI `/doc` e **mappa cosa espone** (sessioni, streaming, eventi tool, stato contesto) → nota in `docs/` _(→ `docs/01-opencode-openapi-findings.md`)_
 - [x] **1.2** Configura un provider di test (DeepSeek o Gemini) _(superato: setup completo **dalla GUI** — `AddProviderKey` + comando Rust `set_provider_key` che inietta l'env var e riavvia il motore; DeepSeek verificato funzionante end-to-end il 2026-07-01)_
@@ -115,15 +116,15 @@
 - [x] **4.2** Rilevamento **dev server** (`localhost:PORT`) dall'output _(→ `features/terminal/detectDevServer.ts` (regex Vite/Next/CRA, normalizza 0.0.0.0→localhost); `stores/preview.store.ts` (detectedUrl/previewUrl/dismissed); detection in `useTerminalEvents` su output completed/error + metadata running; `features/preview/DevServerBanner.tsx` (banner ambra "Open preview"))_
 - [x] **4.3** **Anteprima web** nella webview Tauri con auto-reload (HMR) _(→ `features/preview/PreviewPanel.tsx`: iframe verso `previewUrl`, toolbar (reload/URL editabile/open-external/close), HMR del dev server ricarica l'iframe da solo; terza colonna in `App.tsx` (w-1/2, border-l); ADR `docs/04-adr-web-preview.md`: iframe ora, webview WRY nativa poi per la selezione visuale Fase 5)_
 
-## Fase 5 — Selezione visuale degli elementi ⭐ *(il pezzo custom più serio)*
+## Fase 5 — Selezione visuale degli elementi ⭐ _(il pezzo custom più serio)_
 
-- [x] **5.1** Studia l'architettura di **Onlook** (mappatura `data-oid` file+riga) → nota in `docs/` _(→ `docs/05-adr-visual-selection.md`: React fiber `_debugSource` vs data-* vs WRY; scelto fiber+postMessage)_
+- [x] **5.1** Studia l'architettura di **Onlook** (mappatura `data-oid` file+riga) → nota in `docs/` _(→ `docs/05-adr-visual-selection.md`: React fiber `_debugSource` vs data-\* vs WRY; scelto fiber+postMessage)_
 - [x] **5.2** Decidi la strategia (D1) e **strumenta il progetto in anteprima** (plugin/attributi DOM→sorgente) _(→ `features/preview/ForgiaInspectorPlugin.ts`: plugin Vite `forgiaInspector()` che inietta bridge script via `transformIndexHtml`)_
 - [x] **5.3** **Modalità selezione**: hover-highlight + click → ricava `file:riga` _(→ script bridge: highlight overlay amber, tooltip file:riga, fiber walk; stores/selection.store.ts; PreviewPanel: pulsante Crosshair, message listener, ready/ping handshake)_
 - [x] **5.4** **Traduzione in prompt**: comporre il messaggio per OpenCode dall'elemento selezionato + intento utente _(→ `features/preview/ElementCompose.tsx`: pannello tag+file:riga+HTML, input testo, `buildPrompt`, `useSendPrompt`)_
 - [x] **5.5** Loop completo: clicco → descrivo la modifica → il motore edita → l'anteprima si aggiorna _(→ wired: click→store→ElementCompose→useSendPrompt→OpenCode→modifica file→HMR→iframe reload automatico)_
 
-## Fase 6 — Context Inspector ⭐ *(il differenziatore)*
+## Fase 6 — Context Inspector ⭐ _(il differenziatore)_
 
 - [x] **6.1** Recupera lo **stato del contesto** dagli eventi/endpoint OpenCode (+ stima lato GUI dove serve) _(→ `opencode/context.ts`: `useContextMessages` raw fetch `/api/session/{id}/context`; `useProviders` per `model.limit.context`; `EventSessionCompacted` in `useChatEvents.ts` invalida cache)_
 - [x] **6.2** **Conteggio token** + % budget rispetto alla finestra del modello _(→ `ContextInspectorPanel`: aggrega `AssistantMessage.tokens.input` dell'ultimo step come proxy del current context; `contextLimit` da `Provider.models[id].limit.context`; progress bar con colori soglia 65%/85%)_
@@ -200,4 +201,4 @@ Builda, i suoi test passano, è spuntata qui, e il Log di sessione è aggiornato
 
 ---
 
-*Riferimento architetturale completo: `PROGETTO.md`.*
+_Riferimento architetturale completo: `PROGETTO.md`._

@@ -5,6 +5,7 @@
 > `CHECKLIST.md`, meno astratto di `PROGETTO.md`.
 >
 > Formato di ogni voce:
+>
 > ```
 > ## YYYY-MM-DD · <titolo breve>
 > **Fase:** X.Y  |  **Branch:** <nome>  |  **Commit:** <sha breve>
@@ -15,11 +16,44 @@
 
 ---
 
+## 2026-07-05 · Installazione Windows one-command (`irm | iex`)
+
+**Fase:** 12.44 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- `scripts/install.ps1`: installer PowerShell one-liner per utenti non tecnici.
+  Interroga l'API GitHub (`/releases/latest`), trova l'asset Windows
+  (`.exe` NSIS setup, fallback `.msi`), lo scarica in `%TEMP%` e lo lancia.
+  Nessun tool di sviluppo (Rust/Node/pnpm): il motore OpenCode è già bundlato
+  nella release. Messaggio d'errore guidato se non c'è una release pubblicata.
+- `scripts/uninstall.ps1`: trova la voce di disinstallazione nel registro
+  (HKLM/HKCU + WOW6432Node) e lancia l'uninstaller.
+- `README.md`: nuova sezione "Install (Windows) — no developer tools needed"
+  con il comando `irm ".../scripts/install.ps1" | iex` + nota manutentore.
+
+### Perché / decisione
+
+- L'amico su Windows non deve compilare da sorgente (serve Rust/Node/WebView2):
+  la via giusta per un non-esperto è **una release precompilata** scaricata e
+  lanciata con un solo comando, come fanno gli altri repo (es. free-claude-code).
+- Riusa la pipeline `release.yml` già esistente: il manutentore pusha un tag
+  `v*`, la CI costruisce l'installer e lo allega a una release **draft**.
+
+### Gotcha / attenzione
+
+- `/releases/latest` **ignora le draft**: il manutentore deve pubblicare la
+  release una volta (Publish) perché il one-liner la veda. Documentato nella
+  nota manutentore del README e nel messaggio d'errore dello script.
+- `.ps1` non è formattato da prettier (nessuna regola) → nessun impatto sul
+  gate `pnpm prettier`.
+
 ## 2026-07-04 · Prompt: maniglia drag-to-resize come il pannello
 
 **Fase:** 12.43 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 - `ChatInput.tsx`: barra "grip" in cima al composer con la STESSA logica pointer
   del pannello inferiore (`startComposerResize`): trascini su/giù per alzare/
   abbassare il prompt (clamp 40px → 85vh, drag su = più alto). Segna
@@ -32,6 +66,7 @@
 **Fase:** 12.42 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 - **Verificato**: non esiste un MCP "Rancher" dedicato affidabile; RKE2 è K8s
   conforme → il **Kubernetes MCP** già presente lo gestisce (kubeconfig RKE2).
   Aggiornata la desc del preset MCP → "Kubernetes / RKE2".
@@ -49,6 +84,7 @@
 - **+2 test** → 62 totali.
 
 ### Gotcha / attenzione
+
 - Onestà: nessun MCP Rancher "vero" installato (non ce n'è uno affidabile) — la
   copertura è via K8s MCP + skill dedicata, che è la strada corretta per RKE2.
 
@@ -57,7 +93,9 @@
 **Fase:** 12.41 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 Apertura oltre il solo web-design, sui task reali dell'utente (DevOps, documenti, job-search).
+
 - **MCP "collega in un click"** (scheda Impostazioni → MCP): sezione "Consigliati"
   con **Kubernetes** (`npx -y mcp-server-kubernetes`) e **Playwright/Browser**
   (`npx -y @playwright/mcp@latest`). Un click aggiunge l'entry `local` a
@@ -73,6 +111,7 @@ Apertura oltre il solo web-design, sui task reali dell'utente (DevOps, documenti
 - **+3 test** (trigger delle skill verticali) → 60 totali.
 
 ### Gotcha / attenzione
+
 - Gli MCP consigliati richiedono Node/npx (+ kubeconfig per K8s, browser per
   Playwright); partono quando l'agente li usa.
 - Le skill job-search insistono su scraping etico: robots.txt/ToS, API quando
@@ -83,6 +122,7 @@ Apertura oltre il solo web-design, sui task reali dell'utente (DevOps, documenti
 **Fase:** 12.40 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato (i punti del report)
+
 - **Fix bug**: niente notifiche "task finished" spurie a ogni giro di autopilot
   (guardia `useAutopilotStore` in `useChatEvents` — commit precedente `c4e94ac`).
 - **DRY sessioni nascoste**: nuovo `silentSessions.ts` (registro condiviso) +
@@ -102,6 +142,7 @@ Apertura oltre il solo web-design, sui task reali dell'utente (DevOps, documenti
 - **+4 test** (queue, toFileUrl) → 57 totali.
 
 ### Gotcha / attenzione
+
 - `runDesignAudit` post-autopilot costa un giro extra: gira solo se c'è una
   preview aperta (segnale che stai lavorando a un sito).
 - Rilevate ma NON toccate: parsing `provider/model` e liste keyword web
@@ -112,8 +153,10 @@ Apertura oltre il solo web-design, sui task reali dell'utente (DevOps, documenti
 **Fase:** 12.39 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 Problema segnalato: le ricette dichiaravano 4 skill ma all'invio ne venivano
 iniettate solo 2 (cap del matcher). Per siti awwwards-caliber non basta.
+
 - **`planInjection(text, forcedIds)`** — le skill forzate (della ricetta) sono
   iniettate IN FULL, bypassando il cap di 2, con source "recipe"; non entrano
   nelle sticky (freshIds escluso).
@@ -122,16 +165,18 @@ iniettate solo 2 (cap del matcher). Per siti awwwards-caliber non basta.
   li passa a `planInjection` (preview) e via `SendOpts.forcedSkillIds` all'invio.
 - **`ChatShell.handleSend`** usa `opts.forcedSkillIds`.
 - **Base awwwards**: ogni ricetta forza SEMPRE anche `impeccable` + `type-color`
-  + `emil-motion` (gusto, tipografia, motion craft) oltre alle sue → stack di
-  5–7 playbook reali per brief, non 2.
+  - `emil-motion` (gusto, tipografia, motion craft) oltre alle sue → stack di
+    5–7 playbook reali per brief, non 2.
 
 +1 test (53 totali).
 
 ### Perché / decisione
+
 Risposta alla domanda dell'utente "2 skill bastano per awwwards?": no — ora le
 ricette girano il loro intero stack esperto + la base di qualità universale.
 
 ### Gotcha / attenzione
+
 - Le skill forzate non diventano sticky (sono legate alla ricetta, non
   "imparate"). Restano finché la ricetta è nel composer.
 - Più playbook = più contesto: è voluto sui lanci di ricetta (qualità), non sui
@@ -142,7 +187,9 @@ ricette girano il loro intero stack esperto + la base di qualità universale.
 **Fase:** 12.38 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 Tre fix richiesti dall'utente sul composer:
+
 1. **Perfeziona disabilitato sulle ricette** — `composer.store.fill(text, source)`;
    le ricette Studio passano `source:"recipe"`; `ChatInput` marca `fromRecipe` e
    disabilita il bottone Perfeziona (con tooltip "già ottimizzata"). Si riabilita
@@ -156,6 +203,7 @@ Tre fix richiesti dall'utente sul composer:
    resize manuale e si ridimensiona a contenuto; la maniglia funziona subito.
 
 ### Gotcha / attenzione
+
 - Auto-grow e drag manuale coordinati via guard flag + ResizeObserver: quando
   l'utente trascina, `userResized` blocca l'auto-grow finché non svuoti il campo
   (o carichi una nuova ricetta).
@@ -165,6 +213,7 @@ Tre fix richiesti dall'utente sul composer:
 **Fase:** 12.37 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 La skill `scroll-media` non era richiamata da nessuna ricetta Studio → aggiunte
 5 ricette che la usano (28 → 33): Product Reveal (AirPods, image-sequence
 pinnata), Cinematic Scroll Video (scrubbing), Frame-by-frame Story
@@ -173,6 +222,7 @@ Fashion Lookbook Reel (reel + sequenze). Ognuna aggancia `scroll-media`
 (+ `video-pipeline` dove serve).
 
 ### Gotcha / attenzione
+
 - Nessuna: solo dati (recipes.ts). Test recipes verifica gli skillId validi.
 
 ## 2026-07-04 · Asset realistici (no link rotti) + skill video/scroll + pipeline frame
@@ -180,6 +230,7 @@ Fashion Lookbook Reel (reel + sequenze). Ognuna aggancia `scroll-media`
 **Fase:** 12.36 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato (tutte e 3 in sequenza)
+
 1. **Asset realistici + auto-heal:**
    - `asset-generation` (skill) potenziata: REGOLA DURA "mai box grigi, mai URL
      finti/404". Foto reali senza chiave via **Lorem Picsum**
@@ -203,11 +254,13 @@ Fashion Lookbook Reel (reel + sequenze). Ognuna aggancia `scroll-media`
 Catalogo skill 25 → 27. +2 test (52 totali).
 
 ### Perché / decisione
+
 Richiesta utente (tutte in sequenza). Higgsfield è a crediti e legato alla mia
 sessione, non all'app: le skill usano "un gen tool se presente", altrimenti
 Picsum/stock/ffmpeg — così funziona SEMPRE senza chiavi.
 
 ### Gotcha / attenzione
+
 - L'auto-heal agisce solo nella PREVIEW (non nel codice): l'agente deve
   comunque correggere il src; il radar lo segnala.
 - `video-pipeline` richiede ffmpeg installato per l'estrazione frame; senza,
@@ -218,8 +271,10 @@ Picsum/stock/ffmpeg — così funziona SEMPRE senza chiavi.
 **Fase:** 12.35 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 Ora si vede subito se il modello selezionato "vede le immagini" (serve per Audit
 visivo e stile da URL/screenshot).
+
 - **`opencode/modelCaps.ts`** (nuovo) — `modelSupportsVision(model)` (usa
   `modalities.input.includes("image")`, fallback su `attachment`) + hook
   `useModelVision()` per il modello selezionato.
@@ -231,10 +286,12 @@ visivo e stile da URL/screenshot).
   attuale (verde se vede, ambra se no → uso l'HTML come ripiego).
 
 ### Perché / decisione
+
 Richiesta utente: sapere in base al modello se le feature con visione
 funzioneranno, prima di usarle.
 
 ### Gotcha / attenzione
+
 - `known:false` (modello non nel catalogo provider) → non mostro nulla invece di
   dire erroneamente "non vede".
 
@@ -243,7 +300,9 @@ funzioneranno, prima di usarle.
 **Fase:** 12.34 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 Ora puoi "rubare" il look di un sito che ammiri (non tuo).
+
 - **`opencode/style.ts`** — refactor in `runDistiller(parts)` condiviso; nuove
   `captureStyleFromUrl(url)` e `captureStyleFromImage(path)`. Per l'URL:
   screenshot via `capture_preview` (qualsiasi URL) **+** HTML via `fetch_text`,
@@ -255,11 +314,13 @@ Ora puoi "rubare" il look di un sito che ammiri (non tuo).
   Salva+attiva lo stile importato; spinner e riga d'errore.
 
 ### Perché / decisione
+
 Scelta utente. Estende la Style Memory da "salva il tuo stile" a "clona il look
 di qualsiasi sito". Zero nuovo Rust: riuso `capture_preview` (ora con width/
 height) e `fetch_text`.
 
 ### Gotcha / attenzione
+
 - URL/screenshot rendono al meglio con un modello con **visione**; l'HTML è il
   fallback per i modelli testuali (meno preciso sui siti molto JS).
 - Alcuni siti bloccano lo screenshot headless o il fetch: se falliscono entrambi
@@ -270,7 +331,9 @@ height) e `fetch_text`.
 **Fase:** 12.33 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 Crei un sito che ti piace → salvi il suo stile → lo riusi su altri siti.
+
 - **`src/opencode/style.ts`** (nuovo) — `captureStyle()`: sessione nascosta
   plan-mode (read-only, `[kikko]`, silenziata, cancellata) che con approccio
   IBRIDO restituisce il `DESIGN.md` del progetto se esiste, altrimenti lo
@@ -290,11 +353,13 @@ Crei un sito che ti piace → salvi il suo stile → lo riusi su altri siti.
 - **+3 test** (`styles.store.test.ts`), 50 totali.
 
 ### Perché / decisione
+
 Richiesta utente (scelta: ibrido codice+DESIGN.md). Riusa i pattern esistenti
 (sessioni nascoste + system-role injection). Uno stile = un DESIGN.md salvato,
 riutilizzabile tra progetti diversi (persistito in localStorage, non nel repo).
 
 ### Gotcha / attenzione
+
 - La cattura gira sul motore (sidecar): serve l'app avviata; è una chiamata LLM
   di qualche secondo (spinner sul bottone).
 - Lo stile attivo si applica a OGNI invio finché non lo disattivi (chip ✕ o
@@ -305,6 +370,7 @@ riutilizzabile tra progetti diversi (persistito in localStorage, non nel repo).
 **Fase:** 12.32 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato (le 5 aree)
+
 1. **Sticky Skills** — `skills.store`: `sticky: Record<id,turni>` + `noteActivated`
    (decadimento −1/turno, refresh a STICKY_TURNS=3 per le skill che scattano).
    Risolve il "secondo prompt": "ora fallo rosso" mantiene attiva la skill motion.
@@ -329,11 +395,13 @@ mantenuto per i test/round-trip. UI chip riscritti (pin/sticky/reset). +8 test
 (`skillsEngine.test.ts`), 47 totali.
 
 ### Perché / decisione
+
 Feedback tecnico dell'utente: con matching solo-keyword il sistema perde le
 skill al secondo prompt, non ha override manuale, mescola system e user, fallisce
 sui sinonimi e sui conflitti. Tutte e 5 le aree affrontate.
 
 ### Gotcha / attenzione
+
 - `sticky` è runtime-only (persist `partialize` esclude sticky; pinned sì).
 - `planInjection` legge lo store ma non muta; `noteActivated` chiamato solo nel
   send path (non nel preview dei chip).
@@ -345,8 +413,10 @@ sui sinonimi e sui conflitti. Tutte e 5 le aree affrontate.
 **Fase:** 12.31 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 Il problema più grande: skill ottime ma prompt scarso → sito brutto. Fix =
 riscrivere l'intento grezzo in un brief esperto PRIMA di inviare.
+
 - **`src/opencode/enhance.ts`** (nuovo) — `enhancePrompt(rough)`: sessione
   nascosta throwaway (plan mode = read-only, silenziata come il distillatore di
   memoria, titolo `[kikko]`, cancellata dopo) che riscrive la richiesta in un
@@ -361,12 +431,14 @@ riscrivere l'intento grezzo in un brief esperto PRIMA di inviare.
   riga d'errore se fallisce. L'utente resta nel loop (rivede e invia).
 
 ### Perché / decisione
+
 Scelta dall'utente tra 3 proposte. È la leva universale: funziona su qualsiasi
 input, riusa l'infrastruttura delle sessioni nascoste, e insegna all'utente a
 scrivere meglio mostrando il brief. Human-in-the-loop: il risultato è
 modificabile, non inviato in automatico.
 
 ### Gotcha / attenzione
+
 - La sessione enhancer è `[kikko]` → già filtrata dal sidebar e silenziata
   (niente notifiche/preview/autopilot).
 - È una chiamata LLM extra (qualche secondo): spinner sul bottone; in caso di
@@ -377,6 +449,7 @@ modificabile, non inviato in automatico.
 **Fase:** 12.30 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 - **`catalog.ts`** — nuova skill `emil-motion` (🎞️), condensata dal playbook di
   Emil Kowalski (emilkowalski/skills · animations.dev): quando animare, easing
   (mai ease-in su UI, curve custom), durate < 300ms, mai scale(0), transizioni
@@ -385,12 +458,14 @@ modificabile, non inviato in automatico.
   Si attiva su keyword animation/easing/transition/spring/drawer/toast/motion.
 
 ### Perché / decisione
+
 L'utente ha segnalato le skill di Emil (i comandi `npx skills add …`). È il
 sapere dove i coding agent sbagliano di più (easing, scale(0), transition:all,
 durate). L'ho reso skill nativa (iniezione prompt) invece di dipendere dalla CLI
 `skills`, così funziona nel nostro sistema e si combina con le altre.
 
 ### Gotcha / attenzione
+
 - Le altre due skill del repo (review-animations, animation-vocabulary) sono
   tooling per un altro harness; la sostanza è in emil-design-eng, che ho
   incorporato. La checklist "review" è già coperta dal bottone Audit.
@@ -400,6 +475,7 @@ durate). L'ho reso skill nativa (iniezione prompt) invece di dipendere dalla CLI
 **Fase:** 12.29 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 - **`catalog.ts`** — nuova skill `design-md` (📋), dal metodo di
   voltagent/awesome-design-md: prima scrivi un `DESIGN.md` (9 sezioni: tema,
   palette hex+ruoli, tipografia, componenti+stati, layout/spacing, profondità,
@@ -411,12 +487,14 @@ durate). L'ho reso skill nativa (iniezione prompt) invece di dipendere dalla CLI
   di verità e ci si attiene.
 
 ### Perché / decisione
+
 Il repo richiesto è una collezione di file DESIGN.md (spec di design system che
 l'agente legge). La resa migliore è una skill metodologica "documenta prima,
 costruisci dopo" che blocca la coerenza visiva su un sito multi-pagina — il
 punto debole tipico. Le 4 ricette la mettono in pratica.
 
 ### Gotcha / attenzione
+
 - `design-md` è distinta da `design-system`: la prima è il DOCUMENTO-spec
   (metodo), la seconda l'implementazione tokenizzata. Si completano.
 
@@ -425,7 +503,9 @@ punto debole tipico. Le 4 ricette la mettono in pratica.
 **Fase:** 12.28 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 **1) Generazione asset reali (skill):**
+
 - `catalog.ts` — nuova skill `asset-generation` (🖼️): usa un tool/MCP di
   image-gen se disponibile, altrimenti asset procedurali (SVG, gradienti/mesh,
   grana feTurbulence, favicon SVG, OG image via @vercel/og), + pipeline di
@@ -435,6 +515,7 @@ punto debole tipico. Le 4 ricette la mettono in pratica.
   placeholder grigi + favicon + OG image".
 
 **2) QA visivo multi-viewport + a11y automatico (anteprima):**
+
 - **Rust `capture_preview(url, width?, height?)`** — screenshot a viewport
   arbitrario (default 1440×900, clamp), nome file per larghezza.
 - **Audit multi-viewport** (`PreviewPanel.auditResponsive`) — cattura la pagina
@@ -447,12 +528,14 @@ punto debole tipico. Le 4 ricette la mettono in pratica.
   findings e "Fix with agent" (prompt costruito dai findings). +2 test (39).
 
 ### Perché / decisione
+
 Le due leve scelte dall'utente. Gli asset sono il buco tipico dell'output AI
 (box grigi) → skill che copre sia image-gen che procedurale (sempre funziona).
 Il QA passa da "una schermata" a "3 breakpoint + check a11y deterministici
 correggibili in un click" — un vero radar di qualità, non solo vision.
 
 ### Gotcha / attenzione
+
 - L'auditor a11y è euristico (contrasto/alt/label/heading/tap): copre l'80%,
   non sostituisce test manuali tastiera/screen-reader (detto nel drawer).
 - L'audit multi-viewport cattura 3 volte in sequenza (~10–15s) e serve un
@@ -465,6 +548,7 @@ correggibili in un click" — un vero radar di qualità, non solo vision.
 **Fase:** 12.27 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 - **`src/skills/recipes.ts`** — 10 → **24 ricette**. Aggiunte 14 verticali
   ENTERPRISE (siti completi, di livello vendibile): Fintech/Neobank, Cybersecurity,
   HealthTech, Luxury Real Estate, Law Firm, D2C E-commerce, Web3/Crypto, Enterprise
@@ -481,12 +565,14 @@ correggibili in un click" — un vero radar di qualità, non solo vision.
   una `enterprise`.
 
 ### Perché / decisione
+
 Richiesta esplicita: prompt corretti e pronti per siti enterprise rivendibili
 ($10k+), full-stack e professionali. Le ricette enterprise sono briefing già
 scritti per attivare le skill giuste e alzano l'asticella a "prodotto per un
 cliente reale" (routing multi-pagina, conversione, trust, SEO, produzione).
 
 ### Gotcha / attenzione
+
 - `enterprise()` è dichiarata prima di `STACK`/`BAR` nel file ma li usa solo a
   call-time (costruzione dell'array RECIPES, dopo le const) → nessun TDZ.
 - 24 card: la scheda Studio scrolla; il raggruppamento per categoria tiene
@@ -497,7 +583,9 @@ cliente reale" (routing multi-pagina, conversione, trust, SEO, produzione).
 **Fase:** 12.26 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 Quattro leve per rendere l'agente più esperto di siti (scelte dall'utente):
+
 1. **Design Review automatico** — `PreviewPanel.tsx`: refactor di `captureAndPrompt`
    (screenshot → prompt+immagine) e nuovo bottone **Audit** (icona ScanEye) che
    manda un audit strutturato "Impeccable" (7 aree con voto /10: tipografia,
@@ -516,12 +604,14 @@ Quattro leve per rendere l'agente più esperto di siti (scelte dall'utente):
    skill 20 → 22. +3 test (37 totali).
 
 ### Perché / decisione
-Il Design Review è il moltiplicatore più grande: l'agente *vede* la pagina e
+
+Il Design Review è il moltiplicatore più grande: l'agente _vede_ la pagina e
 itera come un designer. Il Web Designer mode estende la qualità a OGNI richiesta
 web, non solo alle ricette Studio. Le due skill di gusto/registry colmano i due
 buchi tipici dell'output AI: font/colori anonimi e componenti riscritti a mano.
 
 ### Gotcha / attenzione
+
 - Audit e 📷 richiedono un modello con VISIONE per guardare davvero lo
   screenshot (deepseek-chat non vede immagini): il prompt dice esplicitamente
   "se non vedi l'immagine dillo invece di indovinare".
@@ -533,7 +623,9 @@ buchi tipici dell'output AI: font/colori anonimi e componenti riscritti a mano.
 **Fase:** 12.25 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 **Punto 1 — le ricette Studio ora generano un PROGETTO reale, non un index.html:**
+
 - `src/skills/recipes.ts` — preambolo `STACK` condiviso a ogni brief: scaffold
   Vite + React 19 + TS + Tailwind, animazioni (Framer Motion, GSAP+ScrollTrigger,
   Lenis, CSS scroll-driven), 3D dove ha senso (React Three Fiber + drei / Spline,
@@ -544,6 +636,7 @@ buchi tipici dell'output AI: font/colori anonimi e componenti riscritti a mano.
   (Glass Aurora, Skeuomorphic Product, Immersive Scroll) la referenziano.
 
 **Punto 2 — il prompt "pensa pensa" ma non scrive nulla / sembra in loop:**
+
 - `src/features/chat/MessageBubble.tsx` — `hasVisibleContent` conta solo parti
   con testo reale (o tool). Prima una parte reasoning/text VUOTA (i reasoning
   model e il free tier GLM/zai le emettono) faceva sparire i puntini "thinking"
@@ -559,11 +652,13 @@ buchi tipici dell'output AI: font/colori anonimi e componenti riscritti a mano.
   bottone Stop (suggerisce di cambiare modello se è un reasoning model).
 
 ### Perché / decisione
+
 Il sintomo "loop che pensa senza scrivere" ha due cause coperte insieme: (a) UI
 che sembrava bloccata su parti vuote → fix di rendering; (b) run realmente lento/
 appeso → watchdog visibile con via d'uscita (Stop), senza timer in idle.
 
 ### Gotcha / attenzione
+
 - Il watchdog NON killa da solo: mostra solo l'opzione. Volutamente non
   invasivo (un run lungo legittimo non va interrotto a sorpresa).
 - `Part.sessionID` è la chiave per `lastActivityAt`; se un engine non lo
@@ -574,6 +669,7 @@ appeso → watchdog visibile con via d'uscita (Stop), senza timer in idle.
 **Fase:** 12.24 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### Cosa è cambiato
+
 - **`src/skills/catalog.ts`** — catalogo skill da 12 → 19. Nuove:
   `impeccable` (💎, evita i tell-tale del design AI generico: no Inter/Arial,
   no grigio-su-colore, no nero puro, no card annidate, no easing elastico —
@@ -598,6 +694,7 @@ appeso → watchdog visibile con via d'uscita (Stop), senza timer in idle.
   skillId validi, brief sostanziosi). Totale 34 test verdi.
 
 ### Perché / decisione
+
 La richiesta era specializzare l'agente in siti web professionali e rendere
 comprensibile la sezione skill. I brief sono **self-contained** così non
 dipendono dal cap di 2 skill del matcher; i keyword che contengono attivano
@@ -605,6 +702,7 @@ comunque le skill giuste come guida extra. La scheda Studio è la porta
 d'ingresso "clicca e vai" richiesta ("10 prompt diversi").
 
 ### Gotcha / attenzione
+
 - `matchSkills` resta a max 2: la ricchezza viene dal brief, non da N skill.
 - Le ricette sono in italiano ma i termini stilistici sono in inglese: serve
   per il matcher e per il modello. Non tradurli.
@@ -615,12 +713,13 @@ d'ingresso "clicca e vai" richiesta ("10 prompt diversi").
 
 Richiesta UX: con 4+ modelli DeepSeek in lista non si capiva quale fosse quello
 attivo. Ora il modello agganciato è inconfondibile:
+
 - **riga nel dropdown**: pallino verde con glow + nome in verde semibold +
   etichetta "ONLINE" + check verde (sfondo `--color-online`/10);
 - **pill nell'header**: pallino verde + nome modello in verde quando una
   selezione è attiva.
-La persistenza c'era già (model.store persistito → la scelta sopravvive al
-riavvio dell'app). Frontend-only. Lint/build/30 test verdi.
+  La persistenza c'era già (model.store persistito → la scelta sopravvive al
+  riavvio dell'app). Frontend-only. Lint/build/30 test verdi.
 
 ---
 
@@ -653,7 +752,9 @@ Frontend-only, niente ricompilazione Rust. Lint/build/30 test verdi.
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### 12.21 — Memoria persistente (il design "migliore possibile" per questa architettura)
+
 Tre principi:
+
 1. **Storage = blocco marcato dentro `AGENTS.md`** (`<!-- kikko:memory:start/end -->`):
    opencode inietta AGENTS.md nativamente in ogni sessione → iniezione a costo
    zero; le regole umane fuori dai marker non vengono MAI toccate (merge
@@ -668,14 +769,15 @@ Tre principi:
 3. **Igiene**: sessioni interne titolate `[kikko]`, filtrate dalla sidebar,
    silenziate negli handler (`isSilentSession` → niente notifiche/preview/
    autopilot/coda) e cancellate subito dopo l'uso.
-Trigger: auto su `session.idle` (throttle: ≥4 messaggi nuovi + ≥3 min
-dall'ultima distillazione) + **Memorize now** manuale; toggle auto in Settings.
-`memory.store` (autoMemorize persistito, distilling, lastAt/lastError).
-**Fix collaterale importante:** `MessageList` ora filtra i messaggi live per
-`sessionID` — prima lo streaming di ALTRE sessioni (subagenti/nascoste) poteva
-comparire nella chat aperta.
+   Trigger: auto su `session.idle` (throttle: ≥4 messaggi nuovi + ≥3 min
+   dall'ultima distillazione) + **Memorize now** manuale; toggle auto in Settings.
+   `memory.store` (autoMemorize persistito, distilling, lastAt/lastError).
+   **Fix collaterale importante:** `MessageList` ora filtra i messaggi live per
+   `sessionID` — prima lo streaming di ALTRE sessioni (subagenti/nascoste) poteva
+   comparire nella chat aperta.
 
 ### 12.22 — Rules tab + import skill da URL
+
 - Tab **Rules** in Settings: editor di `AGENTS.md` (load/save via comandi Rust
   `read/write_agents_file`) + controlli memoria (toggle auto, Memorize now,
   last update/errore).
@@ -695,12 +797,14 @@ Lint/build/30 test verdi. Rust toccato (4 comandi nuovi) → `pnpm tauri dev`.
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### 12.18 — Kill pulito dei processi (Windows)
+
 Nuovo `src-tauri/src/process.rs`: `kill_child_tree` — su Windows
 `taskkill /PID <pid> /T /F` (CREATE_NO_WINDOW) prima dello `start_kill`,
 perché uccidere lo shim `cmd /C` lasciava orfano il vero node con la porta
 occupata. Usato da `Sidecar::stop` e `DevRunner::stop`. Su unix invariato.
 
 ### 12.19 — Performance chat (memo + riferimenti stabili)
+
 `MessageBubble` ora è `memo(...)`. In `MessageList` una `WeakMap<innerPartMap,
 Part[]>` cache: lo store rimpiazza solo la inner-Map del messaggio toccato, così
 i `parts` degli ALTRI messaggi restano referenzialmente identici → durante lo
@@ -709,6 +813,7 @@ streaming si ri-renderizza **solo il bubble attivo**, non tutta la lista.
 per-token è eliminato.)
 
 ### 12.20 — Autopilot con budget 🚀
+
 Toggle **Auto** nella riga modalità dell'input (+ input `$ budget` e `× iter`):
 il testo diventa il GOAL. `opencode/autopilot.ts`: preambolo con regole e
 marker `AUTOPILOT_DONE`; su ogni `session.idle` il controller (a) somma i
@@ -732,6 +837,7 @@ Lint/build/30 test verdi. Rust toccato → `pnpm tauri dev`.
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### 12.13 — Review panel (la feature-fiducia)
+
 `features/review/ReviewPanel.tsx` (montato in ChatShell sotto il PlanTree,
 pattern collassabile): lista dei file toccati dall'agente da `useFileStatus`
 (git status del motore) con badge A/M/D, +righe/−righe totali e per file;
@@ -741,6 +847,7 @@ tracked → `git checkout HEAD -- <path>`, untracked (file nuovo) → delete.
 Status file rinfrescato su `session.idle` (invalidate `["files"]`).
 
 ### 12.14 — Coda di task (NEXT queue)
+
 `stores/queue.store.ts` (items con sessionId, FIFO, `takeNext`). ChatShell:
 se `isRunning`, `handleSend` **accoda** invece di inviare; effetto con guardia
 prev-running (StrictMode-safe) che a idle→ manda il prossimo della coda della
@@ -749,6 +856,7 @@ per rimuovere); ChatInput ora invia anche durante il run (Enter accoda,
 placeholder aggiornato) + bottone ListPlus accanto a Stop.
 
 ### 12.15 — Notifiche desktop
+
 `tauri-plugin-notification` (Cargo+JS+capability). `lib/notify.ts`:
 `notifyWhenUnfocused` (solo se la finestra NON è a fuoco; permesso richiesto
 lazy). Su `session.idle`: "Task finished — the agent is done…".
@@ -763,6 +871,7 @@ Lint/build/30 test verdi. Rust toccato (comando discard + plugin notification)
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 ### 12.17 — HMR passthrough (live-edit senza reload)
+
 tiny_http non fa upgrade websocket, ma non serve: i WebSocket **non sono
 soggetti alla same-origin policy**. Il proxy ora inietta
 `window.__kikko_ws_target__` (host:porta del dev server reale) e lo script
@@ -774,6 +883,7 @@ target → nessun patch. Nota: script iniettato a fine body (classic) → esegue
 prima dei module script (deferred), quindi il patch precede il client Vite.
 
 ### 12.16 — Screenshot → self-critique
+
 Comando Rust `capture_preview(url)`: trova un browser Chromium di sistema
 (**Edge** è preinstallato su Windows; Chrome/Chromium fallback, unix via PATH),
 lo lancia `--headless=new --screenshot --window-size=1440,900
@@ -802,6 +912,7 @@ Dall'analisi completa del codice: prima i 3 fix di affidabilità più critici, p
 la feature-firma nuova.
 
 ### Affidabilità
+
 1. **SSE auto-reconnect** (`events.ts`): se lo stream eventi cadeva (hiccup del
    motore, non crash del processo) il `for await` finiva e nessuno lo riavviava
    → app "sorda" per sempre (niente streaming né permessi). Ora loop di
@@ -818,6 +929,7 @@ la feature-firma nuova.
    re-stick al cambio sessione.
 
 ### Error Radar ⭐ (nuova feature-firma)
+
 Il proxy iniettante ora inietta anche un **radar errori** nella pagina:
 `window error` (+ resource load in capture), `unhandledrejection`,
 `console.error` (wrap non distruttivo), cap 50, dedup dei duplicati consecutivi
@@ -844,9 +956,11 @@ selezione degli elementi del sito **senza** dover aggiungere `forgiaInspector()`
 al progetto.
 
 ### Selezione visuale — proxy con iniezione (universale)
+
 Un iframe cross-origin non è scriptabile dall'app: lo script deve arrivare
 dalla stessa origine della pagina. Quindi il **preview server integrato ora fa
 anche da reverse-proxy iniettante**:
+
 - `preview_server.rs`: `proxy_target` accanto a `root`; in proxy mode ogni
   richiesta è inoltrata al dev server (reqwest **blocking**, un thread per
   richiesta, Accept-Encoding rimosso per poter modificare l'HTML) e nelle
@@ -868,6 +982,7 @@ anche da reverse-proxy iniettante**:
   "Add forgiaInspector()" è sostituito.
 
 ### Anteprima più tenace
+
 - `watchForDevServer`: non più 30s una tantum — continua finché il pannello è
   aperto e vuoto (cap 10 min, poll 2s).
 - `onDevUrlDetected` ignora le porte di kikkoCode (engine/1420/preview): un
@@ -921,6 +1036,7 @@ a **IPv6 `::1`** e Vite `dev`/`preview` bindano lì → il probe IPv4 falliva �
 ricadeva sullo statico.
 
 Fix in `find_dev_server`:
+
 - prova **sia `127.0.0.1` sia `[::1]`** per ogni porta;
 - ritorna l'URL come `http://localhost:{port}/` (il webview lo risolve come il
   server si aspetta, passa eventuali check dell'Host header);
@@ -969,6 +1085,7 @@ in tempo reale e legge la porta **reale** da lì (niente indovinare, niente
 finestre separate). Scelta utente: **entrambi** (runner + guida all'agente).
 
 ### Rust
+
 - `dev_runner.rs`: `DevRunner` avvia `<pm> run <script>` (pm da lockfile:
   pnpm/yarn/bun/npm; script: dev›start›serve›preview da `package.json`) nel cwd
   del progetto, stdout/stderr in pipe → stream come eventi `dev-server-log`,
@@ -978,6 +1095,7 @@ finestre separate). Scelta utente: **entrambi** (runner + guida all'agente).
   `dev_server_status`, `dev_command_info`.
 
 ### Frontend
+
 - `devserver.store` (running/starting/command/logs capped).
 - `useDevServerEvents`: consuma `dev-server-log` → `detectDevServerUrl` (riuso)
   → apre l'anteprima all'URL **vero**; capta i log per la vista "starting".
@@ -988,6 +1106,7 @@ finestre separate). Scelta utente: **entrambi** (runner + guida all'agente).
   empty-state con bottone "Run dev server (<cmd>)".
 
 ### Guida all'agente (Entrambi)
+
 - `skills/previewPolicy.ts`: nota nascosta `[[kikko-note]]` iniettata sui prompt
   web (keyword) che dice all'agente di NON avviare dev server in finestre
   staccate né aprire il browser — ci pensa kikkoCode. `parseSkills` la strippa
@@ -1028,6 +1147,7 @@ GUI; l'anteprima in-app ora comunque trova e mostra il server.
 Obiettivo utente: "chiedi una pagina → la vedi subito", senza lanciare comandi.
 
 ### Rust
+
 - `preview_server.rs`: mini HTTP server statico (`tiny_http`) che serve la
   cartella del progetto. Bind di una porta fissa all'avvio; la root segue il
   progetto aperto (`set_root`). MIME per estensione, dir → `index.html`,
@@ -1039,6 +1159,7 @@ Obiettivo utente: "chiedi una pagina → la vedi subito", senza lanciare comandi
   `None` (così la UI mostra lo stato vuoto invece di una root vuota).
 
 ### Frontend
+
 - `opencode/preview.ts`: `getStaticPreviewUrl` (invoke `preview_url`),
   `openBestPreview` (dev server rilevato › server statico › vuoto),
   `syncStaticPreviewOnIdle` (a fine run: se c'è una pagina la **apre in
@@ -1063,6 +1184,7 @@ test verdi.
 Due bug segnalati dopo il primo giro funzionante.
 
 ### 1. La chat restava su "Working" a task finito
+
 Causa: in `useChatEvents` l'handler `session.updated` faceva **sempre**
 `setSessionRunning(id, true)`. Ma opencode emette `session.updated` per tanti
 motivi — incluso la **generazione del titolo alla FINE del run** — quindi subito
@@ -1072,6 +1194,7 @@ Fix: il flag "running" ora è di proprietà della finestra **send→idle**:
 `useSendPrompt` lo mette `true` in `onMutate` (e `false` in `onError`), `session.idle`/`session.error` lo mettono `false`, e `session.updated` **non lo tocca più** (fa solo invalidate della lista).
 
 ### 2. Anteprima "non funziona"
+
 Apriva sempre `http://localhost:5173/` anche senza dev server → pagina rotta
 (l'agente aveva creato un `index.html` statico, nessun server in ascolto).
 Fix: `preview.store` ora ha `previewOpen` separato da `previewUrl`. Il tasto
@@ -1098,7 +1221,9 @@ aprire una cartella / clonare un repo / crearne uno si riducono a: **imposta la
 cwd dell'engine e riavvialo** (stesso meccanismo del key-injection provider).
 
 ### Cosa è cambiato
+
 **Rust (`src-tauri`)**
+
 - `sidecar/mod.rs`: nuovo campo `working_dir: Arc<Mutex<Option<PathBuf>>>` +
   `set_working_dir()`/`working_dir()`; nello spawn `command.current_dir(dir)`.
 - `lib.rs`: comandi `get_working_dir`, `set_working_dir` (imposta cwd, riavvia,
@@ -1111,6 +1236,7 @@ cwd dell'engine e riavvialo** (stesso meccanismo del key-injection provider).
 - `Cargo.toml` + `capabilities/default.json`: dialog plugin + `dialog:default`.
 
 **Frontend**
+
 - `stores/workspace.store.ts` (persistito): `currentDir` + `recents[]`.
 - `opencode/workspace.ts` `useProjectActions()`: `pickDirectory` (dialog nativo),
   `openProject` (invoke set_working_dir → `initClient(newUrl)` + restart event
@@ -1126,6 +1252,7 @@ cwd dell'engine e riavvialo** (stesso meccanismo del key-injection provider).
   cima alla sidebar + `<ProjectPicker/>` tra gli overlay globali.
 
 ### Gotcha
+
 - Cambio progetto = riavvio engine su **nuova porta** → bisogna `initClient` col
   nuovo URL a mano (l'onReady dell'OpencodeProvider è guardato da `ready.current`
   e ignorerebbe il nuovo evento). Stesso pattern del provider-connect.
@@ -1158,6 +1285,7 @@ Due richieste utente:
    con stato attivo evidenziato come il tasto terminale.
 
 ### Gotcha
+
 - La maniglia usa listener su `document` (non sul div) così il drag non "sfugge" se il
   puntatore esce dal bordo; ripristina `userSelect`/`cursor` del body a `pointerup`.
 - Il tasto anteprima resta separato dall'`openExternal` (`window.open`) già presente nel
@@ -1218,6 +1346,7 @@ Frontend-only. Lint+prettier+build+test verdi.
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 Task #9, ultimo delle 4 integrazioni. Il `SettingsModal` diventa una plancia:
+
 - **Ricerca** in cima che filtra il tab attivo (agenti per nome/descrizione/
   mode/tool; MCP per nome/tipo/url), con clear e autofocus.
 - **Badge conteggio** sui tab: numero agenti, e MCP `connessi/totali`.
@@ -1255,6 +1384,7 @@ verdi. Prossimo: command center Agenti/Skill/MCP (task #9).
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
 
 Task #7 delle integrazioni. `ToolCallCard` ora è viva:
+
 - **Timer live** che ticka (200ms) mentre il tool gira, poi si ferma sulla
   durata finale a completamento/errore (da `ToolState.time.start/end`).
 - **Spinner** accanto a "running".
@@ -1416,6 +1546,7 @@ opencode eredita quella cwd e **scrive lì il suo `config.json`** a ogni
 `config.update`. Il file-watcher di Tauri lo vede come modifica sorgente →
 **ricompila e riavvia l'app a metà azione** (log: "File src-tauri\config.json
 changed. Rebuilding"). Selezione modello/salvataggio chiave non si fissavano.
+
 - Fix: `src-tauri/.taurignore` che ignora gli artefatti runtime di opencode
   (`config.json`, `opencode.json`, `auth.json`, `.opencode/`, `storage/`, log).
   Più `.gitignore` per non committarli (contengono la chiave). Config-only →
@@ -1580,6 +1711,7 @@ Fix: ordine invertito su Windows (Unix invariato). Ora risolve
 `...\opencode.cmd` e `engine_command` lo instrada via `cmd /C`.
 
 Log aggiunti (richiesti dall'utente):
+
 - `engine_command`: "launching shim via cmd /C: …" oppure "launching directly: …".
 - dopo lo spawn: "engine process started (pid …); polling health on … ".
 - `wait_healthy`: logga il **primo** errore del probe (connection refused vs
@@ -1633,6 +1765,7 @@ che la webview/JS abbia registrato il listener `listen("opencode-ready")`.
 L'evento è fire-and-forget → perso → frontend bloccato per sempre.
 
 Fix in `src/opencode/OpencodeProvider.tsx`:
+
 - Estratto `onReady(url)` con guardia `ready` (init una sola volta, da evento
   o da poll).
 - Oltre al listener, **poll di `get_opencode_url`** al mount (fino a 20 tentativi
@@ -1841,12 +1974,14 @@ settings, onboarding). Resta marginale: toolbar PreviewPanel e FileDiffPanel hea
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
 
 ### Contesto
+
 L'utente ha rifiutato il look "soft shadcn" e ha fornito 2 reference (OBSIDIAN hero +
 AGENT DATA OVERVIEW dashboard): estetica tecnico-brutalista — monospace, bordi a filo,
 angoli netti, crop-mark, micro-label maiuscole, accenti misurati (ambra/verde/rosso).
 Richiesta specifica: il **prompt con un solo angolo smussato** (chamfer) verso l'interno.
 
 ### Cosa è cambiato
+
 - **`src/index.css`**: radius ridotti (1–3px, look netto); sfondo atmosferico (radial
   gradient ambra + vignette, solo dark); accenti `--color-online` (verde) / `--color-alert`
   (rosso); utility HUD: `.hud-label` (mono uppercase tracking), `.hud-mono` (tabular-nums),
@@ -1864,6 +1999,7 @@ Richiesta specifica: il **prompt con un solo angolo smussato** (chamfer) verso l
 - **`src/features/statusbar/StatusBar.tsx`**: label CTX/MSGS/STEPS/model in mono uppercase.
 
 ### Note
+
 - Chamfer scelto in alto a destra ("verso l'interno"); facilmente spostabile cambiando
   `.notch-tr` → `.notch-tl` e il lato.
 - Pass 1: header, welcome, input, status bar. Da rifinire ancora (pass 2): command palette,
@@ -1877,12 +2013,14 @@ Richiesta specifica: il **prompt con un solo angolo smussato** (chamfer) verso l
 **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (prossimo)
 
 ### Cosa è cambiato
+
 - `src-tauri/tauri.conf.json`: rimosso `bundle.externalBin`
 - `src-tauri/tauri.release.conf.json` (nuovo): overlay con solo `bundle.externalBin`
 - `.github/workflows/release.yml`: `args` ora include `--config src-tauri/tauri.release.conf.json`
 - `docs/06-adr-sidecar-bundling.md` + `src-tauri/binaries/README.md`: aggiornati
 
 ### Perché
+
 Il job `Rust (cargo check)` falliva con
 `resource path binaries/opencode-x86_64-unknown-linux-gnu doesn't exist`.
 Il build-script di Tauri (`generate_context!`) **valida `externalBin` a check/build
@@ -1892,6 +2030,7 @@ un overlay applicato in release, il config base resta compilabile ovunque; in CI
 release l'overlay viene mergiato dopo che il binario è stato scaricato.
 
 ### Gotcha
+
 - Il path di `--config` è risolto relativamente alla cwd del comando tauri (repo root in
   tauri-action) → `src-tauri/tauri.release.conf.json`. Da confermare al primo run reale di release.
 
@@ -1904,6 +2043,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 ### Cosa è cambiato
 
 **11.1 — Bundling del sidecar (D4)**
+
 - `src-tauri/tauri.conf.json`: `bundle.externalBin = ["binaries/opencode"]`
 - `src-tauri/src/sidecar/mod.rs`: `opencode_bin()` → preferisce il binario accanto a
   `current_exe()` (dove Tauri colloca l'externalBin a runtime, senza suffisso triple),
@@ -1915,6 +2055,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - `docs/06-adr-sidecar-bundling.md`: ADR della decisione D4
 
 **11.2 — Onboarding primo avvio**
+
 - `src/stores/onboarding.store.ts`: flag `completed` persistito (zustand/persist) + `reset()`
 - `src/features/onboarding/OnboardingWizard.tsx`: modale 3 step con progress dots
   - **welcome**: intro firmata (anvil + forge-glow)
@@ -1926,6 +2067,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - `src/features/commandpalette/CommandPalette.tsx`: azione "Replay Intro" (`reset()`)
 
 **11.3 — Docs**
+
 - `README.md`: overview, differenziatori, architettura, stack, dev setup, packaging, status
 - `CHANGELOG.md`: formato Keep a Changelog, sezione `Unreleased` con tutte le feature 1–11
 
@@ -1960,12 +2102,14 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 **10.3 — Resilienza sidecar**
 
 **`src-tauri/src/sidecar/mod.rs`**
+
 - `start`: ora prova fino a 3 volte su una porta fresca (gestisce TOCTOU porta libera→occupata
   e avvii lenti); messaggio d'errore chiaro se `opencode` non è installato/nel PATH
 - Aggiunti `restart`, contatore `generation` (incrementato ad ogni start riuscito), `is_healthy`
   (probe `/health` con timeout 2s)
 
 **`src-tauri/src/lib.rs`**
+
 - `spawn_health_monitor(handle, sidecar)`: task che fa poll `/health` ogni 3s; dopo un re-check di
   conferma (per evitare blip transitori) emette `opencode-error` se l'engine smette di rispondere.
   Generation-guard: un monitor stale termina da solo dopo un restart.
@@ -1973,24 +2117,28 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - Monitor avviato sia al boot (dopo il primo `opencode-ready`) sia dopo ogni restart
 
 **`src/opencode/sidecar.ts`** (nuovo)
+
 - `restartSidecar()`: `invoke("restart_opencode")`, ferma l'event stream morto, mette la UI in "starting";
   il listener `opencode-ready` esistente re-inizializza client + stream
 
 **10.2 — Stati di errore/empty**
 
 **`src/features/statusbar/SidecarStatusBanner.tsx`** (nuovo)
+
 - Strip globale in cima all'app: al boot "Connecting to the OpenCode engine…" (calmo, spinner);
   su crash rosso "OpenCode engine disconnected" + ragione + pulsante **Reconnect** (`restartSidecar`)
 - `App.tsx`: root convertito a `flex-col`; banner sopra il layout a 3 pannelli (wrappati in un nuovo div)
 - `ChatShell`: copy d'errore aggiornato per rimandare al Reconnect del banner (non più "restart the app")
 
 **10.1 — a11y audit**
+
 - `role="dialog"` + `aria-modal="true"` + `aria-label` su `CommandPalette` e `SettingsModal`
 - `aria-label` sul Close icon-only di SettingsModal
 - Verificato: `:focus-visible` globale (`index.css`); `@media (prefers-reduced-motion)` copre tutte
   le classi `animate-*`; `useReducedMotion()` su tutte le animazioni Motion JS → nessuna non-gated
 
 **10.4 — Test layer d'integrazione**
+
 - Setup **Vitest** (jsdom): `vitest.config.ts` (alias `@`, env jsdom), script `test`/`test:watch`
 - 22 test:
   - `src/stores/chat.store.test.ts` — reducer streaming (accumulo/overwrite/rimozione parti,
@@ -2031,6 +2179,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 ### Cosa è cambiato
 
 **`src/stores/theme.store.ts`** (nuovo)
+
 - `Theme = "dark" | "light"`; stato Zustand `theme` + `setTheme` + `toggleTheme`
 - `getInitialTheme()`: legge `localStorage["forgia.theme"]`; fallback a dark, ma rispetta
   `prefers-color-scheme: light` esplicito dell'OS
@@ -2038,18 +2187,22 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - Applica il tema in modo sincrono al load del modulo (no flash)
 
 **`src/main.tsx`** — aggiornato
+
 - `import "./stores/theme.store"` come side-effect PRIMA di `App` → tema applicato prima del primo paint
 
 **`src/features/settings/ThemeToggle.tsx`** (nuovo)
+
 - Pulsante Sun/Moon (lucide) nell'header di ChatShell; `aria-label` dinamico; chiama `toggleTheme`
 
 **`src/index.css`** — aggiornato
+
 - Blocco `.light` completato: aggiunti `--destructive(-foreground)`, `--ring`, tutte le var sidebar,
   ombre più morbide (rgb slate con alpha bassa)
 - Scrollbar light-aware (`.light ::-webkit-scrollbar-thumb` → forge-300/400)
 - Aggiunta var `--theme-transition` (riusabile per transizioni di colore)
 
 **`src/features/onboarding/WelcomeScreen.tsx`** (nuovo) — momento-firma (9.1)
+
 - Empty state mostrato quando non c'è sessione attiva (sostituisce l'empty state inline di ChatShell)
 - Anvil (`Hammer`) dentro un riquadro con **forge-glow ambra** pulsante (scale+opacity loop, Motion)
 - Stagger reveal (container/item variants) di icona → titolo → sottotitolo → chip → hint
@@ -2059,16 +2212,19 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - Tutti gli effetti disabilitati con `useReducedMotion()`
 
 **`src/features/chat/ChatShell.tsx`** — aggiornato
+
 - Import `ThemeToggle` + `WelcomeScreen`
 - `ThemeToggle` nell'header (dopo `ModelSwitcher`)
 - Empty state inline rimpiazzato da `<WelcomeScreen onPrompt={isReady ? handleSend : undefined} />`
 
 **`src/features/chat/MessageList.tsx`** — aggiornato (9.3)
+
 - Ogni bubble wrappato in `motion.div` con entrata fade-up (0.25s, ease custom)
 - `key={info.id}` stabile → l'entrata gira solo al mount, non ad ogni update di streaming
 - `useReducedMotion()` → `initial={false}` quando l'utente preferisce ridurre il motion
 
 **`src/App.tsx`** — aggiornato (9.3)
+
 - Root convertito in `motion.div` con fade-in d'apertura (0.5s, una-tantum al mount)
 - `useReducedMotion()` → niente fade se reduced-motion
 
@@ -2102,15 +2258,18 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 ### Cosa è cambiato
 
 **`src/opencode/session.ts`** — aggiornato
+
 - `useRevertSession()`: `POST /session/{id}/revert` con `{ messageID }`; invalida `detail` + `messages` cache
 - `useUnrevertSession()`: `POST /session/{id}/unrevert`; invalida `detail` + `messages` cache
 
 **`src/stores/ui.store.ts`** — aggiornato
+
 - Aggiunto `commandPaletteOpen: boolean` + `openCommandPalette()` + `closeCommandPalette()`
 - Aggiunto `settingsOpen: boolean` + `openSettings()` + `closeSettings()`
 - `BottomTab` esteso con `"timeline"`
 
 **`src/features/checkpoints/CheckpointTimeline.tsx`** (nuovo)
+
 - Legge `session?.revert?.messageID` come indicatore del punto di rewind corrente
 - Merge storico (`sessionMsgsData`) + live (`liveMessages`) per avere tutti gli step in ordine
 - Banner amber "Session reverted — history truncated at checkpoint" con pulsante `Restore` (`useUnrevertSession`)
@@ -2121,6 +2280,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - Stato di caricamento `pendingId` per disabilitare i pulsanti durante la mutazione
 
 **`src/features/commandpalette/CommandPalette.tsx`** (nuovo)
+
 - Overlay full-screen con `bg-black/60`; click fuori → chiude
 - Gruppo **Actions** (7 voci): New Session, Toggle Terminal, Open Inspector, Open Timeline,
   Open Web Preview (con URL rilevato come descrizione), Open Settings, Switch Model
@@ -2131,6 +2291,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - Attivazione globale via listener `Ctrl+K`/`Cmd+K` in `App.tsx`
 
 **`src/features/statusbar/StatusBar.tsx`** (nuovo)
+
 - Strip 24px (`h-6 shrink-0`) sempre visibile sotto il bottom panel in `App.tsx`
 - Progress bar context window: `(lastMsg.tokens.input / model.limit.context) * 100`
 - Color coding barra + testo: verde < 65%, amber 65–85%, rosso > 85%
@@ -2141,11 +2302,13 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - Empty state se `!activeSessionId`
 
 **`src/features/chat/ChatShell.tsx`** — aggiornato
+
 - Rimosso `useState settingsOpen` e `SettingsModal` interno
 - Prop `onOpenSettings?: () => void` — il gear icon chiama questa prop (o `openSettings` dallo store come fallback)
 - `SettingsModal` spostato in `App.tsx` come overlay globale
 
 **`src/App.tsx`** — riscritto
+
 - Tab "Timeline" nel bottom panel → `<CheckpointTimeline />`
 - `<StatusBar />` sempre renderizzato sotto il bottom panel (fuori dal conditional `bottomOpen`)
 - Overlay globali in fondo: `{commandPaletteOpen && <CommandPalette />}`, `{settingsOpen && <SettingsModal />}`
@@ -2179,6 +2342,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 ### Cosa è cambiato
 
 **`src/opencode/config.ts`** (nuovo)
+
 - `configKeys`: `config()`, `agents()`, `mcp()`, `children(sessionId)` — key factory TQ
 - `useConfig()`: `GET /config` → `Config`; `staleTime: 30_000`
 - `useUpdateConfig()`: legge config corrente, merge+write via `PUT /config`; invalida cache
@@ -2188,6 +2352,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - `useSessionChildren(sessionId)`: `GET /session/{id}/children` → `Array<Session>` (subagenti)
 
 **`src/features/settings/ModelSwitcher.tsx`** (nuovo)
+
 - Pill compatto nell'header di ChatShell: `providerName` grigio + `modelId` bold + chevron
 - Click → panel a scomparsa (close-on-click-outside tramite `mousedown` listener)
 - Provider raggruppati con header uppercase + indicatore env-var richieste
@@ -2196,6 +2361,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - Selezione → `useUpdateConfig({ model: "providerId/modelId" })`
 
 **`src/features/settings/SettingsModal.tsx`** (nuovo)
+
 - Overlay con ESC + click-outside per chiudere
 - Tab **Agents & Skills** (`SkillsTab`):
   - Lista da `useAgents()`: badge mode (subagent=amber / primary=blue / all=gray),
@@ -2209,17 +2375,20 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
   - Form "Add local server" (comando) / "Add remote" (URL) → `config.update`
 
 **`src/features/chat/ChatShell.tsx`** — aggiornato
+
 - Import: `ModelSwitcher`, `SettingsModal`, `Settings` (lucide)
 - `useState settingsOpen` + `SettingsModal` montato come overlay quando aperto
 - `ModelSwitcher` inserito nel gruppo pulsanti dell'header (prima di TerminalSquare)
 - Gear `Settings` icon a destra → apre `SettingsModal`
 
 **`src/opencode/session.ts`** — aggiornato
+
 - Aggiunto `useSessionChildren(sessionId)`:
   `GET /session/{id}/children` → `Array<Session>`; `staleTime: 10_000`
   Query key: `[...sessionKeys.detail(id), "children"]`
 
 **`src/features/sessions/SessionSidebar.tsx`** — aggiornato
+
 - Import: `Bot`, `ChevronRight`, `useSessionChildren`
 - Main list filtrata a sole sessioni top-level (`!s.parentID`)
 - Nuovo componente `SubagentList({ parentId })`:
@@ -2229,6 +2398,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
   - Cliccabile → `setActiveSession(child.id)` (permette di ispezionare il contesto subagente)
 
 **`src/opencode/useChatEvents.ts`** — aggiornato
+
 - Import: `EventSessionCreated`
 - Nuovo handler `"session.created"`: invalida `sessionKeys.list()` e children del parent
   (key: `[...sessionKeys.detail(parentId), "children"]`) se `parentID` presente
@@ -2264,6 +2434,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 ### Cosa è cambiato
 
 **`src/opencode/context.ts`** (nuovo)
+
 - `contextKeys`: factory chiavi TanStack Query (`["context","messages",sid]`, `["config","providers"]`)
 - `ContextEntry { info: { id, role, sessionID? }, parts? }`: shape minimale del contesto
 - `useContextMessages(sessionId)`: raw `fetch` verso `/api/session/{id}/context`
@@ -2273,6 +2444,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - `useContextInvalidate()`: helper per invalidare la cache context messages
 
 **`src/opencode/useChatEvents.ts`** — aggiornato
+
 - Import aggiunto: `EventSessionCompacted` da `@opencode-ai/sdk/client`
 - Import aggiunto: `contextKeys` da `./context`
 - Nuovo handler `"session.compacted"`: invalida `contextKeys.messages(sid)` E
@@ -2280,9 +2452,11 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
   subito dopo una compaction
 
 **`src/stores/ui.store.ts`** — aggiornato
+
 - `BottomTab` esteso: `"terminal" | "diff" | "inspector"` (era `"terminal" | "diff"`)
 
 **`src/features/inspector/ContextInspectorPanel.tsx`** (nuovo)
+
 - Helper `fmtNum(n)`: K/M formatting (`45K`, `1.23M`)
 - Helper `fmtCost(c)`: `$0.00` / `$0.0000` / `$0.000000` per diversi ordini di grandezza
 - `ROLE_META`: badge colorati per `user/assistant/system/tool/summary`
@@ -2300,6 +2474,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
   (larghezza = `share * 0.8`px, min 4px); contatore totale nel titolo
 
 **`src/App.tsx`** — aggiornato
+
 - Import `ContextInspectorPanel` aggiunto
 - Nuovo `<BottomTabButton tab="inspector" label="Inspector" …/>` (sempre visibile,
   non condizionale su `selectedFilePath` come il tab "Diff")
@@ -2339,12 +2514,14 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 ### Cosa è cambiato
 
 **`src/stores/selection.store.ts`** (nuovo)
+
 - `SelectedElement { file, line, col, tagName, outerHTML }`
 - Stato: `selectionMode`, `hoveredElement`, `selectedElement`, `composeText`, `inspectorReady`
 - Azioni: `toggleSelectionMode`, `setSelectionMode`, `setHoveredElement`, `setSelectedElement`,
   `setComposeText`, `setInspectorReady`, `clearSelection`
 
 **`src/features/preview/ForgiaInspectorPlugin.ts`** (nuovo)
+
 - Plugin Vite `forgiaInspector()`: apply `"serve"` only (dev mode)
 - `transformIndexHtml` → inietta `INSPECTOR_SCRIPT` come `<script>` a fine `<body>`
 - `INSPECTOR_SCRIPT` (JS vanilla, ~120 righe):
@@ -2358,6 +2535,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
   - Segnala `forgia:ready` al DOMContentLoaded, risponde `forgia:pong` ai ping
 
 **`src/features/preview/ElementCompose.tsx`** (nuovo)
+
 - Visibile solo quando `selectedElement != null` (ritorna `null` altrimenti)
 - Row 1: badge `<tag>`, `file.tsx:line`, outerHTML troncata (80 chars), open-in-editor, dismiss
 - Row 2: input testo autoFocus + pulsante "✦ Edit"
@@ -2368,6 +2546,7 @@ release l'overlay viene mergiato dopo che il binario è stato scaricato.
 - `handleOpenEditor`: `openFile(file, line)` → Monaco diff panel
 
 **`src/features/preview/PreviewPanel.tsx`** — aggiornato
+
 - Import: `useSelectionStore`, `SelectedElement`, `ElementCompose`
 - Nuovo pulsante `Crosshair` nel toolbar (tra reload e URL bar):
   glow amber + ring quando `selectionMode === true`
@@ -2416,6 +2595,7 @@ La comunicazione avviene via `postMessage('*')`: sicuro in un contesto desktop l
 ### Cosa è cambiato
 
 **`src/features/preview/PreviewPanel.tsx`** (nuovo)
+
 - `<iframe src={previewUrl}>` con `sandbox` permissivo (scripts/same-origin/forms/popups/modals)
 - Toolbar: reload (incrementa `reloadKey` → rimonta iframe), barra URL editabile
   (Enter → `openPreview`, normalizza schema `http://`), open-external (`window.open`), close
@@ -2423,11 +2603,13 @@ La comunicazione avviene via `postMessage('*')`: sicuro in un contesto desktop l
 - Mostrato solo se `previewUrl != null`
 
 **`src/App.tsx`** — aggiornato
+
 - `<PreviewPanel />` come **terza colonna** a destra (sibling di `<main>`),
   `w-1/2 border-l`, montata se `previewUrl != null`
 - Layout finale: `[sidebar 256] [main flex-1] [preview w-1/2?]`
 
 **`docs/04-adr-web-preview.md`** (nuovo)
+
 - ADR: iframe ora vs webview WRY nativa poi
 
 ### Perché / decisione
@@ -2455,6 +2637,7 @@ del dev server dentro l'iframe — zero logica lato GUI oltre al reload manuale.
 ### Cosa è cambiato
 
 **`src/features/terminal/detectDevServer.ts`** (nuovo)
+
 - `detectDevServerUrl(text): string | null`
 - `URL_RE`: `https?://(localhost|127.0.0.1|0.0.0.0)(:port)?(/path)?`
 - `BARE_RE`: `(localhost|127.0.0.1):port` senza schema
@@ -2462,11 +2645,13 @@ del dev server dentro l'iframe — zero logica lato GUI oltre al reload manuale.
 - Testato su output reali Vite (`➜ Local: http://localhost:5173/`), Next, CRA
 
 **`src/stores/preview.store.ts`** (nuovo)
+
 - `detectedUrl` (suggerimento), `previewUrl` (caricato in 4.3), `dismissed`
 - `setDetectedUrl` (ignora se invariato o già in preview), `openPreview`,
   `closePreview`, `dismissDetected`
 
 **`src/features/terminal/useTerminalEvents.ts`** — aggiornato
+
 - `scanForDevServer(text)` su:
   - `state.output` (completed)
   - `state.error` (error)
@@ -2475,10 +2660,12 @@ del dev server dentro l'iframe — zero logica lato GUI oltre al reload manuale.
   è `unknown` in stato running)
 
 **`src/features/preview/DevServerBanner.tsx`** (nuovo)
+
 - Banner ambra visibile se `detectedUrl && !dismissed && detectedUrl !== previewUrl`
 - Mostra l'URL, pulsante "Open preview" (→ `openPreview`), X per dismiss
 
 **`src/features/chat/ChatShell.tsx`** — aggiornato
+
 - `<DevServerBanner />` montato sotto l'header
 
 ### Perché / decisione
@@ -2507,23 +2694,27 @@ anche `state.metadata` durante il running. Il banner separa la "scoperta"
 **Dipendenze** — `@xterm/xterm@6`, `@xterm/addon-fit`, `@xterm/addon-web-links`
 
 **`src/stores/terminal.store.ts`** (nuovo)
+
 - `TermEntry { id, command, output?, error? }`
 - `entries: TermEntry[]` + `writtenIds: Set<string>` (dedupe per part.id, dato che
   un ToolPart emette più update SSE)
 - `addEntry` (no-op se id già presente), `clear`
 
 **`src/stores/ui.store.ts`** (nuovo)
+
 - `bottomOpen: boolean`, `bottomTab: 'terminal' | 'diff'`
 - `openBottom(tab)`, `closeBottom()`, `setBottomTab(tab)`, `toggleTerminal()`
   (toggle: se terminale già aperto → chiude, altrimenti apre+switch a terminal)
 
 **`src/features/terminal/useTerminalEvents.ts`** (nuovo)
+
 - Hook montato in ChatShell (sempre attivo, anche con pannello chiuso)
 - Sottoscrive `message.part.updated`, filtra `part.type === "tool"` con
   `tool` che include "bash", su `completed`/`error` aggiunge entry
 - Command estratto da `state.input.command` (fallback al nome tool)
 
 **`src/features/terminal/TerminalPanel.tsx`** (nuovo)
+
 - Istanza xterm read-only (`disableStdin: true`, `cursorBlink: false`)
 - Tema `FORGE_THEME`: bg `#0a0c0e`, fg slate, cursor amber `#f59e0b`
 - ANSI: `$ command` in cyan, output normale, errori in rosso
@@ -2535,6 +2726,7 @@ anche `state.metadata` durante il running. Il banner separa la "scoperta"
 - Header con tasto "Clear"
 
 **`src/App.tsx`** — ristrutturato bottom panel
+
 - Tab-bar `Terminal | Diff` (Diff appare solo se `selectedFilePath != null`)
 - `h-[42vh]` come prima; terminale resta montato con `display:hidden` quando
   non attivo (preserva lo scrollback xterm); diff montato solo se file aperto
@@ -2542,14 +2734,17 @@ anche `state.metadata` durante il running. Il banner separa la "scoperta"
 - Tasto X chiude tutto il pannello (`closeBottom`)
 
 **`src/features/chat/ChatShell.tsx`** — aggiornato
+
 - Monta `useTerminalEvents()`
 - Pulsante toggle terminale (`TerminalSquare`) nell'header, evidenziato se attivo
 
 **`src/stores/file.store.ts`** — aggiornato
+
 - `openFile(path, line?)` ora chiama `useUIStore.getState().openBottom("diff")`
   (apertura file → mostra diff). Cross-store via `getState()` (no hook in store)
 
 **`src/features/filetree/FileTree.tsx`** — aggiornato
+
 - Selezione file usa `openFile` invece di `setSelectedFilePath` (così apre il pannello)
 
 ### Perché / decisione
@@ -2578,11 +2773,13 @@ non nel pannello, così non si perde output quando il terminale è nascosto.
 ### Cosa è cambiato
 
 **`src/stores/file.store.ts`** — aggiornato
+
 - Aggiunto `selectedLine: number | null`
 - Aggiunto `openFile(path, line?)`: azione atomica che aggiorna entrambi
 - `setSelectedFilePath` ora resetta anche `selectedLine` a null
 
 **`src/features/filetree/FileDiffPanel.tsx`** — aggiornato
+
 - `revealLine(editor, monaco, line, decoRef)`: helper che:
   1. `editor.revealLineInCenter(line)` — scrolla alla riga
   2. `editor.setPosition({ lineNumber: line, column: 1 })` — posiziona cursore
@@ -2598,6 +2795,7 @@ non nel pannello, così non si perde output quando il terminale è nascosto.
   e `IDiffEditor` (evita errore "ICodeEditor not assignable to IStandaloneCodeEditor")
 
 **`src/features/chat/ToolCallCard.tsx`** — aggiornato
+
 - `extractFileRef(input)`: ispeziona `input` (tipicamente `Record<string,unknown>`)
   cercando chiavi `path | filePath | file_path | file` per il path e
   `line | startLine | start_line | lineNumber` per il numero di riga
@@ -2637,10 +2835,12 @@ specificare una riga — il pannello si posiziona automaticamente alla prima mod
 **`@monaco-editor/react@4.7.0`** — installato (usa CDN di default in Tauri, bundling locale in Fase 10)
 
 **`src/stores/file.store.ts`** (nuovo)
+
 - Zustand store minimo: `selectedFilePath: string | null` + `setSelectedFilePath`
 - Senza persist (la selezione è session-lived)
 
 **`src/features/filetree/FileDiffPanel.tsx`** (nuovo)
+
 - `getLang(path)`: mappa estensione → Monaco language ID
 - `reverseApplyPatch(modified, patch)`: ricostruisce il contenuto originale
   dai patch hunks. Algoritmo:
@@ -2659,10 +2859,12 @@ specificare una riga — il pannello si posiziona automaticamente alla prima mod
 - `MONACO_OPTIONS`: minimap off, fontSize 12, readOnly, no scrollBeyondLastLine
 
 **`src/features/filetree/FileTree.tsx`** — aggiornato
+
 - Selection ora usa `useFileStore`: `setSelectedFilePath` invece di `useState` locale
 - `selectedFilePath` passato come `selectedPath` ai `FileTreeNode`
 
 **`src/App.tsx`** — aggiornato
+
 - `const { selectedFilePath } = useFileStore()` per conditionally renderizzare `FileDiffPanel`
 - Pannello diff: `h-[42vh] shrink-0` appeso in fondo a `<main>`, diviso da `h-px` divider
 - Chat: `min-h-0 flex-1` per cedere spazio al diff panel
@@ -2693,6 +2895,7 @@ CDN loading di Monaco (`@monaco-editor/react` default) è accettabile in Tauri
 ### Cosa è cambiato
 
 **`src/opencode/file.ts`** (nuovo)
+
 - `fileKeys` factory per cache keys coerenti
 - `useProjectCurrent()`: `client.project.current()` → `Project` (campo `worktree` = path assoluto del progetto)
 - `useFileList(path, enabled?)`: `client.file.list({ query: { path } })` → `Array<FileNode>`, `staleTime: 5s`
@@ -2701,6 +2904,7 @@ CDN loading di Monaco (`@monaco-editor/react` default) è accettabile in Tauri
 - `useInvalidateFiles()`: invalida tutto `fileKeys.all`
 
 **`src/features/filetree/FileTree.tsx`** (nuovo)
+
 - `FileTreeNode`: componente ricorsivo
   - `isDir && expanded` → chiama `useFileList(node.path, true)` (lazy-load)
   - Sort: directory prima, poi file, poi alpha
@@ -2717,9 +2921,11 @@ CDN loading di Monaco (`@monaco-editor/react` default) è accettabile in Tauri
   - `useEffect` → subscribe a `file.edited` e `file.watcher.updated` → `invalidateFiles()`
 
 **`src/features/sessions/SessionSidebar.tsx`** — modificato
+
 - Rimossi `w-56 shrink-0 border-r` dall'outer `<aside>` (ownership spostata al parent)
 
 **`src/App.tsx`** — modificato
+
 - Nuova struttura: wrapper `w-64 shrink-0 border-r` che contiene:
   - `div` con `maxHeight: "45%"` → `<SessionSidebar />`
   - `div h-px` → divider
@@ -2774,10 +2980,12 @@ container `rounded-*`, verificare che il container abbia anche `overflow-hidden`
 ### Cosa è cambiato
 
 **`src/opencode/session.ts`**
+
 - Aggiunto `useDeleteSession()`: chiama `client.session.delete({ path: { id } })`
   e invalida `sessionKeys.list()` on success
 
 **`src/features/sessions/SessionSidebar.tsx`** (nuovo)
+
 - Sidebar 224px (`w-56`), `border-r`, scroll verticale overflow
 - Lista sessioni ordinata per `time.updated` DESC
 - `relativeTime(ts: number)`: converte timestamp Unix in stringa relativa
@@ -2790,6 +2998,7 @@ container `rounded-*`, verificare che il container abbia anche `overflow-hidden`
 - Header: label "Sessions" + pulsante `+` (nuovo) che chiama `createSession.mutateAsync`
 
 **`src/App.tsx`**
+
 - Layout 2-colonne: `<SessionSidebar />` + `<main>` flex
 
 ### Perché / decisione
@@ -2812,10 +3021,12 @@ Fase 2.5 dal piano. Sidebar come componente separato per tenere `App.tsx` pulito
 ### Cosa è cambiato
 
 **`src/opencode/session.ts`** — `useSendPrompt`
+
 - Aggiunto parametro `agent?: string` alla mutationFn
 - Passato al body del prompt: `...(agent ? { agent } : {})`
 
 **`src/features/chat/ChatInput.tsx`**
+
 - Tipo `AgentMode = "build" | "plan"` esportato
 - Array `MODES` con value/label/icon/title per Build (Hammer) e Plan (Map)
 - `onSend` ora riceve `(text: string, mode: AgentMode)`
@@ -2823,6 +3034,7 @@ Fase 2.5 dal piano. Sidebar come componente separato per tenere `App.tsx` pulito
 - Placeholder dinamico con mode attivo
 
 **`src/features/chat/ChatShell.tsx`** — `handleSend`
+
 - Firma aggiornata: `(text: string, mode: AgentMode)`
 - Passa `agent: mode` alla mutation `useSendPrompt`
 
@@ -2846,11 +3058,13 @@ Fase 2.5 dal piano. Sidebar come componente separato per tenere `App.tsx` pulito
 ### Cosa è cambiato
 
 **`src/opencode/permission.ts`** (nuovo)
+
 - `useRespondPermission()`: mutation che chiama
   `client.postSessionIdPermissionsPermissionId({ path: { id, permissionID }, body: { response } })`
   dove `response: "once" | "always" | "reject"`
 
 **`src/stores/permission.store.ts`** (nuovo)
+
 - Zustand store con `persist` middleware
 - `pending: Map<string, Permission>` — permessi in attesa di risposta
 - `allowList: Set<string>` — tipi/pattern sempre approvati (persistiti in localStorage)
@@ -2860,12 +3074,14 @@ Fase 2.5 dal piano. Sidebar come componente separato per tenere `App.tsx` pulito
   (Zustand persist non gestisce `Set` nativamente)
 
 **`src/opencode/useChatEvents.ts`** — aggiornato
+
 - Aggiunto handler `EventPermissionUpdated`:
   - se `isAutoAllowed(p)` → chiama API direttamente (silent approve)
   - se l'API fallisce → fallback a `addPending(p)` (mostra banner)
   - altrimenti → `addPending(p)` direttamente
 
 **`src/features/chat/PermissionBanner.tsx`** (nuovo)
+
 - Banner ambra fisso sopra l'input
 - Mostra titolo permesso + pattern (stringhe o array)
 - 3 pulsanti: **Once** (risponde una volta), **Always** (salva tipo in allowList +
@@ -2873,6 +3089,7 @@ Fase 2.5 dal piano. Sidebar come componente separato per tenere `App.tsx` pulito
 - Usa `useRespondPermission()` + `removePending()` on settle
 
 **`src/features/chat/ChatShell.tsx`** — aggiornato
+
 - `<PermissionBanner />` montato sopra `<ChatInput />`
 
 ### Perché / decisione
@@ -2898,6 +3115,7 @@ togliere controllo.
 ### Cosa è cambiato
 
 **`src/features/chat/ToolCallCard.tsx`** (nuovo)
+
 - Prende `part: ToolPart` dall'SDK
 - Collapsibile (`useState(false)` → `isOpen`)
 - Header: icona tool-specifica (da `TOOL_ICONS: Array<[string, React.ReactNode]>`
@@ -2928,12 +3146,14 @@ Card generica sufficiente per tutte le fasi iniziali. Monaco diff viene in Fase 
 ### Cosa è cambiato
 
 **`src/stores/chat.store.ts`** (nuovo)
+
 - `liveParts: Map<messageId, Map<partId, Part>>` — parti SSE in tempo reale
 - `liveMessages: Map<string, Message>` — metadata messaggio (costo, errori, finish)
 - `runningSessions: Set<string>` — sessioni attualmente in esecuzione
 - Azioni: `updatePart`, `removePart`, `setMessage`, `setSessionRunning`, `clearSession`
 
 **`src/opencode/useChatEvents.ts`** (nuovo)
+
 - Hook React che si sottoscrive a 7 tipi di eventi SSE:
   - `message.part.updated` → `updatePart`
   - `message.part.removed` → `removePart`
@@ -2944,11 +3164,13 @@ Card generica sufficiente per tutte le fasi iniziali. Monaco diff viene in Fase 
   - `permission.updated` → auto-approve o `addPending` (vedi 2.3)
 
 **`src/features/chat/MarkdownContent.tsx`** (nuovo)
+
 - `ReactMarkdown` + `remarkGfm`
 - Stili Tailwind prose-like (heading, code, blockquote, list)
 - Cursore animato `animate-pulse` (blinking bar) durante lo streaming
 
 **`src/features/chat/MessageBubble.tsx`** (nuovo)
+
 - `UserBubble`: allineato a destra, sfondo amber/10
 - `AssistantBubble`: allineato a sinistra, rendering di:
   - `TextPart` → `<MarkdownContent />`
@@ -2958,16 +3180,19 @@ Card generica sufficiente per tutte le fasi iniziali. Monaco diff viene in Fase 
   di tipo sulle union dell'SDK
 
 **`src/features/chat/MessageList.tsx`** (nuovo)
+
 - Merge di `liveParts` (SSE) sopra le parti storiche dalla query
 - Auto-scroll via `useRef` + `scrollIntoView({ behavior: "smooth" })`
 - Render di `UserBubble` / `AssistantBubble` per ogni messaggio
 
 **`src/features/chat/ChatInput.tsx`** (nuovo → poi modificato)
+
 - Textarea auto-resize (`scrollHeight` con max 200px)
 - Enter = invio, Shift+Enter = a capo
 - Pulsante Send (blu) o Stop (rosso, quadrato) se running
 
 **`src/features/chat/ChatShell.tsx`** (nuovo)
+
 - Monta `useChatEvents()`
 - Auto-crea sessione se non ne esiste una attiva
 - `handleSend(text, mode)` → `useSendPrompt.mutateAsync`
@@ -3000,12 +3225,14 @@ Separazione store/events/components per testabilità futura.
 ### Cosa è cambiato
 
 **`src-tauri/src/lib.rs`**
+
 - Rimosso `use tauri::Manager;` (non usato → warning che rompeva cargo check)
 - Rimosso `use tokio::sync::OnceCell;` (non usato)
 - Aggiunto `use tauri::Emitter;` — obbligatorio in Tauri 2 per chiamare
   `handle.emit()` (API trait-based, non metodo diretto)
 
 **Tutti i nuovi file `.ts` / `.tsx`** formattati con:
+
 ```
 pnpm prettier --write "src/**/*.{ts,tsx}"
 ```
@@ -3013,6 +3240,7 @@ pnpm prettier --write "src/**/*.{ts,tsx}"
 ### Perché / decisione
 
 CI aveva due job rossi:
+
 1. **Rust (cargo check)**: `handle.emit()` non trovato → Tauri 2 richiede il
    trait `Emitter` importato esplicitamente
 2. **Frontend (lint + build)**: Prettier check falliva su 6 file non formattati
@@ -3033,6 +3261,7 @@ CI aveva due job rossi:
 ### Cosa è cambiato
 
 **`src-tauri/src/sidecar/mod.rs`** (nuovo)
+
 - `Sidecar` struct con `child: Arc<Mutex<Option<Child>>>` e
   `state: Arc<Mutex<Option<SidecarState>>>`
 - `start()`: trova porta libera (`TcpListener::bind("0.0.0.0:0")`), spawna
@@ -3042,12 +3271,14 @@ CI aveva due job rossi:
 - `Drop` impl: chiama `stop()` → kill-on-drop automatico
 
 **`src-tauri/src/lib.rs`**
+
 - `AppState { sidecar: Arc<Sidecar> }`
 - Comandi Tauri: `get_opencode_url`, `stop_opencode`
 - Setup: spawna sidecar in background, emette `"opencode-ready"` con `base_url`
   o `"opencode-error"` se fallisce
 
 **`src/opencode/client.ts`** (nuovo)
+
 - Singleton `OpencodeClient` creato con `createOpencodeClient({ baseUrl })`
 - `initClient(baseUrl)` — chiamato da `OpencodeProvider` all'evento
   `"opencode-ready"`
@@ -3055,26 +3286,31 @@ CI aveva due job rossi:
 - `getBaseUrl()`, `isClientReady()`
 
 **`src/opencode/session.ts`** (nuovo)
+
 - TanStack Query hooks: `useSessions`, `useSession`, `useSessionMessages`,
   `useCreateSession`, `useSendPrompt`, `useAbortSession`, `useDeleteSession`
 - `sessionKeys` factory per cache invalidation coerente
 
 **`src/opencode/events.ts`** (nuovo)
+
 - SSE stream via `getClient().event.subscribe()` (AsyncGenerator)
 - `onEvent(handler)` / `onEventType<T>(type, handler)` — pub/sub leggero
 - `startEventStream()` / `stopEventStream()` — idempotente
 
 **`src/opencode/OpencodeProvider.tsx`** (nuovo)
+
 - `QueryClientProvider` wrapper
 - Ascolta evento Tauri `"opencode-ready"` → chiama `initClient(url)` →
   avvia `startEventStream()`
 - Mostra splash/errore durante il boot del sidecar
 
 **`src/stores/session.store.ts`** (nuovo)
+
 - Zustand + persist: `activeSessionId: string | null`
 - `setActiveSession(id | null)`
 
 **`docs/03-adr-integration-layer.md`** (nuovo)
+
 - ADR che documenta la scelta: SDK HTTP vs. IPC diretto vs. RPC custom
 
 ### Perché / decisione
@@ -3101,6 +3337,7 @@ processo figlio JS per kill-on-drop e gestione errori.
 ### Cosa è cambiato
 
 **Analisi** (nessun codice produttivo, solo documentazione)
+
 - Avviato `opencode serve` (porta 4096)
 - Ispezionata l'OpenAPI 3.1: 181 operazioni, 444 schemi
 - Validato il rischio §15.2 (Context Inspector): rientrato —
@@ -3132,11 +3369,13 @@ Risultato: il Context Inspector è fattibile al 100% con i dati nativi.
 ### Cosa è cambiato
 
 **Struttura repo**
+
 - `LICENSE` (MIT)
 - `.gitignore` (Node / Rust / Tauri / OS)
 - `PROGETTO.md`, `CHECKLIST.md`, `CLAUDE.md`
 
 **Scaffold Tauri 2 + React 19**
+
 - `package.json`: Tauri 2 CLI (`@tauri-apps/cli`), React 19, TypeScript 5.8,
   Vite 7, pnpm workspace
 - `src-tauri/Cargo.toml`: `tauri 2.x`, `tauri-plugin-opener`, `tokio`,
@@ -3144,6 +3383,7 @@ Risultato: il Context Inspector è fattibile al 100% con i dati nativi.
 - `src-tauri/src/main.rs`, `lib.rs` — entry point base
 
 **Frontend stack**
+
 - `@tailwindcss/vite` (Tailwind v4, CSS-first, no `tailwind.config.js`)
 - `motion` (animazioni)
 - `lucide-react` (icone)
@@ -3152,6 +3392,7 @@ Risultato: il Context Inspector è fattibile al 100% con i dati nativi.
 - `zustand` v5
 
 **`src/index.css`** — design token
+
 - Palette `forge-*`: da `forge-950` `#0a0c0e` a `forge-50` `#f4f7fa` (steel darks)
 - Accent: `accent-400` `#f59e0b` (amber), `accent-500` `#d97706`
 - Mapping CSS vars shadcn/ui: `--background`, `--foreground`, `--card`,
@@ -3162,6 +3403,7 @@ Risultato: il Context Inspector è fattibile al 100% con i dati nativi.
 **`src/App.tsx`** — hello Forgia (poi sostituito in 2.1)
 
 **CI** — `.github/workflows/ci.yml`
+
 - Job `frontend`: `pnpm install` → `pnpm lint` → `pnpm build`
 - Job `rust`: `cargo check` su `src-tauri/`
 
@@ -3178,4 +3420,4 @@ pnpm per velocità e disk efficiency.
 
 ---
 
-*Fine log. Prossimo step: Fase 3.1 — File tree del progetto.*
+_Fine log. Prossimo step: Fase 3.1 — File tree del progetto._
