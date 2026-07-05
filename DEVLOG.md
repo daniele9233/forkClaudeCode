@@ -15,6 +15,18 @@
 
 ---
 
+## 2026-07-04 · Prompt: maniglia drag-to-resize come il pannello
+
+**Fase:** 12.43 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+- `ChatInput.tsx`: barra "grip" in cima al composer con la STESSA logica pointer
+  del pannello inferiore (`startComposerResize`): trascini su/giù per alzare/
+  abbassare il prompt (clamp 40px → 85vh, drag su = più alto). Segna
+  `userResized` così l'auto-grow non litiga col drag.
+- Tolto il `resize-y` nativo (grip d'angolo) → `resize-none`: la maniglia in
+  alto è l'unica affordance, coerente col pannello.
+
 ## 2026-07-04 · Skill RKE2/Rancher + documenti di lavoro professionali
 
 **Fase:** 12.42 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

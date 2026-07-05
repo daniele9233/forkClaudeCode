@@ -115,6 +115,32 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
     });
   }, []);
 
+  // Drag the grip at the top of the composer to raise/lower it — same pointer
+  // logic as the bottom panel's handle. Dragging up makes the prompt taller.
+  const startComposerResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    const el = textareaRef.current;
+    if (!el) return;
+    userResizedRef.current = true; // manual size wins over auto-grow from now on
+    const startY = e.clientY;
+    const startH = el.offsetHeight;
+    const max = Math.round(window.innerHeight * 0.85);
+    const onMove = (ev: PointerEvent) => {
+      const next = startH + (startY - ev.clientY);
+      el.style.height = `${Math.min(Math.max(next, 40), max)}px`;
+    };
+    const onUp = () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "row-resize";
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  }, []);
+
   useEffect(() => {
     const el = textareaRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -226,6 +252,16 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
 
   return (
     <Panel className={cn("shadow-lg transition-opacity", disabled && "opacity-50")}>
+      {/* Drag grip — raise/lower the prompt (same handle as the bottom panel) */}
+      <div
+        onPointerDown={startComposerResize}
+        className="group relative flex h-3 shrink-0 touch-none select-none items-center justify-center rounded-t-2xl bg-[var(--border)]/40 transition-colors hover:bg-[var(--primary)]/25"
+        style={{ cursor: "row-resize" }}
+        title="Drag to resize the prompt"
+      >
+        <span className="pointer-events-none h-1 w-10 rounded-full bg-[var(--muted-foreground)]/50 transition-colors group-hover:bg-[var(--primary)]" />
+      </div>
+
       {/* Mode toggle row */}
       <div className="flex items-center gap-1 border-b border-[var(--border)] px-2.5 py-1.5">
         {MODES.map((m) => (
@@ -429,9 +465,9 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
                 : `Message the agent in ${mode} mode (Enter to send)`
           }
           className={cn(
-            "flex-1 resize-y bg-transparent text-sm text-[var(--foreground)]",
+            "flex-1 resize-none bg-transparent text-sm text-[var(--foreground)]",
             "placeholder:text-[var(--muted-foreground)] focus:outline-none",
-            // Auto-grow caps at 60vh; the manual drag handle can go up to 85vh
+            // Auto-grow caps at 60vh; the top drag grip can go up to 85vh
             // (bigger than the auto cap) and down to the min — both directions.
             "max-h-[85vh] min-h-[2.5rem] overflow-y-auto",
           )}
