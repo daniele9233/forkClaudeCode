@@ -15,6 +15,31 @@
 
 ---
 
+## 2026-07-04 · Skill RKE2/Rancher + documenti di lavoro professionali
+
+**Fase:** 12.42 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+- **Verificato**: non esiste un MCP "Rancher" dedicato affidabile; RKE2 è K8s
+  conforme → il **Kubernetes MCP** già presente lo gestisce (kubeconfig RKE2).
+  Aggiornata la desc del preset MCP → "Kubernetes / RKE2".
+- **Skill `rke2-rancher` (🐮)**: install/config RKE2 (config.yaml, tls-san, HA
+  3 server), kube-vip/MetalLB, Longhorn, Rancher via Helm, Fleet GitOps, etcd
+  snapshot+restore, Rancher Backup, CIS hardening (`profile: cis`), air-gap +
+  system-upgrade-controller, sempre validate+dry-run.
+- **Skill `work-docs` (📋)**: deliverable cliente (Technical Architecture Doc /
+  Deployment Guide / Verbale di Consegna) con struttura completa (frontespizio,
+  controllo documento+revisioni, indice/TOC, executive summary, scopo, architettura,
+  prerequisiti, installazione, config, runbook/backup/DR, sicurezza, RACI,
+  collaudo/firme, appendice, glossario) → genera .docx reale (python-docx o
+  pandoc --toc --reference-doc) + export PDF, placeholder invece di inventare.
+  Catalogo 30 → 32.
+- **+2 test** → 62 totali.
+
+### Gotcha / attenzione
+- Onestà: nessun MCP Rancher "vero" installato (non ce n'è uno affidabile) — la
+  copertura è via K8s MCP + skill dedicata, che è la strada corretta per RKE2.
+
 ## 2026-07-04 · MCP one-click (K8s, Playwright) + 3 skill verticali
 
 **Fase:** 12.41 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

@@ -150,8 +150,8 @@ const RECOMMENDED_MCP: {
 }[] = [
   {
     name: "kubernetes",
-    label: "Kubernetes",
-    desc: "Legge il cluster, genera/valida manifest & Helm, kubectl/helm guidati.",
+    label: "Kubernetes / RKE2",
+    desc: "Legge il cluster (anche RKE2/Rancher, via kubeconfig), genera/valida manifest & Helm, kubectl/helm guidati.",
     command: ["npx", "-y", "mcp-server-kubernetes"],
   },
   {

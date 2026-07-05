@@ -82,6 +82,22 @@ describe("vertical skills (devops / docs / jobs)", () => {
     );
     expect(hits.some((s) => s.id === "job-search")).toBe(true);
   });
+  it("triggers rke2-rancher on RKE2/Rancher intent", () => {
+    const hits = matchSkills(
+      "installa un cluster rke2 con rancher e longhorn",
+      allIds,
+      3,
+    );
+    expect(hits.some((s) => s.id === "rke2-rancher")).toBe(true);
+  });
+  it("triggers work-docs on deliverable intent", () => {
+    const hits = matchSkills(
+      "prepara un verbale di consegna in docx per il cliente",
+      allIds,
+      3,
+    );
+    expect(hits.some((s) => s.id === "work-docs")).toBe(true);
+  });
 });
 
 describe("slash commands", () => {
