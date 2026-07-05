@@ -4,6 +4,20 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] — 2026-07-05
+
+### Fixed
+
+- **Model choice is now sticky.** Re-verifying a provider key (or a reconnect)
+  no longer resets the selected model back to the provider default. If you
+  switched DeepSeek to `deepseek-reasoner`, it stays selected. Only the very
+  first connect of a brand-new provider auto-picks the fast default.
+
+### Docs
+
+- Provider guide now explains DeepSeek's two models (`deepseek-chat` fast vs
+  `deepseek-reasoner` reasoning/"pro") and how to switch.
+
 ## [0.1.1] — 2026-07-05
 
 ### Fixed

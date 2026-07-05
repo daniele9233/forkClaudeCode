@@ -16,6 +16,38 @@
 
 ---
 
+## 2026-07-05 · v0.1.2 — la scelta del modello DeepSeek non si perde più
+
+**Fase:** 12.47 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- `config.ts` `useConnectProvider`: alla (ri)connessione di un provider, se esiste
+  già una scelta manuale dell'utente **per quello stesso provider** (es.
+  `deepseek/deepseek-reasoner`), viene **mantenuta** invece di forzare di nuovo
+  il default `deepseek-chat`. Solo la _primissima_ connessione di un provider mai
+  usato applica il default veloce. Catturati i `providerModelIds` per validare
+  che il modello scelto esista ancora.
+- `docs/02-provider-setup.md`: nuova sezione "Scelta del modello" — DeepSeek
+  espone `deepseek-chat` (veloce) e `deepseek-reasoner` (ragionamento, il "pro");
+  non esiste un id "pro v4". Spiegato come sceglierlo dal selettore e che resta.
+- Bump 0.1.1 → 0.1.2 + tag workflow v0.1.2.
+
+### Perché / decisione
+
+- Feedback utente: mettendo la chiave DeepSeek l'app selezionava sempre
+  `deepseek-chat` anche dopo aver scelto il modello "pro". Causa: il codice
+  riforzava `deepseek-chat` a ogni connect, sovrascrivendo la scelta.
+- Default veloce mantenuto (l'app itera molto sulla UI; i reasoning model sono
+  lenti/costosi) MA la scelta manuale ora è rispettata e persistita.
+
+### Gotcha / attenzione
+
+- La conferma interattiva del modello esatto non è stata possibile (ambiente non
+  interattivo) → fix sicuro che non indovina id inesistenti: rispetta la scelta
+  dell'utente. Se si vuole `deepseek-reasoner` come default forzato, è una
+  modifica di una riga nell'euristica `firstModel`.
+
 ## 2026-07-05 · v0.1.1 — fix console Windows + falso version-mismatch
 
 **Fase:** 12.46 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

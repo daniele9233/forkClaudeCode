@@ -41,12 +41,30 @@ curl -sS -X POST http://127.0.0.1:4096/session/$SID/prompt \
 
 ## Provider consigliati (da `GET /api/model`, verificato 26-06-2026)
 
-| Provider | Modello | Contesto | Note |
-|---|---|---|---|
-| `deepseek` | `deepseek-chat` | 64K | ~$0.00014/1K input — ottimo per test |
-| `google` | `gemini-2.0-flash` | 1M | free tier disponibile |
-| `anthropic` | `claude-haiku-4-5-*` | 200K | veloce e economico |
-| `openai` | `gpt-4o-mini` | 128K | —  |
+| Provider    | Modello              | Contesto | Note                                                                |
+| ----------- | -------------------- | -------- | ------------------------------------------------------------------- |
+| `deepseek`  | `deepseek-chat`      | 64K      | ~$0.00014/1K input — ottimo per test                                |
+| `deepseek`  | `deepseek-reasoner`  | 64K      | modello di **ragionamento** ("DeepThink") — più lento ma più capace |
+| `google`    | `gemini-2.0-flash`   | 1M       | free tier disponibile                                               |
+| `anthropic` | `claude-haiku-4-5-*` | 200K     | veloce e economico                                                  |
+| `openai`    | `gpt-4o-mini`        | 128K     | —                                                                   |
+
+## Scelta del modello (DeepSeek e altri)
+
+Quando aggiungi una chiave, kikkoCode **al primo collegamento** seleziona in
+automatico un modello _veloce_ di default (per DeepSeek: `deepseek-chat`), perché
+l'app itera molto sull'interfaccia e un modello di ragionamento sarebbe lento e
+più costoso.
+
+Per usare il modello di ragionamento ("pro"): apri il **selettore modello** in
+alto a destra e scegli **`deepseek-reasoner`**. Da quel momento la tua scelta
+**resta memorizzata** — non viene più sovrascritta quando ri-verifichi la chiave,
+riavvii il motore o riapri l'app. L'unico caso in cui l'app riseleziona il
+default è la _primissima_ connessione di un provider mai usato prima.
+
+> DeepSeek espone due modelli via API: `deepseek-chat` (veloce, non-thinking) e
+> `deepseek-reasoner` (thinking). Non esiste un id "pro v4": il modello "pro" è
+> `deepseek-reasoner`.
 
 ## Nota sicurezza
 

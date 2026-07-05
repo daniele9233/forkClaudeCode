@@ -191,6 +191,7 @@ export function useConnectProvider() {
 
       // 3. Wait for the restarted engine to expose the provider, then select a model.
       let firstModel: string | undefined;
+      let providerModelIds: string[] = [];
       let exposed: string[] = [];
       for (let i = 0; i < 60 && !firstModel; i++) {
         try {
@@ -200,8 +201,11 @@ export function useConnectProvider() {
           const p = providers.find((x) => x.id === providerId);
           if (p) {
             const ids = Object.keys(p.models ?? {});
-            // Prefer the plain chat model (reasoning models are much slower);
-            // fall back to the first available.
+            providerModelIds = ids;
+            // Default a FIRST-time connect to the plain chat model (reasoning
+            // models are much slower and this app iterates on UI a lot); fall
+            // back to the first available. An existing manual choice for this
+            // provider is honored below and overrides this.
             firstModel =
               ids.find((m) => m === "deepseek-chat") ??
               ids.find((m) => /chat/i.test(m) && !/reason/i.test(m)) ??
@@ -223,20 +227,35 @@ export function useConnectProvider() {
         );
       }
 
-      // 4. Make it the active model. Our own store is what the send path uses
-      // (per-prompt model param — effective even when an auth plugin pins the
-      // engine's config.model); config.update is best-effort sync on top.
-      useModelStore.getState().setSelected(`${providerId}/${firstModel}`);
+      // 4. Make a model active. Respect an EXISTING manual choice for this same
+      // provider so re-verifying the key (or a reconnect) never clobbers the
+      // model the user picked — e.g. they switched to `deepseek-reasoner` and
+      // re-entering the key must not snap them back to `deepseek-chat`. Only a
+      // first-time connect (no prior choice for this provider) uses the default.
+      const existing = useModelStore.getState().selected;
+      const existingModelId =
+        existing && existing.startsWith(`${providerId}/`)
+          ? existing.slice(providerId.length + 1)
+          : undefined;
+      const keepExisting =
+        existingModelId !== undefined &&
+        (providerModelIds.length === 0 || providerModelIds.includes(existingModelId));
+      const chosen = keepExisting ? existingModelId! : firstModel;
+
+      // Our own store is what the send path uses (per-prompt model param —
+      // effective even when an auth plugin pins the engine's config.model);
+      // config.update is best-effort sync on top.
+      useModelStore.getState().setSelected(`${providerId}/${chosen}`);
       try {
         const cur = (await getClient().config.get({ throwOnError: true })).data as Config;
         await getClient().config.update({
-          body: { ...cur, model: `${providerId}/${firstModel}` },
+          body: { ...cur, model: `${providerId}/${chosen}` },
           throwOnError: true,
         });
       } catch {
         /* engine config pinned/rejected — the store selection still applies */
       }
-      return { providerId, firstModel };
+      return { providerId, firstModel: chosen };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["config", "providers"] });
