@@ -290,23 +290,28 @@ fn opencode_bin() -> std::path::PathBuf {
 /// cannot be launched directly by `CreateProcess` — it must be run through
 /// `cmd.exe /C`. For real executables (and on Unix) we invoke the path directly.
 fn engine_command(bin: &std::path::Path) -> Command {
-    if cfg!(windows) {
+    let mut cmd = if cfg!(windows) {
         let ext = bin
             .extension()
             .and_then(|e| e.to_str())
             .map(|e| e.to_ascii_lowercase());
         if matches!(ext.as_deref(), Some("cmd") | Some("bat")) {
-            eprintln!(
-                "[kikkocode] launching shim via cmd /C: {}",
-                bin.display()
-            );
+            eprintln!("[kikkocode] launching shim via cmd /C: {}", bin.display());
             let mut cmd = Command::new("cmd");
             cmd.arg("/C").arg(bin);
-            return cmd;
+            cmd
+        } else {
+            eprintln!("[kikkocode] launching directly: {}", bin.display());
+            Command::new(bin)
         }
-    }
-    eprintln!("[kikkocode] launching directly: {}", bin.display());
-    Command::new(bin)
+    } else {
+        eprintln!("[kikkocode] launching directly: {}", bin.display());
+        Command::new(bin)
+    };
+    // Keep the console-subsystem engine from popping a terminal window when the
+    // GUI app (no console of its own) spawns it.
+    crate::process::hide_console(&mut cmd);
+    cmd
 }
 
 /// Locate an executable on `PATH`, applying Windows `PATHEXT` extensions.

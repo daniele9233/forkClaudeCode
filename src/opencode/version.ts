@@ -1,51 +1,74 @@
 import { invoke } from "@tauri-apps/api/core";
 
 /**
- * The `@opencode-ai/sdk` version this app is built against. Note that the SDK
- * (npm, 0.x) and the opencode server/CLI (1.x) are versioned **independently**,
- * so we deliberately do NOT compare them for equality — that would false-warn
- * on every install. We only surface a warning if we ever detect a server whose
- * version scheme regresses *below* a known-good floor.
+ * The `@opencode-ai/sdk` version this app is built against. We bundle the
+ * matching `opencode` engine build as a sidecar (see `OPENCODE_VERSION` in
+ * `.github/workflows/release.yml`), so the engine and SDK share this version
+ * stream — they are NOT independently versioned here.
  */
 export const PINNED_SDK_VERSION = "0.15.31";
 
 /**
- * Lowest opencode server major version this build is known to talk to. The SDK
- * 0.15.x line targets the opencode 1.x HTTP API; anything older predates it.
+ * Oldest engine version this build is known to talk to. We ship exactly this
+ * engine, so normally the running version equals it; we only warn when a user
+ * points us at an *older* external engine (via `OPENCODE_BASE_URL` or an
+ * `opencode` on PATH) that predates the API this SDK expects. Keep in sync with
+ * `OPENCODE_VERSION` in the release workflow.
  */
-export const MIN_ENGINE_MAJOR = 1;
+export const MIN_ENGINE_VERSION = "0.15.31";
+
+type Semver = [number, number, number];
 
 export interface EngineVersionInfo {
   /** Raw string from `opencode --version`. */
   engine: string;
-  engineMajor: number | null;
   /** True when the engine looks compatible (or we couldn't determine it). */
   ok: boolean;
 }
 
-function majorOf(v: string): number | null {
-  const m = v.match(/(\d+)\.(\d+)(?:\.\d+)?/);
-  return m ? Number(m[1]) : null;
+/** Parse the first `major.minor.patch` found in a version string. */
+function parseSemver(v: string): Semver | null {
+  const m = v.match(/(\d+)\.(\d+)\.(\d+)/);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+/** True when `a` is strictly older than `b`. */
+function isOlder(a: Semver, b: Semver): boolean {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] < b[i];
+  }
+  return false;
+}
+
+/**
+ * Should we warn about this engine version string against a floor? Pure and
+ * exported for testing. We only warn when BOTH parse and the engine is strictly
+ * older — never on an equal, newer, or unparseable version (so a bundled
+ * 0.15.31 engine against a 0.15.31 floor never false-warns).
+ */
+export function engineIsOutdated(engine: string, floor = MIN_ENGINE_VERSION): boolean {
+  const cur = parseSemver(engine);
+  const min = parseSemver(floor);
+  if (cur === null || min === null) return false;
+  return isOlder(cur, min);
 }
 
 /**
  * Ask the backend for the engine version. Never throws — on any failure (or an
- * unparseable / clearly-compatible version) it returns `ok: true` so we don't
- * nag the user about something we couldn't actually determine. We only flag a
- * genuinely *older* engine that predates the API this SDK expects.
+ * unparseable version) it returns `ok: true` so we don't nag the user about
+ * something we couldn't actually determine. We only flag an engine that is
+ * genuinely *older* than the one we bundle / were built against.
  */
 export async function checkEngineVersion(): Promise<EngineVersionInfo> {
   let engine = "";
   try {
     engine = (await invoke<string>("opencode_version")) ?? "";
   } catch {
-    return { engine: "unknown", engineMajor: null, ok: true };
+    return { engine: "unknown", ok: true };
   }
-  const major = majorOf(engine);
   return {
     engine,
-    engineMajor: major,
-    // Only warn when we can read a major version AND it's below the floor.
-    ok: major === null || major >= MIN_ENGINE_MAJOR,
+    // Only warn when the running engine is strictly older than the floor.
+    ok: !engineIsOutdated(engine),
   };
 }

@@ -4,6 +4,18 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] — 2026-07-05
+
+### Fixed
+
+- **No more stray terminal window on Windows.** The GUI now spawns the
+  `opencode` engine (and the dev server, `git`, screenshots, etc.) with
+  `CREATE_NO_WINDOW`, so no console pops up alongside the app.
+- **False "version mismatch" banner.** The engine/SDK compatibility check
+  compared against the wrong major version and warned on every launch even with
+  the correct bundled engine; it now only warns when the engine is genuinely
+  older than the one shipped.
+
 ## [Unreleased]
 
 ### Added

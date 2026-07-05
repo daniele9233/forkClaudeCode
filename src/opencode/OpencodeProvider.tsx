@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { initClient } from "./client";
 import { startEventStream, stopEventStream } from "./events";
-import { checkEngineVersion, MIN_ENGINE_MAJOR, PINNED_SDK_VERSION } from "./version";
+import { checkEngineVersion, MIN_ENGINE_VERSION } from "./version";
 import { useSessionStore } from "@/stores/session.store";
 import { useUIStore } from "@/stores/ui.store";
 
@@ -64,7 +64,7 @@ function SidecarBootstrap({ children }: { children: ReactNode }) {
         setEngineWarning(
           info.ok
             ? null
-            : `Engine ${info.engine} looks older than this build expects (opencode ${MIN_ENGINE_MAJOR}.x, SDK ${PINNED_SDK_VERSION}). Some features could misbehave — consider updating opencode.`,
+            : `Engine ${info.engine} is older than this build expects (opencode ${MIN_ENGINE_VERSION}). Some features could misbehave — consider updating opencode.`,
         );
       });
     };

@@ -159,7 +159,7 @@ fn spawn_exit_watcher(
 /// Build the command to run `<pm> run <script>`, routing npm-family CLIs through
 /// `cmd /C` on Windows (they're `.cmd` shims that `CreateProcess` can't launch).
 fn build_command(pm: &str, script: &str) -> Command {
-    if cfg!(windows) {
+    let mut c = if cfg!(windows) {
         let mut c = Command::new("cmd");
         c.arg("/C").arg(format!("{pm} run {script}"));
         c
@@ -167,7 +167,10 @@ fn build_command(pm: &str, script: &str) -> Command {
         let mut c = Command::new(pm);
         c.args(["run", script]);
         c
-    }
+    };
+    // No stray terminal window on Windows when the GUI app spawns the dev server.
+    crate::process::hide_console(&mut c);
+    c
 }
 
 /// Inspect `package.json` for a runnable dev command. Returns

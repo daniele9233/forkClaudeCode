@@ -179,13 +179,15 @@ async fn clone_repo(url: String, parent_dir: String) -> Result<String, String> {
     if dest.exists() {
         return Err(format!("'{name}' already exists in that folder"));
     }
-    let out = tokio::process::Command::new("git")
-        .arg("clone")
-        .arg(&url)
-        .arg(&dest)
-        .output()
-        .await
-        .map_err(|e| format!("could not run git (is it installed?): {e}"))?;
+    let out = crate::process::hide_console(
+        tokio::process::Command::new("git")
+            .arg("clone")
+            .arg(&url)
+            .arg(&dest),
+    )
+    .output()
+    .await
+    .map_err(|e| format!("could not run git (is it installed?): {e}"))?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);
         return Err(format!("git clone failed: {}", err.trim()));
@@ -215,12 +217,14 @@ async fn create_project(
     }
     std::fs::create_dir_all(&dest).map_err(|e| format!("mkdir {}: {e}", dest.display()))?;
     if git_init {
-        let out = tokio::process::Command::new("git")
-            .arg("init")
-            .current_dir(&dest)
-            .output()
-            .await
-            .map_err(|e| format!("could not run git init: {e}"))?;
+        let out = crate::process::hide_console(
+            tokio::process::Command::new("git")
+                .arg("init")
+                .current_dir(&dest),
+        )
+        .output()
+        .await
+        .map_err(|e| format!("could not run git init: {e}"))?;
         if !out.status.success() {
             let err = String::from_utf8_lossy(&out.stderr);
             return Err(format!("git init failed: {}", err.trim()));
@@ -364,9 +368,10 @@ async fn find_dev_server(
 /// is available. We only keep the port number of each local listening socket.
 fn listening_ports() -> Vec<u16> {
     let output = if cfg!(windows) {
-        std::process::Command::new("netstat")
-            .args(["-an", "-p", "TCP"])
-            .output()
+        crate::process::hide_console_std(
+            std::process::Command::new("netstat").args(["-an", "-p", "TCP"]),
+        )
+        .output()
     } else {
         std::process::Command::new("sh")
             .arg("-c")
@@ -546,22 +551,26 @@ async fn discard_file_changes(
         .ok_or("no project directory")?;
 
     // Tracked by git? (exit code 0 = tracked)
-    let tracked = tokio::process::Command::new("git")
-        .args(["ls-files", "--error-unmatch", rel])
-        .current_dir(&dir)
-        .output()
-        .await
-        .map_err(|e| format!("could not run git: {e}"))?
-        .status
-        .success();
+    let tracked = crate::process::hide_console(
+        tokio::process::Command::new("git")
+            .args(["ls-files", "--error-unmatch", rel])
+            .current_dir(&dir),
+    )
+    .output()
+    .await
+    .map_err(|e| format!("could not run git: {e}"))?
+    .status
+    .success();
 
     if tracked {
-        let out = tokio::process::Command::new("git")
-            .args(["checkout", "HEAD", "--", rel])
-            .current_dir(&dir)
-            .output()
-            .await
-            .map_err(|e| format!("could not run git checkout: {e}"))?;
+        let out = crate::process::hide_console(
+            tokio::process::Command::new("git")
+                .args(["checkout", "HEAD", "--", rel])
+                .current_dir(&dir),
+        )
+        .output()
+        .await
+        .map_err(|e| format!("could not run git checkout: {e}"))?;
         if !out.status.success() {
             let err = String::from_utf8_lossy(&out.stderr);
             return Err(format!("git checkout failed: {}", err.trim()));
@@ -606,8 +615,8 @@ async fn capture_preview(
         .unwrap_or(0);
     let out_path = std::env::temp_dir().join(format!("kikko-preview-{stamp}-{w}.png"));
 
-    let run = tokio::process::Command::new(&browser)
-        .args([
+    let run = crate::process::hide_console(
+        tokio::process::Command::new(&browser).args([
             "--headless=new",
             "--disable-gpu",
             "--hide-scrollbars",
@@ -617,8 +626,9 @@ async fn capture_preview(
             "--virtual-time-budget=4000",
             &format!("--screenshot={}", out_path.display()),
             &url,
-        ])
-        .output();
+        ]),
+    )
+    .output();
     let output = tokio::time::timeout(std::time::Duration::from_secs(45), run)
         .await
         .map_err(|_| "screenshot timed out after 45s".to_string())?

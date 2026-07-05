@@ -16,6 +16,40 @@
 
 ---
 
+## 2026-07-05 · v0.1.1 — fix console Windows + falso version-mismatch
+
+**Fase:** 12.46 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- **Niente più finestra terminale** all'avvio (e non solo): helper
+  `process::hide_console` / `hide_console_std` che applicano `CREATE_NO_WINDOW`
+  a ogni processo figlio su Windows. Applicato a: sidecar `opencode serve`
+  (`engine_command`), `opencode --version`, dev server anteprima
+  (`build_command`), `git clone/init/ls-files/checkout`, `netstat`, screenshot
+  headless del browser. Un'app GUI (`windows_subsystem="windows"`) non ha
+  console propria → senza il flag Windows ne alloca una visibile.
+- **Fix falso "version mismatch"**: il check pretendeva engine major ≥ 1, ma
+  bundliamo opencode **0.15.31** (major 0) → falso allarme a ogni avvio.
+  `version.ts` ora confronta la **semver completa** contro `MIN_ENGINE_VERSION`
+  (= la versione che distribuiamo) e avvisa solo se l'engine è _più vecchio_.
+  Nuovo helper puro `engineIsOutdated` + 4 test di regressione (66 totali).
+- **Bump 0.1.0 → 0.1.1** (`tauri.conf.json`, `package.json`) e default tag del
+  workflow → `v0.1.1`, così la release con i fix è pulita e separata dalla
+  v0.1.0 buggata.
+
+### Perché / decisione
+
+- Entrambi i problemi erano visibili al primo avvio dell'installer reale su
+  Windows (feedback utente): terminale spurio + banner giallo fuorviante.
+
+### Gotcha / attenzione
+
+- `tokio::process::Command::creation_flags` è un metodo inerente su Windows
+  (no import di `CommandExt`, che serve invece per `std::process::Command`).
+- Rust non compila in questo ambiente (registry bloccato) → verificato per
+  struttura; la CI Windows compila e produce l'installer v0.1.1.
+
 ## 2026-07-05 · Prima release v0.1.0 costruita in CI (auto-publish)
 
 **Fase:** 12.45 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
