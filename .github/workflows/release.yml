@@ -1,10 +1,13 @@
 name: Release (Windows)
 
 # Builds the kikkoCode Windows installer with the opencode sidecar bundled.
-# Triggered by pushing a version tag (e.g. v0.1.0) or manually.
+# Triggered by pushing a version tag (e.g. v0.1.0), manually via the Actions
+# tab, or by pushing a commit whose message contains "[release]" (the opt-in
+# used when tag pushes aren't available in the current environment).
 on:
   push:
     tags: ["v*"]
+    branches: ["claude/opencode-project-setup-1i59cg"]
   workflow_dispatch:
     inputs:
       tag:
@@ -25,6 +28,12 @@ jobs:
   build-windows:
     name: Build Windows installer
     runs-on: windows-latest
+    # On a branch push, only build when the commit opts in with "[release]" so
+    # ordinary pushes don't kick off a full Windows build every time.
+    if: >-
+      github.ref_type == 'tag' ||
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[release]')
     steps:
       - uses: actions/checkout@v4
 
@@ -88,10 +97,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           # On a tag push, github.ref_name is the tag (v*). On a manual
-          # workflow_dispatch, take the tag from the input so tauri-action
-          # creates a clean v* tag instead of using the branch name.
-          tagName: ${{ github.event.inputs.tag || github.ref_name }}
-          releaseName: "kikkoCode ${{ github.event.inputs.tag || github.ref_name }}"
+          # dispatch or a "[release]" branch push, use the input (or default
+          # v0.1.0) so tauri-action creates a clean v* tag instead of the
+          # branch name.
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.1.0' }}
+          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.1.0' }}"
           releaseDraft: true
           prerelease: false
           # Merge the release-only overlay that adds the opencode sidecar
