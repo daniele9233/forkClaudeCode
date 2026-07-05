@@ -6,6 +6,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create (e.g. v0.1.0)"
+        required: true
+        default: "v0.1.0"
 
 permissions:
   contents: write
@@ -82,8 +87,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "kikkoCode ${{ github.ref_name }}"
+          # On a tag push, github.ref_name is the tag (v*). On a manual
+          # workflow_dispatch, take the tag from the input so tauri-action
+          # creates a clean v* tag instead of using the branch name.
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: "kikkoCode ${{ github.event.inputs.tag || github.ref_name }}"
           releaseDraft: true
           prerelease: false
           # Merge the release-only overlay that adds the opencode sidecar
