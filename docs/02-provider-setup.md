@@ -66,6 +66,15 @@ default è la _primissima_ connessione di un provider mai usato prima.
 > `deepseek-reasoner` (thinking). Non esiste un id "pro v4": il modello "pro" è
 > `deepseek-reasoner`.
 
+### Anthropic / Claude
+
+**Anthropic (Claude)** è selezionabile direttamente dall'elenco dei provider
+(non usare "Other": Claude **non** è OpenAI-compatible). La chiave si prende da
+`https://console.anthropic.com/` e usa l'header `x-api-key` — la verifica in
+kikkoCode lo gestisce da sola. Al primo collegamento viene scelto un modello
+**Sonnet** (equilibrato); puoi passare a Opus/Haiku dal selettore, e la scelta
+resta memorizzata.
+
 ## Nota sicurezza
 
 Le chiavi vengono salvate dal CLI di OpenCode (fuori dal repo).

@@ -202,12 +202,13 @@ export function useConnectProvider() {
           if (p) {
             const ids = Object.keys(p.models ?? {});
             providerModelIds = ids;
-            // Default a FIRST-time connect to the plain chat model (reasoning
+            // Default a FIRST-time connect to a fast, balanced model (reasoning
             // models are much slower and this app iterates on UI a lot); fall
             // back to the first available. An existing manual choice for this
             // provider is honored below and overrides this.
             firstModel =
               ids.find((m) => m === "deepseek-chat") ??
+              ids.find((m) => /sonnet/i.test(m)) ?? // Anthropic's balanced default
               ids.find((m) => /chat/i.test(m) && !/reason/i.test(m)) ??
               ids.find((m) => !/reason/i.test(m)) ??
               ids[0];

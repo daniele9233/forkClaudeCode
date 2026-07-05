@@ -79,10 +79,13 @@ async fn set_provider_key(
     }
 }
 
-/// Verify an API key against an OpenAI-compatible provider by listing models
-/// (`GET {base_url}/models` with a Bearer token). Done from Rust so it bypasses
-/// webview CORS and the engine entirely — pure key validation. `Ok` means the
-/// provider accepted the key; `Err` carries the provider's rejection detail.
+/// Verify an API key by listing models (`GET {base_url}/models`). Done from Rust
+/// so it bypasses webview CORS and the engine entirely — pure key validation.
+/// `Ok` means the provider accepted the key; `Err` carries the rejection detail.
+///
+/// Most providers are OpenAI-compatible (Bearer token). Anthropic is the
+/// exception: it authenticates with an `x-api-key` header and requires an
+/// `anthropic-version` header, so we special-case its host.
 #[tauri::command]
 async fn test_provider_key(base_url: String, api_key: String) -> Result<String, String> {
     let base = base_url.trim().trim_end_matches('/');
@@ -93,9 +96,16 @@ async fn test_provider_key(base_url: String, api_key: String) -> Result<String, 
         .build()
         .map_err(|e| format!("http client error: {e}"))?;
 
-    let resp = client
-        .get(&url)
-        .bearer_auth(api_key.trim())
+    let req = if base.contains("anthropic.com") {
+        client
+            .get(&url)
+            .header("x-api-key", api_key.trim())
+            .header("anthropic-version", "2023-06-01")
+    } else {
+        client.get(&url).bearer_auth(api_key.trim())
+    };
+
+    let resp = req
         .send()
         .await
         .map_err(|e| format!("could not reach {base}: {e}"))?;

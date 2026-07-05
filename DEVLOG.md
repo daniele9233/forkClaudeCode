@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-07-05 · v0.1.3 — provider Anthropic (Claude)
+
+**Fase:** 12.48 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- `AddProviderKey.tsx`: nuovo template **Anthropic (Claude)** in cima all'elenco
+  (`ANTHROPIC_API_KEY`, baseURL `https://api.anthropic.com/v1`). Prima Claude non
+  era selezionabile e "Other" non funziona (Anthropic non è OpenAI-compatible).
+- `lib.rs` `test_provider_key`: se l'host è `anthropic.com` usa gli header
+  `x-api-key` + `anthropic-version: 2023-06-01` invece di `Authorization:
+Bearer` (che Anthropic rifiuta). Altri provider invariati (Bearer).
+- `config.ts`: default primo collegamento preferisce un modello **Sonnet** (dopo
+  deepseek-chat) → per Claude parte su `claude-sonnet-5`.
+- Guida provider aggiornata con la sezione Anthropic/Claude. Bump 0.1.3.
+
+### Perché / decisione
+
+- Feedback utente: "non mi fa inserire la chiave di Claude" → mancava il
+  template e la verifica Bearer avrebbe comunque fallito.
+
+### Gotcha / attenzione
+
+- **Verificato dal vivo** con una chiave reale fornita dall'utente (usata solo
+  per il test, mai scritta su file/commit; da rigenerare): `GET /v1/models` →
+  200 (lista modelli), `POST /v1/messages` (haiku) → 200 ("Blu."). Conferma che
+  header e flusso sono corretti.
+- `api.anthropic.com` è nella noProxy del proxy agent → test diretto possibile.
+
 ## 2026-07-05 · v0.1.2 — la scelta del modello DeepSeek non si perde più
 
 **Fase:** 12.47 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

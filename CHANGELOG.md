@@ -4,6 +4,15 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] — 2026-07-05
+
+### Added
+
+- **Anthropic (Claude) provider.** Claude is now a first-class choice in the
+  "Add provider API key" list. Key verification uses Anthropic's `x-api-key` +
+  `anthropic-version` headers (Claude isn't OpenAI-compatible), and a fresh
+  connect defaults to a Sonnet model. Verified end-to-end against the live API.
+
 ## [0.1.2] — 2026-07-05
 
 ### Fixed

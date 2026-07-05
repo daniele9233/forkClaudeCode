@@ -20,6 +20,16 @@ const OPENAI_COMPAT = "@ai-sdk/openai-compatible";
 
 const TEMPLATES: Template[] = [
   {
+    id: "anthropic",
+    label: "Anthropic (Claude)",
+    envVar: "ANTHROPIC_API_KEY",
+    // Anthropic isn't OpenAI-compatible: it authenticates with an `x-api-key`
+    // header (not Bearer) and needs `anthropic-version`. The Rust key check
+    // special-cases this host; the engine's native `anthropic` provider handles
+    // the rest once the key is set.
+    baseURL: "https://api.anthropic.com/v1",
+  },
+  {
     id: "deepseek",
     label: "DeepSeek",
     envVar: "DEEPSEEK_API_KEY",
