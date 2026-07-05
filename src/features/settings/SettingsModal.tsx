@@ -141,6 +141,27 @@ function SkillsTab({ query }: { query: string }) {
 
 type AddMode = null | "local" | "remote";
 
+/** Curated "connect in one click" MCP servers (local stdio, via npx). */
+const RECOMMENDED_MCP: {
+  name: string;
+  label: string;
+  desc: string;
+  command: string[];
+}[] = [
+  {
+    name: "kubernetes",
+    label: "Kubernetes",
+    desc: "Legge il cluster, genera/valida manifest & Helm, kubectl/helm guidati.",
+    command: ["npx", "-y", "mcp-server-kubernetes"],
+  },
+  {
+    name: "playwright",
+    label: "Playwright (Browser)",
+    desc: "Scraping siti di lavoro + test end-to-end dei tuoi front-end (apre, clicca, verifica).",
+    command: ["npx", "-y", "@playwright/mcp@latest"],
+  },
+];
+
 function McpTab({ query }: { query: string }) {
   const { data: config } = useConfig();
   const { data: mcpStatus = {} } = useMcpStatus();
@@ -151,6 +172,21 @@ function McpTab({ query }: { query: string }) {
   const [newCommand, setNewCommand] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
+
+  /** One-click connect a recommended server (adds a local MCP entry). */
+  const addRecommended = async (r: (typeof RECOMMENDED_MCP)[number]) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const updated = {
+        ...config?.mcp,
+        [r.name]: { type: "local" as const, command: r.command, enabled: true },
+      };
+      await updateConfig.mutateAsync({ mcp: updated });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const q = query.trim().toLowerCase();
   const mcpEntries = Object.entries(config?.mcp ?? {}).filter(([name, entry]) => {
@@ -200,8 +236,50 @@ function McpTab({ query }: { query: string }) {
     }
   };
 
+  const missingRecommended = RECOMMENDED_MCP.filter((r) => !config?.mcp?.[r.name]);
+
   return (
     <div className="space-y-2">
+      {/* One-click connect: curated MCP servers not yet configured */}
+      {missingRecommended.length > 0 && (
+        <div className="rounded-lg border border-[var(--primary)]/25 bg-[var(--primary)]/5 p-3">
+          <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+            Consigliati — collega in un click
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {missingRecommended.map((r) => (
+              <button
+                key={r.name}
+                onClick={() => void addRecommended(r)}
+                disabled={saving}
+                className="flex items-start gap-2 rounded-md border border-[var(--border)] bg-[var(--muted)]/20 p-2 text-left transition-colors hover:border-[var(--primary)]/50 hover:bg-[var(--muted)]/40 disabled:opacity-50"
+              >
+                {saving ? (
+                  <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-[var(--primary)]" />
+                ) : (
+                  <Plus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
+                )}
+                <span className="min-w-0">
+                  <span className="text-xs font-medium text-[var(--foreground)]">
+                    {r.label}
+                  </span>
+                  <span className="block text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+                    {r.desc}
+                  </span>
+                  <code className="mt-0.5 block truncate font-mono text-[9px] text-[var(--muted-foreground)]/70">
+                    {r.command.join(" ")}
+                  </code>
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[9px] leading-relaxed text-[var(--muted-foreground)]/70">
+            Richiedono Node/npx (e per Kubernetes un `kubeconfig` valido; per Playwright i
+            browser installati). Si avviano quando l'agente li usa.
+          </p>
+        </div>
+      )}
+
       {mcpEntries.length === 0 && (
         <p className="py-4 text-center text-xs text-[var(--muted-foreground)]">
           No MCP servers configured

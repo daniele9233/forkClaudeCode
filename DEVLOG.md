@@ -15,6 +15,32 @@
 
 ---
 
+## 2026-07-04 · MCP one-click (K8s, Playwright) + 3 skill verticali
+
+**Fase:** 12.41 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+Apertura oltre il solo web-design, sui task reali dell'utente (DevOps, documenti, job-search).
+- **MCP "collega in un click"** (scheda Impostazioni → MCP): sezione "Consigliati"
+  con **Kubernetes** (`npx -y mcp-server-kubernetes`) e **Playwright/Browser**
+  (`npx -y @playwright/mcp@latest`). Un click aggiunge l'entry `local` a
+  `config.mcp` (riuso `useUpdateConfig`); scompaiono quando già configurati.
+- **3 skill verticali** (catalogo 27 → 30):
+  - `devops` (⎈): Ansible idempotente + K8s/Helm (probe, limits, RBAC least-priv,
+    security non-root, secrets), e VALIDAZIONE prima dell'apply (ansible-lint/
+    yamllint/kubeconform/helm lint + dry-run --check/--diff).
+  - `doc-engineering` (📄): OCR (ocrmypdf/tesseract), estrazione (pdfplumber/
+    PyMuPDF) → JSON su schema, generazione (python-docx/openpyxl/WeasyPrint/pandoc).
+  - `job-search` (💼): CV→struttura, scraping etico (robots/ToS, rate-limit,
+    preferisci API) via Playwright, matching CV↔offerta, tailoring senza inventare.
+- **+3 test** (trigger delle skill verticali) → 60 totali.
+
+### Gotcha / attenzione
+- Gli MCP consigliati richiedono Node/npx (+ kubeconfig per K8s, browser per
+  Playwright); partono quando l'agente li usa.
+- Le skill job-search insistono su scraping etico: robots.txt/ToS, API quando
+  possibile — scritto nel playbook.
+
 ## 2026-07-04 · Hardening: DRY, post-autopilot audit, queue skills, code-split, sessione/progetto
 
 **Fase:** 12.40 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

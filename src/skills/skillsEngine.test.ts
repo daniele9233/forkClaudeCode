@@ -57,6 +57,33 @@ describe("asset & media skills", () => {
   });
 });
 
+describe("vertical skills (devops / docs / jobs)", () => {
+  it("triggers devops on infra intent", () => {
+    const hits = matchSkills(
+      "scrivi un playbook ansible e un manifest kubernetes",
+      allIds,
+      3,
+    );
+    expect(hits.some((s) => s.id === "devops")).toBe(true);
+  });
+  it("triggers doc-engineering on PDF/OCR intent", () => {
+    const hits = matchSkills(
+      "estrai i dati da questo PDF scansionato con OCR",
+      allIds,
+      3,
+    );
+    expect(hits.some((s) => s.id === "doc-engineering")).toBe(true);
+  });
+  it("triggers job-search on CV/job intent", () => {
+    const hits = matchSkills(
+      "fai il parsing del CV e cerca offerte di lavoro",
+      allIds,
+      3,
+    );
+    expect(hits.some((s) => s.id === "job-search")).toBe(true);
+  });
+});
+
 describe("slash commands", () => {
   it("forces a skill and strips the command", () => {
     const r = resolveSlash("/motion fai un bottone che pulsa", allIds);
