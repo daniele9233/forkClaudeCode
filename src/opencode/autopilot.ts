@@ -1,9 +1,11 @@
 import type { AssistantMessage } from "@opencode-ai/sdk/client";
 import { getClient } from "./client";
 import { rowInfo } from "./messageShape";
+import { runDesignAudit } from "./audit";
 import { useAutopilotStore } from "@/stores/autopilot.store";
 import { useChatStore } from "@/stores/chat.store";
 import { useModelStore, splitModel } from "@/stores/model.store";
+import { usePreviewStore } from "@/stores/preview.store";
 import { notifyWhenUnfocused } from "@/lib/notify";
 
 /**
@@ -138,6 +140,10 @@ export async function autopilotOnIdle(sessionId: string): Promise<void> {
   if (text.includes(DONE_MARKER)) {
     store.finish("done");
     void notifyWhenUnfocused("kikkoCode — Autopilot", "Goal achieved ✔");
+    // Automatic quality pass: if a page is being previewed, run one design
+    // audit → fix round so the result gets a final polish "for free".
+    const previewUrl = usePreviewStore.getState().previewUrl;
+    if (previewUrl) void runDesignAudit(sessionId, previewUrl).catch(() => {});
     return;
   }
   if (spent >= store.budgetUsd) {

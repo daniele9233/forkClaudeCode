@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useWorkspaceStore } from "./workspace.store";
 
 export type SidecarStatus = "starting" | "ready" | "error" | "stopped";
 
@@ -26,7 +27,16 @@ export const useSessionStore = create<SessionState>()(
       sidecarStatus: "starting",
       sidecarError: null,
 
-      setActiveSession: (id) => set({ activeSessionId: id }),
+      setActiveSession: (id) => {
+        set({ activeSessionId: id });
+        // Remember which session is active per project, so reopening a project
+        // restores it. Only record real selections (never the null during a
+        // project switch), keyed by the current project folder.
+        if (id) {
+          const dir = useWorkspaceStore.getState().currentDir;
+          if (dir) useWorkspaceStore.getState().setLastSession(dir, id);
+        }
+      },
       setOpencodeUrl: (url) => set({ opencodeUrl: url }),
       setSidecarStatus: (status, error = undefined) =>
         set({ sidecarStatus: status, sidecarError: error ?? null }),

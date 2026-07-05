@@ -24,6 +24,7 @@ import { useQAStore } from "@/stores/qa.store";
 import { useStylesStore } from "@/stores/styles.store";
 import { useWorkspaceStore, baseName } from "@/stores/workspace.store";
 import { captureStyle } from "@/opencode/style";
+import { runDesignAudit } from "@/opencode/audit";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession } from "@/opencode/session";
 import { useSelectionStore, type SelectedElement } from "@/stores/selection.store";
@@ -266,60 +267,19 @@ Find the root cause in this project's source code and fix them. After fixing, br
       `Attached is a screenshot of the web page you are building, previewed at ${previewUrl}. Look at it carefully and critique it like a senior product designer: layout, spacing, alignment, typography, visual hierarchy, contrast, consistency, responsiveness red flags. Then apply the most impactful improvements directly to the code. If you cannot see the attached image, say so explicitly instead of guessing.`,
     );
 
-  // Multi-viewport design audit (scan button): capture the SAME page at phone,
-  // tablet and desktop widths and hand all three to the agent with a rigorous
-  // "Impeccable" checklist — a real team always checks the breakpoints.
+  // Multi-viewport design audit (scan button): shared with the autopilot's
+  // automatic post-build quality pass (see opencode/audit.ts).
   const auditResponsive = async () => {
     if (!previewUrl || capturing || sendPrompt.isPending) return;
     setCapturing(true);
     try {
-      const viewports = [
-        { label: "mobile", w: 390, h: 844 },
-        { label: "tablet", w: 768, h: 1024 },
-        { label: "desktop", w: 1440, h: 900 },
-      ];
-      const files: {
-        type: "file";
-        mime: string;
-        filename: string;
-        url: string;
-      }[] = [];
-      for (const v of viewports) {
-        const path = await invoke<string>("capture_preview", {
-          url: previewUrl,
-          width: v.w,
-          height: v.h,
-        });
-        const fileUrl =
-          "file://" + (path.startsWith("/") ? "" : "/") + path.replace(/\\/g, "/");
-        files.push({
-          type: "file",
-          mime: "image/png",
-          filename: `${v.label}-${v.w}.png`,
-          url: fileUrl,
-        });
-      }
       let sessionId = activeSessionId;
       if (!sessionId) {
         const s = await createSession.mutateAsync({});
         sessionId = s.id;
         setActiveSession(sessionId);
       }
-      sendPrompt.mutate({
-        sessionId,
-        text: `Attached are 3 screenshots of ${previewUrl} at MOBILE (390px), TABLET (768px) and DESKTOP (1440px). Run a rigorous MULTI-VIEWPORT DESIGN AUDIT as a senior front-end team, then APPLY the fixes to the code.
-
-Score /10 and list concrete issues per area:
-1. Responsiveness — does each breakpoint look intentional? overflow, cramped/oversized text, broken grids, tap targets < 44px, wasted space? (compare the 3 shots)
-2. Typography — distinctive typeface (NOT Inter/Arial/defaults)? modular scale? fluid sizing across viewports?
-3. Color & contrast — tinted neutrals (no pure #000/#fff)? one accent? text contrast ≥ 4.5:1 (AA)?
-4. Layout & spacing — clear focal point, 8pt rhythm, optical alignment, whitespace; not everything nested in cards?
-5. Composition — varied section rhythm, not templated/monotonous?
-6. States & motion — hover/focus/active/disabled/loading/empty/error; 150–250ms ease-out, no bounce, reduced-motion safe.
-
-Fix everything below 8/10 now, mobile-first. Prioritize what removes the "AI-generated / templated" look. If you cannot see the images, say so explicitly instead of guessing.`,
-        files,
-      });
+      await runDesignAudit(sessionId, previewUrl);
     } catch (e) {
       useDevServerStore
         .getState()

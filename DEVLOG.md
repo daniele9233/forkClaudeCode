@@ -15,6 +15,35 @@
 
 ---
 
+## 2026-07-04 · Hardening: DRY, post-autopilot audit, queue skills, code-split, sessione/progetto
+
+**Fase:** 12.40 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (i punti del report)
+- **Fix bug**: niente notifiche "task finished" spurie a ogni giro di autopilot
+  (guardia `useAutopilotStore` in `useChatEvents` — commit precedente `c4e94ac`).
+- **DRY sessioni nascoste**: nuovo `silentSessions.ts` (registro condiviso) +
+  `hiddenSession.ts` (`runHiddenPlan`) → `memory.ts`, `enhance.ts`, `style.ts`
+  usano un solo helper (rimosso il triplo create/prompt/delete).
+- **DRY file://**: `toFileUrl()` in `lib/utils` usato da `style.ts` e PreviewPanel.
+- **Audit condiviso**: nuovo `audit.ts` (`runDesignAudit`) usato dal bottone
+  Audit e dall'autopilot; PreviewPanel dimagrito.
+- **Loop qualità automatico**: a fine autopilot (`done`), se una pagina è in
+  anteprima, parte UN giro di design-audit → fix "gratis".
+- **Coda preserva le skill di ricetta**: `QueuedTask.forcedSkillIds`; ChatShell
+  le accoda e le ripassa al drain.
+- **Code-splitting**: `App.tsx` lazy-load di Monaco/xterm/Preview/Settings/
+  overlays → chunk principale **1125KB → 726KB** (gzip 331→231).
+- **Sessione per progetto**: `workspace.store.lastSessionByPath`;
+  `setActiveSession` la registra; `openProject` la ripristina se esiste ancora.
+- **+4 test** (queue, toFileUrl) → 57 totali.
+
+### Gotcha / attenzione
+- `runDesignAudit` post-autopilot costa un giro extra: gira solo se c'è una
+  preview aperta (segnale che stai lavorando a un sito).
+- Rilevate ma NON toccate: parsing `provider/model` e liste keyword web
+  duplicate (poche righe; cambiarle rischierebbe il comportamento) — lasciate.
+
 ## 2026-07-04 · Ricette: iniezione FULL delle skill (no cap 2) + base awwwards
 
 **Fase:** 12.39 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

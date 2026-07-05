@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getClient } from "./client";
 import { rowInfo } from "./messageShape";
+import { runHiddenPlan } from "./hiddenSession";
 import { useMemoryStore } from "@/stores/memory.store";
-import { useModelStore, splitModel } from "@/stores/model.store";
 
 /**
  * Persistent project memory — the "best possible" design for this architecture:
@@ -24,19 +24,10 @@ import { useModelStore, splitModel } from "@/stores/model.store";
 
 const HIDDEN_TITLE = "[kikko] memory distiller";
 
-/** Sessions kikkoCode uses internally — event handlers must ignore them. */
-const silentSessions = new Set<string>();
-export function isSilentSession(id: string): boolean {
-  return silentSessions.has(id);
-}
-/** Register/unregister a hidden internal session (shared with other features
- *  like the prompt enhancer so they're silenced the same way). */
-export function markSilent(id: string): void {
-  silentSessions.add(id);
-}
-export function unmarkSilent(id: string): void {
-  silentSessions.delete(id);
-}
+// The silent-session registry lives in its own module (shared with the hidden
+// plan-session helper); re-export it here for existing importers.
+import { isSilentSession, markSilent, unmarkSilent } from "./silentSessions";
+export { isSilentSession, markSilent, unmarkSilent };
 
 /** Throttle bookkeeping: last distilled message-count per session. */
 const distilledUpTo = new Map<string, number>();
@@ -128,7 +119,6 @@ async function distill(sessionId: string): Promise<boolean> {
   if (store.distilling) return false;
   store.setDistilling(true);
 
-  let hiddenId: string | null = null;
   try {
     const [{ digest, count }, memory] = await Promise.all([
       buildDigest(sessionId),
@@ -140,29 +130,9 @@ async function distill(sessionId: string): Promise<boolean> {
     }
 
     // Hidden throwaway session, plan mode: read-only, no side effects.
-    const created = await getClient().session.create({
-      body: { title: HIDDEN_TITLE },
-      throwOnError: true,
-    });
-    hiddenId = created.data!.id;
-    silentSessions.add(hiddenId);
-
-    // Same model the user selected (our store wins over pinned engine config).
-    const { providerID, modelID } = splitModel(useModelStore.getState().selected ?? "");
-    const res = await getClient().session.prompt({
-      path: { id: hiddenId },
-      body: {
-        parts: [{ type: "text", text: distillPrompt(memory, digest) }],
-        agent: "plan",
-        ...(providerID && modelID ? { model: { providerID, modelID } } : {}),
-      },
-      throwOnError: true,
-    });
-    const parts = (res.data?.parts ?? []) as Array<{ type: string; text?: string }>;
-    const reply = parts
-      .filter((p) => p.type === "text" && typeof p.text === "string")
-      .map((p) => p.text)
-      .join("\n");
+    const reply = await runHiddenPlan(HIDDEN_TITLE, [
+      { type: "text", text: distillPrompt(memory, digest) },
+    ]);
     const next = sanitize(reply);
     if (!next) throw new Error("empty distillation reply");
 
@@ -180,16 +150,6 @@ async function distill(sessionId: string): Promise<boolean> {
       .getState()
       .setResult(false, e instanceof Error ? e.message : String(e));
     return false;
-  } finally {
-    if (hiddenId) {
-      const id = hiddenId;
-      getClient()
-        .session.delete({ path: { id } })
-        .catch(() => {
-          /* the sidebar filters [kikko] sessions anyway */
-        })
-        .finally(() => silentSessions.delete(id));
-    }
   }
 }
 

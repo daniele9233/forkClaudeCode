@@ -1,24 +1,53 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, lazy, Suspense } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { SessionSidebar } from "@/features/sessions/SessionSidebar";
 import { ProjectBar } from "@/features/project/ProjectBar";
-import { ProjectPicker } from "@/features/project/ProjectPicker";
 import { ChatShell } from "@/features/chat/ChatShell";
 import { FileTree } from "@/features/filetree/FileTree";
-import { FileDiffPanel } from "@/features/filetree/FileDiffPanel";
-import { TerminalPanel } from "@/features/terminal/TerminalPanel";
-import { PreviewPanel } from "@/features/preview/PreviewPanel";
-import { ContextInspectorPanel } from "@/features/inspector/ContextInspectorPanel";
 import { ContextSparkline } from "@/features/inspector/ContextSparkline";
-import { CheckpointTimeline } from "@/features/checkpoints/CheckpointTimeline";
-import { CommandPalette } from "@/features/commandpalette/CommandPalette";
 import { StatusBar } from "@/features/statusbar/StatusBar";
 import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
 import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
-import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
-import { SettingsModal } from "@/features/settings/SettingsModal";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
+
+// Heavy / conditionally-shown panels are code-split so they don't bloat the
+// initial bundle (Monaco, xterm, preview, settings, overlays load on demand).
+const FileDiffPanel = lazy(() =>
+  import("@/features/filetree/FileDiffPanel").then((m) => ({ default: m.FileDiffPanel })),
+);
+const TerminalPanel = lazy(() =>
+  import("@/features/terminal/TerminalPanel").then((m) => ({ default: m.TerminalPanel })),
+);
+const PreviewPanel = lazy(() =>
+  import("@/features/preview/PreviewPanel").then((m) => ({ default: m.PreviewPanel })),
+);
+const ContextInspectorPanel = lazy(() =>
+  import("@/features/inspector/ContextInspectorPanel").then((m) => ({
+    default: m.ContextInspectorPanel,
+  })),
+);
+const CheckpointTimeline = lazy(() =>
+  import("@/features/checkpoints/CheckpointTimeline").then((m) => ({
+    default: m.CheckpointTimeline,
+  })),
+);
+const CommandPalette = lazy(() =>
+  import("@/features/commandpalette/CommandPalette").then((m) => ({
+    default: m.CommandPalette,
+  })),
+);
+const SettingsModal = lazy(() =>
+  import("@/features/settings/SettingsModal").then((m) => ({ default: m.SettingsModal })),
+);
+const ProjectPicker = lazy(() =>
+  import("@/features/project/ProjectPicker").then((m) => ({ default: m.ProjectPicker })),
+);
+const OnboardingWizard = lazy(() =>
+  import("@/features/onboarding/OnboardingWizard").then((m) => ({
+    default: m.OnboardingWizard,
+  })),
+);
 import { useFileStore } from "@/stores/file.store";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useSessionStore } from "@/stores/session.store";
@@ -216,39 +245,44 @@ export default function App() {
                 </div>
 
                 {/* Panel body — terminal stays mounted to preserve scrollback */}
-                <div className="min-h-0 flex-1">
-                  <div
-                    className={cn(
-                      "h-full",
-                      bottomTab === "terminal" ? "block" : "hidden",
-                    )}
-                  >
-                    <TerminalPanel />
-                  </div>
-                  {selectedFilePath && (
+                <Suspense fallback={null}>
+                  <div className="min-h-0 flex-1">
                     <div
-                      className={cn("h-full", bottomTab === "diff" ? "block" : "hidden")}
+                      className={cn(
+                        "h-full",
+                        bottomTab === "terminal" ? "block" : "hidden",
+                      )}
                     >
-                      <FileDiffPanel />
+                      <TerminalPanel />
                     </div>
-                  )}
-                  <div
-                    className={cn(
-                      "h-full",
-                      bottomTab === "inspector" ? "block" : "hidden",
+                    {selectedFilePath && (
+                      <div
+                        className={cn(
+                          "h-full",
+                          bottomTab === "diff" ? "block" : "hidden",
+                        )}
+                      >
+                        <FileDiffPanel />
+                      </div>
                     )}
-                  >
-                    <ContextInspectorPanel />
+                    <div
+                      className={cn(
+                        "h-full",
+                        bottomTab === "inspector" ? "block" : "hidden",
+                      )}
+                    >
+                      <ContextInspectorPanel />
+                    </div>
+                    <div
+                      className={cn(
+                        "h-full",
+                        bottomTab === "timeline" ? "block" : "hidden",
+                      )}
+                    >
+                      <CheckpointTimeline />
+                    </div>
                   </div>
-                  <div
-                    className={cn(
-                      "h-full",
-                      bottomTab === "timeline" ? "block" : "hidden",
-                    )}
-                  >
-                    <CheckpointTimeline />
-                  </div>
-                </div>
+                </Suspense>
               </div>
             </>
           )}
@@ -258,14 +292,20 @@ export default function App() {
         </main>
 
         {/* Right column: web preview */}
-        {previewOpen && <PreviewPanel />}
+        {previewOpen && (
+          <Suspense fallback={null}>
+            <PreviewPanel />
+          </Suspense>
+        )}
       </div>
 
       {/* Global overlays */}
-      {commandPaletteOpen && <CommandPalette onOpenSettings={openSettings} />}
-      {settingsOpen && <SettingsModal onClose={closeSettings} />}
-      {projectPickerOpen && <ProjectPicker onClose={closeProjectPicker} />}
-      {showOnboarding && <OnboardingWizard />}
+      <Suspense fallback={null}>
+        {commandPaletteOpen && <CommandPalette onOpenSettings={openSettings} />}
+        {settingsOpen && <SettingsModal onClose={closeSettings} />}
+        {projectPickerOpen && <ProjectPicker onClose={closeProjectPicker} />}
+        {showOnboarding && <OnboardingWizard />}
+      </Suspense>
     </motion.div>
   );
 }

@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { initClient } from "./client";
+import { initClient, getClient } from "./client";
 import { startEventStream, stopEventStream } from "./events";
 import { useSessionStore } from "@/stores/session.store";
 import { useWorkspaceStore } from "@/stores/workspace.store";
@@ -41,6 +41,19 @@ export function useProjectActions() {
 
       // Everything (sessions, config, files…) belongs to the new project now.
       await qc.invalidateQueries();
+
+      // Restore the session you last used in THIS project (if it still exists),
+      // so switching back and forth doesn't lose your place.
+      const last = useWorkspaceStore.getState().lastSessionByPath[dir];
+      if (last) {
+        try {
+          const list =
+            (await getClient().session.list({ throwOnError: true })).data ?? [];
+          if (list.some((s) => s.id === last)) session.setActiveSession(last);
+        } catch {
+          /* engine still warming up — stay on a fresh session */
+        }
+      }
       return newUrl;
     },
     [qc],

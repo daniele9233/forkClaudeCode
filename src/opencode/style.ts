@@ -1,8 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { TextPartInput, FilePartInput } from "@opencode-ai/sdk/client";
-import { getClient } from "./client";
-import { markSilent, unmarkSilent } from "./memory";
-import { useModelStore, splitModel } from "@/stores/model.store";
+import { runHiddenPlan } from "./hiddenSession";
+import { toFileUrl } from "@/lib/utils";
 
 /**
  * Style Memory capture — distills the current project's visual language into a
@@ -68,49 +67,14 @@ Rispondi con SOLO il contenuto del DESIGN.md in markdown: niente preamboli, nien
 async function runDistiller(
   parts: Array<TextPartInput | FilePartInput>,
 ): Promise<string> {
-  let hiddenId: string | null = null;
-  try {
-    const created = await getClient().session.create({
-      body: { title: HIDDEN_TITLE },
-      throwOnError: true,
-    });
-    hiddenId = created.data!.id;
-    markSilent(hiddenId);
-
-    const { providerID, modelID } = splitModel(useModelStore.getState().selected ?? "");
-    const res = await getClient().session.prompt({
-      path: { id: hiddenId },
-      body: {
-        parts,
-        agent: "plan",
-        ...(providerID && modelID ? { model: { providerID, modelID } } : {}),
-      },
-      throwOnError: true,
-    });
-
-    const out = (res.data?.parts ?? []) as Array<{ type: string; text?: string }>;
-    const reply = out
-      .filter((p) => p.type === "text" && typeof p.text === "string")
-      .map((p) => p.text)
-      .join("\n");
-    const spec = sanitize(reply);
-    if (spec.length < 40 || /^NO_STYLE\b/i.test(spec)) {
-      throw new Error(
-        "non sono riuscito a ricavare uno stile (per un URL/screenshot serve un modello con visione, oppure il sito non era leggibile)",
-      );
-    }
-    return spec;
-  } finally {
-    if (hiddenId) {
-      const id = hiddenId;
-      getClient()
-        .session.delete({ path: { id } })
-        .catch(() => {
-          /* the sidebar filters [kikko] sessions anyway */
-        })
-        .finally(() => unmarkSilent(id));
-    }
+  const reply = await runHiddenPlan(HIDDEN_TITLE, parts);
+  const spec = sanitize(reply);
+  if (spec.length < 40 || /^NO_STYLE\b/i.test(spec)) {
+    throw new Error(
+      "non sono riuscito a ricavare uno stile (per un URL/screenshot serve un modello con visione, oppure il sito non era leggibile)",
+    );
   }
+  return spec;
 }
 
 /**
@@ -123,8 +87,7 @@ export async function captureStyle(): Promise<string> {
 
 /** Build a file part from a local PNG path (as returned by capture_preview). */
 function imagePart(path: string, filename: string): FilePartInput {
-  const url = "file://" + (path.startsWith("/") ? "" : "/") + path.replace(/\\/g, "/");
-  return { type: "file", mime: "image/png", filename, url };
+  return { type: "file", mime: "image/png", filename, url: toFileUrl(path) };
 }
 
 /**

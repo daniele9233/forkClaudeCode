@@ -64,8 +64,9 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       let sessionId = activeSessionId;
 
       // Agent busy → queue the task instead; it auto-sends on idle (12.14).
+      // Carry the recipe's forced skills so a queued recipe keeps its full stack.
       if (isRunning && sessionId) {
-        enqueueTask({ sessionId, text, mode });
+        enqueueTask({ sessionId, text, mode, forcedSkillIds: opts?.forcedSkillIds });
         return;
       }
 
@@ -146,7 +147,8 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
     if (!wasRunning || isRunning || !activeSessionId) return;
     if (useAutopilotStore.getState().active) return;
     const next = useQueueStore.getState().takeNext(activeSessionId);
-    if (next) void handleSend(next.text, next.mode);
+    if (next)
+      void handleSend(next.text, next.mode, { forcedSkillIds: next.forcedSkillIds });
   }, [isRunning, activeSessionId, handleSend]);
 
   const sessionQueue = activeSessionId

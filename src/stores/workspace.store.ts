@@ -15,11 +15,15 @@ interface WorkspaceState {
   currentDir: string | null;
   /** Recently opened projects, most-recent first. */
   recents: RecentProject[];
+  /** Last active session id per project path — restored when you reopen it. */
+  lastSessionByPath: Record<string, string>;
 
   setCurrent: (dir: string | null) => void;
   /** Record a project as opened (also sets it current) and bump it to the top. */
   addRecent: (dir: string) => void;
   removeRecent: (path: string) => void;
+  /** Remember the active session for a project (to restore on reopen). */
+  setLastSession: (path: string, sessionId: string) => void;
 }
 
 /** Folder name (last path segment) from an absolute path, Windows or POSIX. */
@@ -34,8 +38,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     (set) => ({
       currentDir: null,
       recents: [],
+      lastSessionByPath: {},
 
       setCurrent: (dir) => set({ currentDir: dir }),
+
+      setLastSession: (path, sessionId) =>
+        set((s) => ({
+          lastSessionByPath: { ...s.lastSessionByPath, [path]: sessionId },
+        })),
 
       addRecent: (dir) =>
         set((s) => {

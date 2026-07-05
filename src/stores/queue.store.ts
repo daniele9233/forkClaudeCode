@@ -7,6 +7,8 @@ export interface QueuedTask {
   sessionId: string;
   text: string;
   mode: AgentMode;
+  /** Recipe skills to force-inject when this task finally runs (bypass cap). */
+  forcedSkillIds?: string[];
 }
 
 interface QueueState {

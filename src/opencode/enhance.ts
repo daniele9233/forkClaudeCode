@@ -1,6 +1,4 @@
-import { getClient } from "./client";
-import { markSilent, unmarkSilent } from "./memory";
-import { useModelStore, splitModel } from "@/stores/model.store";
+import { runHiddenPlan } from "./hiddenSession";
 
 /**
  * Prompt Enhancer — the fix for "great skills, weak prompt → ugly site".
@@ -53,45 +51,9 @@ function sanitize(reply: string): string {
 export async function enhancePrompt(rough: string): Promise<string> {
   const text = rough.trim();
   if (!text) return rough;
-
-  let hiddenId: string | null = null;
-  try {
-    const created = await getClient().session.create({
-      body: { title: HIDDEN_TITLE },
-      throwOnError: true,
-    });
-    hiddenId = created.data!.id;
-    markSilent(hiddenId);
-
-    // Same model the user selected (our store wins over pinned engine config);
-    // plan mode keeps it read-only — it only writes text back to us.
-    const { providerID, modelID } = splitModel(useModelStore.getState().selected ?? "");
-    const res = await getClient().session.prompt({
-      path: { id: hiddenId },
-      body: {
-        parts: [{ type: "text", text: enhanceMeta(text) }],
-        agent: "plan",
-        ...(providerID && modelID ? { model: { providerID, modelID } } : {}),
-      },
-      throwOnError: true,
-    });
-
-    const parts = (res.data?.parts ?? []) as Array<{ type: string; text?: string }>;
-    const reply = parts
-      .filter((p) => p.type === "text" && typeof p.text === "string")
-      .map((p) => p.text)
-      .join("\n");
-    const clean = sanitize(reply);
-    return clean || text;
-  } finally {
-    if (hiddenId) {
-      const id = hiddenId;
-      getClient()
-        .session.delete({ path: { id } })
-        .catch(() => {
-          /* the sidebar filters [kikko] sessions anyway */
-        })
-        .finally(() => unmarkSilent(id));
-    }
-  }
+  // Hidden plan-mode session (read-only): it only writes the improved text back.
+  const reply = await runHiddenPlan(HIDDEN_TITLE, [
+    { type: "text", text: enhanceMeta(text) },
+  ]);
+  return sanitize(reply) || text;
 }
