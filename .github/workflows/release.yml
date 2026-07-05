@@ -102,7 +102,11 @@ jobs:
           # branch name.
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.1.0' }}
           releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.1.0' }}"
-          releaseDraft: true
+          # Publish directly (not a draft) so the install.ps1 one-liner, which
+          # reads /releases/latest, can find the installer with no manual
+          # "Publish" click. A published release is created only when the build
+          # succeeds, so a failed build never ships a broken release.
+          releaseDraft: false
           prerelease: false
           # Merge the release-only overlay that adds the opencode sidecar
           # (externalBin) — kept out of the base config so `cargo check` / dev
