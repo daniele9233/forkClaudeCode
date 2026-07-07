@@ -62,6 +62,13 @@ alto a destra e scegli **`deepseek-reasoner`**. Da quel momento la tua scelta
 riavvii il motore o riapri l'app. L'unico caso in cui l'app riseleziona il
 default è la _primissima_ connessione di un provider mai usato prima.
 
+Il selettore ha una **barra di ricerca** (filtra per id/nome, es. `opus 4.8`) e
+**nasconde i modelli marcati `deprecated`** dal catalogo (quello selezionato
+resta sempre visibile). La lista può comunque contenere più versioni di una
+stessa famiglia (es. Claude Opus 4.6, 4.7, 4.8): sono modelli **reali** che il
+provider serve ancora — non dati vecchi. I nomi e i prezzi vengono dal catalogo
+[models.dev](https://models.dev) esposto dal motore opencode.
+
 > DeepSeek espone due modelli via API: `deepseek-chat` (veloce, non-thinking) e
 > `deepseek-reasoner` (thinking). Non esiste un id "pro v4": il modello "pro" è
 > `deepseek-reasoner`.
