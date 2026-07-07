@@ -91,6 +91,15 @@ jobs:
           # branch name.
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.2.2' }}
           releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.2.2' }}"
+          # Give the GitHub Release page a description instead of an empty body.
+          releaseBody: |
+            Windows installer for kikkoCode. Download the `*_x64-setup.exe`
+            (or the `.msi`) below and run it — the opencode engine is bundled.
+
+            Already installed? kikkoCode updates itself from within the app.
+
+            See the full changelog:
+            https://github.com/daniele9233/forkClaudeCode/blob/claude/opencode-project-setup-1i59cg/CHANGELOG.md
           # Publish directly (not a draft) so the install.ps1 one-liner, which
           # reads /releases/latest, can find the installer with no manual
           # "Publish" click. A published release is created only when the build
