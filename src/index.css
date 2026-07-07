@@ -8,47 +8,47 @@
 
 @theme {
   /* ---------- Palette di base ---------- */
-  --color-forge-950:  #0a0c0e;   /* sfondo profondo */
-  --color-forge-900:  #111418;   /* sfondo app (default dark) */
-  --color-forge-800:  #1a1f26;   /* pannelli / card */
-  --color-forge-700:  #242b35;   /* bordi, dividers */
-  --color-forge-600:  #2e3744;   /* hover state */
-  --color-forge-500:  #3d4a5c;   /* outline / muted */
-  --color-forge-400:  #6b7d96;   /* testo secondario / placeholder */
-  --color-forge-300:  #9baabb;   /* testo disabilitato */
-  --color-forge-200:  #c5d0da;   /* testo body */
-  --color-forge-100:  #e8edf2;   /* testo primario */
-  --color-forge-50:   #f4f7fa;   /* testo bianco caldo */
+  --color-forge-950: #0a0c0e; /* sfondo profondo */
+  --color-forge-900: #111418; /* sfondo app (default dark) */
+  --color-forge-800: #1a1f26; /* pannelli / card */
+  --color-forge-700: #242b35; /* bordi, dividers */
+  --color-forge-600: #2e3744; /* hover state */
+  --color-forge-500: #3d4a5c; /* outline / muted */
+  --color-forge-400: #6b7d96; /* testo secondario / placeholder */
+  --color-forge-300: #9baabb; /* testo disabilitato */
+  --color-forge-200: #c5d0da; /* testo body */
+  --color-forge-100: #e8edf2; /* testo primario */
+  --color-forge-50: #f4f7fa; /* testo bianco caldo */
 
   /* Accento principale — rame/ambra (elemento firma: Context Inspector) */
-  --color-accent-500: #d97706;   /* amber-600 */
-  --color-accent-400: #e7a93c;   /* blueprint amber — accento principale */
-  --color-accent-300: #fcd34d;   /* testo accento chiaro */
-  --color-accent-900: #1c1008;   /* sfondo accento scuro */
+  --color-accent-500: #d97706; /* amber-600 */
+  --color-accent-400: #e7a93c; /* blueprint amber — accento principale */
+  --color-accent-300: #fcd34d; /* testo accento chiaro */
+  --color-accent-900: #1c1008; /* sfondo accento scuro */
 
   /* Accenti di stato HUD (mission-control) */
-  --color-online: #4ade80;       /* green-400 — "ON"/connected */
-  --color-alert:  #f87171;       /* red-400 — pause/error */
+  --color-online: #4ade80; /* green-400 — "ON"/connected */
+  --color-alert: #f87171; /* red-400 — pause/error */
 
   /* Semantici */
-  --color-success:    #22c55e;
-  --color-warning:    #f59e0b;
-  --color-error:      #ef4444;
-  --color-info:       #3b82f6;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
 
   /* ---------- Tipografia (blueprint: monospace ovunque) ---------- */
   --font-display: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
-  --font-body:    "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
-  --font-mono:    "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --font-body: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
-  --font-size-xs:   0.75rem;    /* 12px */
-  --font-size-sm:   0.8125rem;  /* 13px */
-  --font-size-base: 0.875rem;   /* 14px — base UI */
-  --font-size-md:   1rem;       /* 16px */
-  --font-size-lg:   1.125rem;   /* 18px */
-  --font-size-xl:   1.25rem;    /* 20px */
-  --font-size-2xl:  1.5rem;     /* 24px */
-  --font-size-3xl:  1.875rem;   /* 30px */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.8125rem; /* 13px */
+  --font-size-base: 0.875rem; /* 14px — base UI */
+  --font-size-md: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
 
   /* ---------- Spacing ---------- */
   --spacing-panel-gap: 0.5rem;
@@ -56,10 +56,10 @@
   --spacing-context-w: 20rem;
 
   /* ---------- Bordi e raggi (blueprint: netti) ---------- */
-  --radius-sm:  0.125rem;   /* 2px */
-  --radius-md:  0.1875rem;  /* 3px */
-  --radius-lg:  0.1875rem;  /* 3px */
-  --radius-xl:  0.25rem;    /* 4px */
+  --radius-sm: 0.125rem; /* 2px */
+  --radius-md: 0.1875rem; /* 3px */
+  --radius-lg: 0.1875rem; /* 3px */
+  --radius-xl: 0.25rem; /* 4px */
   --radius-full: 9999px;
 
   /* ---------- Ombre ---------- */
@@ -67,10 +67,10 @@
   --shadow-popover: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
 
   /* ---------- Transizioni ---------- */
-  --duration-fast:   150ms;
+  --duration-fast: 150ms;
   --duration-normal: 200ms;
-  --duration-slow:   300ms;
-  --ease-ui:         cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-slow: 300ms;
+  --ease-ui: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /*
@@ -78,93 +78,98 @@
   shadcn le legge da :root tramite questi nomi standard.
 */
 :root {
-  --background:        var(--color-forge-900);
-  --foreground:        var(--color-forge-100);
+  --background: var(--color-forge-900);
+  --foreground: var(--color-forge-100);
 
-  --card:              var(--color-forge-800);
-  --card-foreground:   var(--color-forge-100);
+  --card: var(--color-forge-800);
+  --card-foreground: var(--color-forge-100);
 
-  --popover:           var(--color-forge-800);
+  --popover: var(--color-forge-800);
   --popover-foreground: var(--color-forge-100);
 
-  --primary:           var(--color-accent-400);
+  --primary: var(--color-accent-400);
   --primary-foreground: var(--color-forge-950);
 
-  --secondary:         var(--color-forge-700);
+  --secondary: var(--color-forge-700);
   --secondary-foreground: var(--color-forge-100);
 
-  --muted:             var(--color-forge-800);
-  --muted-foreground:  var(--color-forge-400);
+  --muted: var(--color-forge-800);
+  --muted-foreground: var(--color-forge-400);
 
-  --accent:            var(--color-forge-700);
+  --accent: var(--color-forge-700);
   --accent-foreground: var(--color-forge-100);
 
-  --destructive:       var(--color-error);
+  --destructive: var(--color-error);
   --destructive-foreground: var(--color-forge-50);
 
-  --border:            rgba(255, 255, 255, 0.10);
-  --input:             rgba(255, 255, 255, 0.12);
-  --ring:              var(--color-accent-400);
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: var(--color-accent-400);
 
-  --radius:            var(--radius-md);
+  --radius: var(--radius-md);
 
   /* Sidebar */
-  --sidebar-background:  var(--color-forge-950);
-  --sidebar-foreground:  var(--color-forge-200);
-  --sidebar-border:      var(--color-forge-800);
-  --sidebar-accent:      var(--color-forge-800);
+  --sidebar-background: var(--color-forge-950);
+  --sidebar-foreground: var(--color-forge-200);
+  --sidebar-border: var(--color-forge-800);
+  --sidebar-accent: var(--color-forge-800);
   --sidebar-accent-foreground: var(--color-forge-100);
-  --sidebar-ring:        var(--color-accent-400);
+  --sidebar-ring: var(--color-accent-400);
 }
 
 /* Tema chiaro (Fase 9.2) — superfici calde, accento rame più scuro per contrasto */
 .light {
-  --background:        var(--color-forge-50);
-  --foreground:        var(--color-forge-900);
-  --card:              #ffffff;
-  --card-foreground:   var(--color-forge-900);
-  --popover:           #ffffff;
+  --background: var(--color-forge-50);
+  --foreground: var(--color-forge-900);
+  --card: #ffffff;
+  --card-foreground: var(--color-forge-900);
+  --popover: #ffffff;
   --popover-foreground: var(--color-forge-900);
-  --primary:           var(--color-accent-500);
+  --primary: var(--color-accent-500);
   --primary-foreground: #ffffff;
-  --secondary:         var(--color-forge-100);
+  --secondary: var(--color-forge-100);
   --secondary-foreground: var(--color-forge-900);
-  --muted:             var(--color-forge-100);
-  --muted-foreground:  var(--color-forge-500);
-  --accent:            var(--color-forge-100);
+  --muted: var(--color-forge-100);
+  --muted-foreground: var(--color-forge-500);
+  --accent: var(--color-forge-100);
   --accent-foreground: var(--color-forge-900);
-  --destructive:       var(--color-error);
+  --destructive: var(--color-error);
   --destructive-foreground: #ffffff;
-  --border:            rgba(15, 23, 42, 0.10);
-  --input:             rgba(15, 23, 42, 0.14);
-  --ring:              var(--color-accent-500);
+  --border: rgba(15, 23, 42, 0.1);
+  --input: rgba(15, 23, 42, 0.14);
+  --ring: var(--color-accent-500);
 
   /* Sidebar (light) */
-  --sidebar-background:  #ffffff;
-  --sidebar-foreground:  var(--color-forge-800);
-  --sidebar-border:      var(--color-forge-200);
-  --sidebar-accent:      var(--color-forge-100);
+  --sidebar-background: #ffffff;
+  --sidebar-foreground: var(--color-forge-800);
+  --sidebar-border: var(--color-forge-200);
+  --sidebar-accent: var(--color-forge-100);
   --sidebar-accent-foreground: var(--color-forge-900);
-  --sidebar-ring:        var(--color-accent-500);
+  --sidebar-ring: var(--color-accent-500);
 
   /* Ombre più morbide su sfondo chiaro */
-  --shadow-panel:   0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06);
-  --shadow-popover: 0 4px 6px -1px rgb(15 23 42 / 0.10), 0 2px 4px -2px rgb(15 23 42 / 0.08);
+  --shadow-panel: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06);
+  --shadow-popover:
+    0 4px 6px -1px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.08);
 }
 
 /* Transizione morbida quando si cambia tema (saltata con reduced-motion) */
 :root {
-  --theme-transition: background-color var(--duration-normal) var(--ease-ui),
+  --theme-transition:
+    background-color var(--duration-normal) var(--ease-ui),
     border-color var(--duration-normal) var(--ease-ui),
     color var(--duration-normal) var(--ease-ui);
 }
 
 /* ---------- Reset base ---------- */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -218,7 +223,9 @@ body {
 
 /* Riduzione del motion (non-negoziabile) */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -249,7 +256,10 @@ body {
 }
 
 /* Utility aggiuntive */
-code, pre, kbd, samp {
+code,
+pre,
+kbd,
+samp {
   font-family: var(--font-mono);
 }
 
@@ -355,4 +365,104 @@ code, pre, kbd, samp {
     var(--primary),
     color-mix(in srgb, var(--primary) 25%, transparent)
   );
+}
+
+/* ==========================================================================
+   RETRO OS — seconda interfaccia selezionabile (synthwave, "Kikkocode Retro OS")
+   Attivata con <html data-ui="retro"> (vedi theme.store). Stessi componenti,
+   stessa logica: qui cambiano solo i token + un livello di effetti CRT/neon.
+   Palette dal prototipo: magenta neon, cyan, verde terminale su nero puro.
+   ========================================================================== */
+:root[data-ui="retro"] {
+  --background: #000000;
+  --foreground: #e4e1ed;
+
+  --card: #0a0010;
+  --card-foreground: #e4e1ed;
+
+  --popover: #0a0010;
+  --popover-foreground: #e4e1ed;
+
+  --primary: #ffabf3; /* magenta neon */
+  --primary-foreground: #5b005b;
+
+  --secondary: #16000f;
+  --secondary-foreground: #dcfdff; /* cyan */
+
+  --muted: #1c0d1a;
+  --muted-foreground: #a4899d;
+
+  --accent: #ff00ff;
+  --accent-foreground: #ffd7f5;
+
+  --destructive: #ffb4ab;
+  --destructive-foreground: #690005;
+
+  --border: #564052;
+  --input: #564052;
+  --ring: #ff00ff;
+
+  --color-online: #2ae500; /* verde terminale */
+  --color-alert: #ffb4ab;
+
+  color-scheme: dark;
+}
+
+/* Effetti neon del skin retro (usati da RetroLayer e da chi vuole il glow). */
+[data-ui="retro"] .hud-label {
+  text-shadow: 0 0 6px color-mix(in srgb, var(--primary) 70%, transparent);
+  letter-spacing: 0.12em;
+}
+.retro-glow-magenta {
+  text-shadow: 0 0 8px rgba(255, 171, 243, 0.8);
+}
+.retro-glow-terminal {
+  text-shadow: 0 0 5px rgba(42, 229, 0, 0.5);
+}
+@keyframes retro-pulse-glow {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.2);
+  }
+}
+.retro-pulse-glow {
+  animation: retro-pulse-glow 2s infinite ease-in-out;
+}
+
+/* Scanline CRT a tutto schermo (solo in retro; rispetta reduced-motion). */
+.retro-scanlines {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(255, 0, 255, 0.02) 3px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  mix-blend-mode: multiply;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-ui="retro"] .retro-crt {
+    animation: retro-flicker 4s infinite steps(1);
+  }
+  @keyframes retro-flicker {
+    0%,
+    97% {
+      opacity: 1;
+    }
+    98% {
+      opacity: 0.985;
+    }
+    99%,
+    100% {
+      opacity: 1;
+    }
+  }
 }

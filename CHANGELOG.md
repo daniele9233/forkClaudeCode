@@ -4,6 +4,17 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-07-07
+
+### Added
+
+- **Second selectable interface: "Retro OS"** 🕹️ — a synthwave skin (neon
+  magenta/cyan on black, CRT scanlines, terminal glow) over the same app and
+  features. Switch anytime with the gamepad button in the top bar; the choice
+  persists. The classic blueprint UI stays the default.
+- **Tetris while the agent works** (Retro OS only): an auto-playing Tetris
+  panel pops up while a task is running — dismissible per run.
+
 ## [0.2.2] — 2026-07-07
 
 ### Changed

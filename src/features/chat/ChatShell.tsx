@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
 import { ModelSwitcher } from "@/features/settings/ModelSwitcher";
 import { ThemeToggle } from "@/features/settings/ThemeToggle";
+import { UiToggle } from "@/features/settings/UiToggle";
 import { WelcomeScreen } from "@/features/onboarding/WelcomeScreen";
 import { StatStrip } from "@/features/inspector/StatStrip";
 import { MessageList } from "./MessageList";
@@ -207,6 +208,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         </div>
         <div className="flex items-center gap-1.5">
           <ModelSwitcher />
+          <UiToggle />
           <ThemeToggle />
           <button
             onClick={togglePreview}

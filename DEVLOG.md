@@ -16,6 +16,47 @@
 
 ---
 
+## 2026-07-07 · v0.3.0 — seconda interfaccia selezionabile: "Retro OS" 🕹️
+
+**Fase:** 12.52 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- L'utente ha fornito uno zip ("Kikkocode Retro OS", prototipo **Next.js**
+  statico synthwave con Tetris) chiedendo che l'app offra **due interfacce a
+  scelta**, senza sostituire quella attuale. Implementata come **skin**, non
+  come secondo codebase: la UI attuale passa tutta per le variabili shadcn →
+  un blocco `:root[data-ui="retro"]` in `index.css` ridefinisce i token
+  (magenta neon #ffabf3 / #ff00ff, cyan #dcfdff, verde terminale #2ae500 su
+  nero) + effetti (`.retro-scanlines`, glow, flicker CRT reduced-motion-safe).
+- `theme.store`: nuovo `ui: "classic"|"retro"` persistito
+  (`kikkocode.ui`), `setUi`/`toggleUi`, attributo `data-ui` su `<html>` (apply
+  sincrono a module-load, no flash). Il retro forza il tema dark.
+- `UiToggle` (🎮/layout) accanto al ThemeToggle nella top bar di ChatShell.
+- `features/retro/Tetris.tsx`: porting del Tetris auto-play del prototipo
+  (euristica linee/altezza/buchi/bumpiness), colori mappati sui token retro.
+- `features/retro/RetroLayer.tsx` (montato in App): scanline overlay + pannello
+  Tetris flottante **mentre la sessione attiva è running** ("Player 2"),
+  chiudibile per run, lazy-loaded. In classic non renderizza nulla.
+- +3 test su ui-mode nel theme.store (80 totali). Bump 0.3.0.
+
+### Perché / decisione
+
+- Lo zip era un mockup Next.js con dati finti (chat simulata, preview finta):
+  copiare il codebase avrebbe duplicato la logica. Come skin, il retro eredita
+  automaticamente OGNI feature presente e futura (chat reale, preview reale,
+  Inspector…) — il layout del prototipo (chat sx, preview dx, status bar) è
+  già il layout di kikkoCode.
+
+### Gotcha / attenzione
+
+- Il prototipo usava Material Symbols + font Google via `next/font`: non
+  portati (l'app è offline-first e già tutta JetBrains Mono, coerente col
+  mood terminale). Icone → lucide.
+- Il flicker CRT è dietro `prefers-reduced-motion` e quasi impercettibile; le
+  scanline sono `pointer-events:none` (z-90, sotto i modali a z-100+ ma sopra
+  il contenuto: puramente decorative).
+
 ## 2026-07-07 · v0.2.2 — lista Claude curata (solo modelli attuali)
 
 **Fase:** 12.51 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

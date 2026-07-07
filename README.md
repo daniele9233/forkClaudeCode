@@ -22,6 +22,9 @@ disciplined GUI on top — with two differentiators a plain CLI doesn't have:
 - **Always-on status bar** — provider/model, context meter, session cost.
 - **Settings** for agents/skills and MCP servers; guided provider/key setup.
 - **Light & dark** themes; `prefers-reduced-motion` respected throughout.
+- **Two selectable interfaces** — the classic blueprint UI and a synthwave
+  **Retro OS** skin (CRT scanlines, neon glow, auto-playing Tetris while the
+  agent works). Toggle with the 🎮 button in the top bar.
 - **Resilient sidecar** — health-monitored, with one-click reconnect.
 
 ## Architecture
