@@ -6,6 +6,7 @@ import { useProviders } from "@/opencode/context";
 import { modelSupportsVision } from "@/opencode/modelCaps";
 import { useModelStore } from "@/stores/model.store";
 import { AddProviderKey } from "./AddProviderKey";
+import { isCurrentAnthropicModel } from "./modelFilter";
 
 /**
  * Model indicator + provider connector. The dropdown has "Add provider API key"
@@ -136,23 +137,29 @@ export function ModelSwitcher() {
             )}
             {visibleProviders.map((provider) => {
               const q = modelQuery.trim().toLowerCase();
-              // Hide models the catalog marks `deprecated` so the picker shows
-              // the current lineup, not every historical point release — but
-              // always keep the model you have selected visible. Then apply the
-              // search box filter (matches model id or display name).
+              // Curate the list: always keep the selected model; drop
+              // `deprecated` ones; for Anthropic show only the current lineup
+              // (hides old point releases, "(latest)" aliases and "Fast"
+              // variants); then apply the search box (id or display name).
               const models = Object.entries(provider.models ?? {}).filter(
                 ([modelId, model]) => {
                   const isActiveSelection =
                     currentProviderId === provider.id && currentModelId === modelId;
+                  if (isActiveSelection) return true;
+                  const name = model.name ?? "";
+                  if ((model as { status?: string }).status === "deprecated") {
+                    return false;
+                  }
                   if (
-                    (model as { status?: string }).status === "deprecated" &&
-                    !isActiveSelection
+                    provider.id === "anthropic" &&
+                    !isCurrentAnthropicModel(modelId, name)
                   ) {
                     return false;
                   }
                   if (!q) return true;
-                  const name = (model.name ?? "").toLowerCase();
-                  return modelId.toLowerCase().includes(q) || name.includes(q);
+                  return (
+                    modelId.toLowerCase().includes(q) || name.toLowerCase().includes(q)
+                  );
                 },
               );
               if (models.length === 0) return null;

@@ -64,10 +64,15 @@ default è la _primissima_ connessione di un provider mai usato prima.
 
 Il selettore ha una **barra di ricerca** (filtra per id/nome, es. `opus 4.8`) e
 **nasconde i modelli marcati `deprecated`** dal catalogo (quello selezionato
-resta sempre visibile). La lista può comunque contenere più versioni di una
-stessa famiglia (es. Claude Opus 4.6, 4.7, 4.8): sono modelli **reali** che il
-provider serve ancora — non dati vecchi. I nomi e i prezzi vengono dal catalogo
+resta sempre visibile). I nomi e i prezzi vengono dal catalogo
 [models.dev](https://models.dev) esposto dal motore opencode.
+
+Per **Anthropic** la lista è **curata**: mostra solo il lineup attuale di Claude
+(Opus 4.8/4.7/4.6, Sonnet 5/4.6, Haiku 4.5, Fable 5), come nel picker ufficiale
+di Claude — le versioni superate (es. 4.5), gli alias "(latest)" e le varianti
+"Fast" sono nascosti. L'elenco curato è in `src/features/settings/modelFilter.ts`
+(`ANTHROPIC_CURRENT_MODELS`): va aggiornato di una riga quando Anthropic
+pubblica un nuovo modello.
 
 > DeepSeek espone due modelli via API: `deepseek-chat` (veloce, non-thinking) e
 > `deepseek-reasoner` (thinking). Non esiste un id "pro v4": il modello "pro" è

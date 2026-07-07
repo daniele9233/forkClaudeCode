@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-07-07 · v0.2.2 — lista Claude curata (solo modelli attuali)
+
+**Fase:** 12.51 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- Nuovo `modelFilter.ts` (`isCurrentAnthropicModel` + `ANTHROPIC_CURRENT_MODELS`):
+  per il provider `anthropic` la lista mostra **solo** il lineup attuale
+  (Opus 4.8/4.7/4.6, Sonnet 5/4.6, Haiku 4.5, Fable 5), nascondendo le versioni
+  superate (4.5), gli alias "(latest)" e le varianti "Fast". Match su id
+  normalizzato (robusto a dash/dot/date). `ModelSwitcher` applica il filtro solo
+  ad Anthropic (gli altri provider restano completi, meno i `deprecated`); il
+  modello selezionato resta sempre visibile e la ricerca continua a funzionare.
+- +4 test (`modelFilter.test.ts`) che verificano ESATTAMENTE il set richiesto
+  dall'utente (foto del picker di Claude Code). 77 test totali.
+
+### Perché / decisione
+
+- Il filtro `deprecated` (v0.2.1) non bastava: models.dev non marca i vecchi
+  Claude come deprecati, quindi restavano in lista. L'utente vuole solo i modelli
+  attualmente offerti da Anthropic → allowlist curata per famiglia/versione.
+
+### Gotcha / attenzione
+
+- L'allowlist va aggiornata quando Anthropic pubblica nuovi modelli (es. Opus
+  4.9): è una riga in `ANTHROPIC_CURRENT_MODELS`, poi l'auto-update consegna la
+  build. Scelta consapevole: preferito un elenco esplicito curato (match con il
+  picker ufficiale) a un'euristica fragile "ultima per famiglia".
+
 ## 2026-07-07 · v0.2.1 — selettore modelli: filtro deprecati + ricerca
 
 **Fase:** 12.50 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

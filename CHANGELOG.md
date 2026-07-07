@@ -4,6 +4,16 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.2] — 2026-07-07
+
+### Changed
+
+- **Anthropic model list curated to the current lineup.** The picker now shows
+  only Claude's current models (Opus 4.8 / 4.7 / 4.6, Sonnet 5 / 4.6, Haiku 4.5,
+  Fable 5), hiding superseded point releases, "(latest)" aliases and "Fast"
+  variants — matching Claude's own model menu. Your selected model always stays
+  visible, and the search box still works.
+
 ## [0.2.1] — 2026-07-07
 
 ### Changed
