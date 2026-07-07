@@ -4,6 +4,15 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] — 2026-07-07
+
+### Changed
+
+- **Cleaner model picker.** The dropdown now hides models the catalog marks
+  `deprecated` (your selected model always stays visible) and adds a **search
+  box** — type e.g. "opus 4.8" to filter a long provider lineup instead of
+  scrolling past every historical point release.
+
 ## [0.2.0] — 2026-07-05
 
 ### Changed

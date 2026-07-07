@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-07-07 · v0.2.1 — selettore modelli: filtro deprecati + ricerca
+
+**Fase:** 12.50 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- `ModelSwitcher.tsx`: (1) nasconde i modelli con `status: "deprecated"` dal
+  catalogo (mantenendo sempre visibile quello selezionato); (2) **barra di
+  ricerca** che filtra per id o nome (es. "opus 4.8").
+
+### Perché / decisione
+
+- Dopo l'upgrade a opencode 1.17.13 la lista Claude mostra **correttamente** i
+  modelli nuovi (Opus 4.8/4.7/4.6, prima assenti) — segno che il motore nuovo è
+  attivo. Ma include anche i vecchi (4.5, ecc.): sono modelli reali che
+  l'API Anthropic serve ancora (verificato: `claude-opus-4-5` è un id valido),
+  quindi models.dev li elenca tutti. L'utente li trovava confusi → filtro
+  deprecati + ricerca per rendere la lista gestibile senza nascondere modelli
+  legittimi che si potrebbero voler usare.
+
+### Gotcha / attenzione
+
+- Il filtro `deprecated` dipende da come models.dev marca i modelli: se un
+  vecchio modello NON è flaggato deprecato resta in lista (ma la ricerca lo
+  rende comunque facile da evitare). L'aggiornamento del motore **ha funzionato**
+  (Opus 4.8 ora compare); "Opus 4.5" non è un residuo, è un modello reale.
+
 ## 2026-07-05 · v0.2.0 — upgrade motore/SDK a opencode 1.17.13 + auto-update
 
 **Fase:** 12.49 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

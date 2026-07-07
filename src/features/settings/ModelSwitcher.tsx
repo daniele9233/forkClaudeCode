@@ -15,6 +15,7 @@ import { AddProviderKey } from "./AddProviderKey";
  */
 export function ModelSwitcher() {
   const [open, setOpen] = useState(false);
+  const [modelQuery, setModelQuery] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
   const { data: config } = useConfig();
   const { data: providers = [] } = useProviders();
@@ -116,14 +117,44 @@ export function ModelSwitcher() {
             <AddProviderKey onConnected={() => setOpen(false)} />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--border)] py-1">
+          {visibleProviders.length > 0 && (
+            <div className="shrink-0 border-t border-[var(--border)] px-2 py-1.5">
+              <input
+                value={modelQuery}
+                onChange={(e) => setModelQuery(e.target.value)}
+                placeholder="Search models… (e.g. opus 4.8)"
+                className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+              />
+            </div>
+          )}
+
+          <div className="min-h-0 flex-1 overflow-y-auto py-1">
             {visibleProviders.length === 0 && (
               <p className="px-3 py-3 text-center text-[11px] text-[var(--muted-foreground)]">
                 No models yet — add a provider key above.
               </p>
             )}
             {visibleProviders.map((provider) => {
-              const models = Object.entries(provider.models ?? {});
+              const q = modelQuery.trim().toLowerCase();
+              // Hide models the catalog marks `deprecated` so the picker shows
+              // the current lineup, not every historical point release — but
+              // always keep the model you have selected visible. Then apply the
+              // search box filter (matches model id or display name).
+              const models = Object.entries(provider.models ?? {}).filter(
+                ([modelId, model]) => {
+                  const isActiveSelection =
+                    currentProviderId === provider.id && currentModelId === modelId;
+                  if (
+                    (model as { status?: string }).status === "deprecated" &&
+                    !isActiveSelection
+                  ) {
+                    return false;
+                  }
+                  if (!q) return true;
+                  const name = (model.name ?? "").toLowerCase();
+                  return modelId.toLowerCase().includes(q) || name.includes(q);
+                },
+              );
               if (models.length === 0) return null;
               return (
                 <div key={provider.id}>

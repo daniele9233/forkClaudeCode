@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to create (e.g. v0.2.0)"
+        description: "Release tag to create (e.g. v0.2.1)"
         required: true
-        default: "v0.2.0"
+        default: "v0.2.1"
 
 permissions:
   contents: write
@@ -89,8 +89,8 @@ jobs:
           # dispatch or a "[release]" branch push, use the input (or default
           # v0.1.0) so tauri-action creates a clean v* tag instead of the
           # branch name.
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.2.0' }}
-          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.2.0' }}"
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.2.1' }}
+          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.2.1' }}"
           # Publish directly (not a draft) so the install.ps1 one-liner, which
           # reads /releases/latest, can find the installer with no manual
           # "Publish" click. A published release is created only when the build
