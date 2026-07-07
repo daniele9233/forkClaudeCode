@@ -276,15 +276,29 @@ export function useAgents() {
   });
 }
 
+export interface McpStatusView {
+  connected: boolean;
+  tools?: string[];
+  error?: string;
+}
+
 export function useMcpStatus() {
   return useQuery({
     queryKey: configKeys.mcp(),
-    queryFn: async () => {
+    queryFn: async (): Promise<Record<string, McpStatusView>> => {
       const res = await getClient().mcp.status({ throwOnError: true });
-      return (res.data ?? {}) as Record<
-        string,
-        { connected: boolean; tools?: string[]; error?: string }
-      >;
+      // opencode 1.x reports MCP state as a discriminated union on `status`
+      // (connected/disabled/failed/needs_auth/needs_client_registration) and no
+      // longer returns a per-server tool list here. Map it to the flat view the
+      // UI consumes; `error` is present on the failure variants.
+      const out: Record<string, McpStatusView> = {};
+      for (const [name, s] of Object.entries(res.data ?? {})) {
+        out[name] = {
+          connected: s.status === "connected",
+          error: "error" in s ? s.error : undefined,
+        };
+      }
+      return out;
     },
     staleTime: 10_000,
     retry: false,

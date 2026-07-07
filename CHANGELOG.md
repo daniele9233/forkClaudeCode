@@ -4,6 +4,29 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] — 2026-07-05
+
+### Changed
+
+- **Upgraded the bundled opencode engine and `@opencode-ai/sdk` from 0.15.31 to
+  1.17.13** (latest). The integration layer was migrated to the 1.x API (model
+  capabilities, MCP status shape). The engine is now fetched from npm
+  (`opencode-windows-x64`) for a reliable, exactly-pinned sidecar.
+
+### Fixed
+
+- **`[DecimalError] Invalid argument` when chatting with Anthropic/Claude.** The
+  old engine crashed computing cost against the current model pricing schema;
+  the 1.x engine handles it correctly.
+- **Outdated model names.** The model list/names now come from the current
+  catalog the 1.x engine serves.
+
+### Added
+
+- **In-app auto-update.** kikkoCode checks GitHub for a newer release on launch
+  (and every 6h) and shows a one-click "Download & install" banner. No signing
+  key required; the check never blocks or crashes the app.
+
 ## [0.1.3] — 2026-07-05
 
 ### Added

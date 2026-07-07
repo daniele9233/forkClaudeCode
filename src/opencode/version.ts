@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
  * `.github/workflows/release.yml`), so the engine and SDK share this version
  * stream — they are NOT independently versioned here.
  */
-export const PINNED_SDK_VERSION = "0.15.31";
+export const PINNED_SDK_VERSION = "1.17.13";
 
 /**
  * Oldest engine version this build is known to talk to. We ship exactly this
@@ -15,7 +15,7 @@ export const PINNED_SDK_VERSION = "0.15.31";
  * `opencode` on PATH) that predates the API this SDK expects. Keep in sync with
  * `OPENCODE_VERSION` in the release workflow.
  */
-export const MIN_ENGINE_VERSION = "0.15.31";
+export const MIN_ENGINE_VERSION = "1.17.13";
 
 type Semver = [number, number, number];
 

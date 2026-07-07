@@ -9,6 +9,7 @@ import { ContextSparkline } from "@/features/inspector/ContextSparkline";
 import { StatusBar } from "@/features/statusbar/StatusBar";
 import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
 import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
+import { UpdateBanner } from "@/features/statusbar/UpdateBanner";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 
 // Heavy / conditionally-shown panels are code-split so they don't bloat the
@@ -168,6 +169,7 @@ export default function App() {
       {/* Global engine status (connecting / disconnected) */}
       <SidecarStatusBanner />
       <EngineVersionBanner />
+      <UpdateBanner />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Left sidebar: sessions (top) + file tree + context sparkline */}

@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to create (e.g. v0.1.3)"
+        description: "Release tag to create (e.g. v0.2.0)"
         required: true
-        default: "v0.1.3"
+        default: "v0.2.0"
 
 permissions:
   contents: write
@@ -22,7 +22,7 @@ permissions:
 # `@opencode-ai/sdk` version in package.json so the GUI and the engine speak
 # the same API. Bump both together when upgrading the engine.
 env:
-  OPENCODE_VERSION: "0.15.31"
+  OPENCODE_VERSION: "1.17.13"
 
 jobs:
   build-windows:
@@ -57,39 +57,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Fetch the PINNED opencode engine and place it as the Tauri sidecar with
-      # the target-triple suffix Tauri expects. Tries the pinned tag first
-      # (v<ver> then <ver>) and only falls back to `latest` so a tag/asset-name
-      # change upstream doesn't hard-break the build, while normally shipping the
-      # version that matches the pinned SDK. Verify the asset name vs the current
-      # opencode release naming when bumping OPENCODE_VERSION.
-      - name: Fetch opencode sidecar
+      # Fetch the PINNED opencode engine from npm and place it as the Tauri
+      # sidecar with the target-triple suffix Tauri expects. We pull the
+      # platform package `opencode-windows-x64@<ver>` (which ships
+      # `package/bin/opencode.exe`) rather than guessing a GitHub release asset
+      # name — npm pins the exact version matching `@opencode-ai/sdk`. Keep
+      # OPENCODE_VERSION in sync with the pinned SDK in package.json.
+      - name: Fetch opencode sidecar (from npm, pinned)
         shell: pwsh
         run: |
           $triple = "x86_64-pc-windows-msvc"
           $dest = "src-tauri/binaries/opencode-$triple.exe"
-          $zip = "$env:RUNNER_TEMP/opencode.zip"
-          $asset = "opencode-windows-x64.zip"
           $ver = $env:OPENCODE_VERSION
-          $urls = @(
-            "https://github.com/sst/opencode/releases/download/v$ver/$asset",
-            "https://github.com/sst/opencode/releases/download/$ver/$asset",
-            "https://github.com/sst/opencode/releases/latest/download/$asset"
-          )
-          $ok = $false
-          foreach ($u in $urls) {
-            try {
-              Write-Host "Trying $u"
-              Invoke-WebRequest -Uri $u -OutFile $zip -ErrorAction Stop
-              $ok = $true; Write-Host "  downloaded"; break
-            } catch { Write-Host "  not available" }
-          }
-          if (-not $ok) { throw "could not download opencode sidecar (pin v$ver or latest)" }
-          Expand-Archive -Path $zip -DestinationPath "$env:RUNNER_TEMP/opencode" -Force
-          $bin = Get-ChildItem -Path "$env:RUNNER_TEMP/opencode" -Recurse -Filter "opencode.exe" | Select-Object -First 1
-          if (-not $bin) { throw "opencode.exe not found in the downloaded archive" }
-          Copy-Item $bin.FullName $dest -Force
-          Write-Host "Sidecar placed at $dest"
+          New-Item -ItemType Directory -Force -Path "src-tauri/binaries" | Out-Null
+          Write-Host "npm pack opencode-windows-x64@$ver"
+          npm pack "opencode-windows-x64@$ver" --pack-destination "$env:RUNNER_TEMP" 2>&1 | Write-Host
+          $tgz = Get-ChildItem -Path "$env:RUNNER_TEMP" -Filter "opencode-windows-x64-*.tgz" | Select-Object -First 1
+          if (-not $tgz) { throw "npm pack did not produce a tarball for opencode-windows-x64@$ver" }
+          tar -xzf $tgz.FullName -C "$env:RUNNER_TEMP"
+          $bin = Join-Path $env:RUNNER_TEMP "package/bin/opencode.exe"
+          if (-not (Test-Path $bin)) { throw "opencode.exe not found in the npm package" }
+          Copy-Item $bin $dest -Force
+          Write-Host "Sidecar placed at $dest ($((Get-Item $dest).Length) bytes)"
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -100,8 +89,8 @@ jobs:
           # dispatch or a "[release]" branch push, use the input (or default
           # v0.1.0) so tauri-action creates a clean v* tag instead of the
           # branch name.
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.1.3' }}
-          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.1.3' }}"
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.2.0' }}
+          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.2.0' }}"
           # Publish directly (not a draft) so the install.ps1 one-liner, which
           # reads /releases/latest, can find the installer with no manual
           # "Publish" click. A published release is created only when the build

@@ -16,6 +16,59 @@
 
 ---
 
+## 2026-07-05 · v0.2.0 — upgrade motore/SDK a opencode 1.17.13 + auto-update
+
+**Fase:** 12.49 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- **Motore opencode + `@opencode-ai/sdk`: 0.15.31 → 1.17.13** (ultima). Il salto
+  è major (0.x → 1.x). Migrazione dello strato TS sorprendentemente contenuta:
+  l'export `@opencode-ai/sdk/client` è retro-compatibile, `tsc` segnalava solo 3
+  punti → sistemati:
+  - `modelCaps.ts`: vision dal nuovo `Model.capabilities.input.image` (prima
+    `modalities`/`attachment`).
+  - `config.ts` `useMcpStatus`: nuovo `McpStatus` è una union su `status`
+    (connected/disabled/failed/needs_auth/needs_client_registration), senza più
+    `tools` → mappato a `{connected, error}` (`McpStatusView`).
+  - `version.ts` + test: `PINNED_SDK_VERSION`/`MIN_ENGINE_VERSION` → 1.17.13.
+- **Sidecar da npm**: `release.yml` scarica `opencode-windows-x64@<ver>` (che
+  contiene `package/bin/opencode.exe`) invece di indovinare il nome dell'asset
+  GitHub → pin esatto e affidabile. `OPENCODE_VERSION` → 1.17.13.
+- **Auto-update in-app (senza chiavi)**: `update.ts` (`checkForUpdate`,
+  `isNewerVersion`, `pickInstaller`) interroga `/releases/latest`, confronta con
+  `getVersion()` e, se c'è una versione nuova, `UpdateBanner` mostra "Download &
+  install" (apre l'installer via `openUrl`). Poll all'avvio + ogni 6h. Non lancia
+  mai eccezioni (tutto in try/catch) → non può mandare in crash l'app. Permesso
+  `opener:allow-open-url` aggiunto alle capabilities. +7 test (73 totali).
+- **Deps npm aggiornate entro i range** (react-query, motion, tailwind, cli,
+  prettier). I major (vite 8, vitest 4, typescript 6, `@vitejs/plugin-react` 6,
+  lucide 1) **tenuti fermi apposta**: breaking, rischierebbero la build.
+- Bump app 0.1.3 → 0.2.0.
+
+### Perché / decisione
+
+- Il DecimalError e i nomi modelli datati erano entrambi causati dal motore
+  0.15.31 vecchio vs schema attuale di models.dev. L'upgrade a 1.17.13 risolve
+  alla radice (il nuovo `Model.cost` è tipizzato con numeri).
+- **Feature overlap (richiesta utente)**: verificato — le nostre feature sono
+  tutte GUI-layer ("la sala": Context Inspector, skills prompt-injection, memory,
+  enhance, style, preview, checkpoint UI). opencode 1.x è il motore ("la
+  cucina") e non le rimpiazza → niente da eliminare, solo adattate al nuovo SDK.
+
+### Gotcha / attenzione
+
+- **Rust non compilabile qui** (registry bloccato) e **motore non avviabile** →
+  verificato a livello di contratto: `tsc` valida il nostro codice contro i tipi
+  dell'SDK 1.17.13 (generati dall'API del motore) + 73 test + `pnpm build` verde.
+  Il runtime del nuovo motore lo valida l'utente installando la build.
+- Auto-update "silenzioso" del Tauri updater NON usato: richiede una chiave di
+  firma (secret CI) che non posso creare. L'approccio detect+notify+open è
+  robusto e senza chiavi; se in futuro si vuole il silenzioso, serve generare la
+  keypair una volta e aggiungere il secret.
+- La lista tool per-MCP non è più esposta da `mcp.status` in 1.x → i chip dei
+  tool non compaiono più (stato connected/disconnected resta).
+
 ## 2026-07-05 · v0.1.3 — provider Anthropic (Claude)
 
 **Fase:** 12.48 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
