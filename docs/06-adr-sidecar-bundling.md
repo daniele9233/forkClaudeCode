@@ -12,7 +12,7 @@ mano, il binario `opencode` va impacchettato dentro l'installer (decisione D4 in
 ## Decisione
 
 1. **Tauri `externalBin` in un overlay di release.** `bundle.externalBin =
-   ["binaries/opencode"]` vive in `src-tauri/tauri.release.conf.json` (overlay
+["binaries/opencode"]` vive in `src-tauri/tauri.release.conf.json` (overlay
    mergiato a build time con `tauri build --config …`), **non** nel
    `tauri.conf.json` base. Motivo: il build-script di Tauri (`generate_context!`)
    valida `externalBin` ed esige che il binario (con suffisso target-triple)
@@ -41,6 +41,27 @@ mano, il binario `opencode` va impacchettato dentro l'installer (decisione D4 in
 - **Contro:** l'installer cresce della dimensione di `opencode`; serve
   aggiornare il binario bundlato quando esce una nuova versione del motore
   (gestito dal pin nel workflow / step di fetch).
-- **Rischio noto:** il nome dell'asset di release di opencode va verificato
-  rispetto al naming corrente del progetto upstream prima di affidarsi al fetch
-  automatico in CI (annotato nel workflow).
+- **Rischio noto (superato dall'aggiornamento sotto):** in origine il binario si
+  scaricava dagli **asset di release GitHub** di opencode, il cui nome andava
+  verificato a ogni bump. Vedi l'aggiornamento del 2026-07-07.
+
+## Aggiornamento — 2026-07-07 (fetch da npm + auto-publish)
+
+Con l'upgrade del motore a **opencode 1.17.13** (SDK `@opencode-ai/sdk` di pari
+versione) sono cambiati due dettagli operativi di questa ADR; la decisione di
+fondo (sidecar `externalBin`, risoluzione a runtime con fallback su PATH,
+binario non committato) resta invariata.
+
+1. **Fetch del sidecar da npm, non dagli asset GitHub.** Il workflow ora fa
+   `npm pack opencode-windows-x64@$OPENCODE_VERSION` ed estrae
+   `package/bin/opencode.exe`. npm pinna la versione esatta corrispondente
+   all'SDK ed elimina il "rischio noto" del naming degli asset GitHub. Punto 3
+   aggiornato di conseguenza.
+2. **Release pubblicata automaticamente**, non più in draft (Punto 4):
+   `releaseDraft: false` in `tauri-action`, così l'installer è subito reperibile
+   da `/releases/latest` (usato dall'installer one-liner e dall'auto-update
+   in-app). Il trigger include anche i push su branch con `[release]` nel
+   messaggio di commit, oltre ai tag `v*`.
+
+`OPENCODE_VERSION` nel workflow va tenuto in sync con `@opencode-ai/sdk` in
+`package.json`.

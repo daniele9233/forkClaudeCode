@@ -58,6 +58,10 @@ OpenCode engine is bundled inside — nothing else to set up. Launch kikkoCode
 from the Start menu; a short wizard helps you connect an AI provider on first
 run (your API keys stay on your machine).
 
+After that, kikkoCode **updates itself**: on launch (and every few hours) it
+checks GitHub for a newer release and shows a one-click "Download & install"
+banner — no need to re-run the command.
+
 To remove it later:
 
 ```powershell
@@ -65,10 +69,11 @@ irm "https://raw.githubusercontent.com/daniele9233/forkClaudeCode/claude/opencod
 ```
 
 > **Maintainer note:** the one-liner installs the latest _published_ GitHub
-> release. To produce one, push a version tag (`git tag v0.1.0 && git push origin v0.1.0`) —
-> this triggers `.github/workflows/release.yml`, which builds the Windows
-> installer and attaches it to a **draft** release. Open the repo's Releases
-> page, edit that draft, and click **Publish** once so the installer can find it.
+> release. To produce one, push a version tag (`git tag vX.Y.Z && git push origin vX.Y.Z`)
+> — this triggers `.github/workflows/release.yml`, which builds the Windows
+> installer and **publishes** the release automatically (no manual "Publish"
+> step). Keep `version` in `package.json` + `src-tauri/tauri.conf.json` and the
+> workflow's default tag in sync when cutting a release.
 
 ## Getting started (development)
 
@@ -96,12 +101,15 @@ keys stay on your machine — they go to the local OpenCode engine only.
 ## Packaging
 
 The `opencode` engine is bundled as a Tauri sidecar (`externalBin`). The binary
-itself is not committed; it is fetched per-target at build time — see
+itself is not committed; at build time the release workflow fetches it **from
+npm** (the `opencode-windows-x64` platform package, pinned to `OPENCODE_VERSION`
+— kept in sync with `@opencode-ai/sdk` in `package.json`). See
 `src-tauri/binaries/README.md` and `docs/06-adr-sidecar-bundling.md`.
 
-A tagged push (`v*`) triggers `.github/workflows/release.yml`, which builds the
-Windows installer via `tauri-action` and attaches it to a draft GitHub release.
-macOS/Linux packaging is planned (see `CHECKLIST.md` Fase 11.4).
+A tagged push (`v*`) — or a branch push whose commit message contains
+`[release]` — triggers `.github/workflows/release.yml`, which builds the Windows
+installer via `tauri-action` and publishes it as a GitHub release. macOS/Linux
+packaging is planned (see `CHECKLIST.md` Fase 11.4).
 
 ## Project status
 
