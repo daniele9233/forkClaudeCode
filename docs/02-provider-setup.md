@@ -78,6 +78,15 @@ pubblica un nuovo modello.
 > `deepseek-reasoner` (thinking). Non esiste un id "pro v4": il modello "pro" è
 > `deepseek-reasoner`.
 
+### Modelli open source (locali)
+
+Nell'elenco provider ci sono i preset **Ollama (local)** e **LM Studio (local)**:
+girano sulla tua macchina, **senza chiave cloud**. Basta avviare il server
+(`ollama serve` + `ollama pull <modello>`), scegliere il preset e scrivere l'id
+del modello (es. `llama3.1`, `qwen2.5-coder`). Per modelli open-weight via cloud
+puoi usare **OpenRouter** o **Groq** (con chiave). Qualsiasi altro endpoint
+OpenAI-compatible (vLLM, Together, ecc.) → voce **Other**.
+
 ### Anthropic / Claude
 
 **Anthropic (Claude)** è selezionabile direttamente dall'elenco dei provider

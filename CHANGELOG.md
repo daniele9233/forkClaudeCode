@@ -4,6 +4,28 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-07-08
+
+### Added
+
+- **`taste` — anti-slop skill** 🎯 (from the Anti-Slop Frontend Framework). It
+  auto-applies to any front-end request and bans generic AI output: no default
+  SaaS blue, one styling system, real typographic hierarchy, intentional
+  whitespace, no card-syndrome, fluid layouts, semantic HTML, real a11y.
+- **Open-source / local models** — Ollama and LM Studio presets (no API key,
+  you name the local model). OpenRouter/Groq already cover open-weight models
+  with a key.
+- **Rewind to a previous task** — every user message has a “Rewind” button that
+  reverts the session to that prompt (reversible from the Timeline tab).
+- **Preview: resize + zoom** — drag the preview's left edge (or hit Expand) to
+  widen it, and zoom the previewed page in/out (25–200%).
+
+### Changed
+
+- **Studio: 5 perfect recipes instead of 33.** A small, curated set — each
+  force-injects the right skill stack (always incl. `taste`) and bakes the
+  anti-slop bar into the prompt, for awwwards-caliber output.
+
 ## [0.3.0] — 2026-07-07
 
 ### Added

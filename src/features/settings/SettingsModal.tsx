@@ -686,7 +686,7 @@ function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
   // Universal quality stack forced into EVERY recipe on top of its own skills:
   // distinctive taste, real typography/color and correct motion craft — the
   // baseline for awwwards-caliber output.
-  const RECIPE_BASE = ["impeccable", "type-color", "emil-motion"];
+  const RECIPE_BASE = ["taste", "impeccable", "type-color", "emil-motion"];
   const launch = (recipe: (typeof RECIPES)[number]) => {
     const ids = Array.from(new Set([...recipe.skillIds, ...RECIPE_BASE]));
     fill(recipe.prompt, "recipe", ids);

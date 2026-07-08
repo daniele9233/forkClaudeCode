@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, Loader2, KeyRound } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,10 @@ interface Template {
   label: string;
   envVar: string;
   baseURL: string;
+  /** Local open-source runtime (Ollama/LM Studio): no API key, you pick the model. */
+  local?: boolean;
+  /** Default model id to pre-fill for a local runtime. */
+  defaultModel?: string;
 }
 
 const OPENAI_COMPAT = "@ai-sdk/openai-compatible";
@@ -65,6 +69,24 @@ const TEMPLATES: Template[] = [
     envVar: "MISTRAL_API_KEY",
     baseURL: "https://api.mistral.ai/v1",
   },
+  // Open-source / local runtimes — no cloud key. OpenRouter and Groq (above)
+  // already serve open-weight models with a key; these run fully on your machine.
+  {
+    id: "ollama",
+    label: "Ollama (local · open-source)",
+    envVar: "",
+    baseURL: "http://localhost:11434/v1",
+    local: true,
+    defaultModel: "qwen2.5-coder:7b",
+  },
+  {
+    id: "lmstudio",
+    label: "LM Studio (local · open-source)",
+    envVar: "",
+    baseURL: "http://localhost:1234/v1",
+    local: true,
+    defaultModel: "local-model",
+  },
 ];
 
 const OTHER = "__other__";
@@ -83,8 +105,16 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
   const addProvider = useAddProvider();
   const busy = verifying || connectProvider.isPending || addProvider.isPending;
 
-  const choiceLabel =
-    choice === OTHER ? "the provider" : TEMPLATES.find((t) => t.id === choice)?.label;
+  const selectedTemplate = TEMPLATES.find((t) => t.id === choice);
+  const isLocal = !!selectedTemplate?.local;
+  const choiceLabel = choice === OTHER ? "the provider" : selectedTemplate?.label;
+
+  // Pre-fill the model field when a local runtime is picked.
+  useEffect(() => {
+    if (selectedTemplate?.local) {
+      setCustomModel((m) => m || selectedTemplate.defaultModel || "");
+    }
+  }, [choice, selectedTemplate]);
 
   const finish = () => {
     setKey("");
@@ -111,6 +141,47 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
     setError(null);
     setSaved(false);
     const trimmedKey = key.trim();
+
+    // Local open-source runtime (Ollama / LM Studio): no cloud key needed —
+    // just point at the local server and name the model you've pulled.
+    if (selectedTemplate?.local) {
+      const model = customModel.trim() || selectedTemplate.defaultModel || "";
+      if (!model) {
+        setError("Type the local model id you pulled (e.g. llama3.1, qwen2.5-coder).");
+        return;
+      }
+      setVerifying(true);
+      try {
+        await invoke<string>("test_provider_key", {
+          baseUrl: selectedTemplate.baseURL,
+          apiKey: trimmedKey || "local",
+        });
+      } catch (e) {
+        setVerifying(false);
+        setError(
+          `Couldn't reach ${selectedTemplate.label} at ${selectedTemplate.baseURL} (${String(e)}). Start it first (e.g. run \`ollama serve\` and \`ollama pull ${model}\`).`,
+        );
+        return;
+      }
+      setVerifying(false);
+      try {
+        await addProvider.mutateAsync({
+          id: selectedTemplate.id,
+          name: selectedTemplate.label.replace(/\s*\(.*\)$/, ""),
+          npm: OPENAI_COMPAT,
+          baseURL: selectedTemplate.baseURL,
+          apiKey: trimmedKey || "local",
+          models: { [model]: model },
+        });
+        finish();
+      } catch (e) {
+        setError(
+          `Could not add ${selectedTemplate.label}: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+      return;
+    }
+
     if (!trimmedKey) {
       setError("Paste an API key.");
       return;
@@ -211,10 +282,28 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
         </div>
       )}
 
+      {isLocal && (
+        <div className="space-y-1">
+          <input
+            type="text"
+            placeholder="local model id (e.g. llama3.1, qwen2.5-coder)"
+            value={customModel}
+            onChange={(e) => setCustomModel(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+            className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+          />
+          <p className="text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+            Runs on your machine — no cloud, no key. Start the server first (Ollama:{" "}
+            <code>ollama serve</code> + <code>ollama pull …</code>) at{" "}
+            <code>{selectedTemplate?.baseURL}</code>.
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center gap-1.5">
         <input
           type="password"
-          placeholder="Paste API key…"
+          placeholder={isLocal ? "API key (not needed for local)…" : "Paste API key…"}
           value={key}
           onChange={(e) => setKey(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSave()}
@@ -242,8 +331,8 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
       {error && <p className="text-[10px] leading-relaxed text-red-300">{error}</p>}
       {saved && (
         <p className="text-[10px] leading-relaxed text-[var(--color-online)]">
-          Key verified ✓ — connected to {choiceLabel} and selected a model. Type a message
-          to start.
+          {isLocal ? "Connected ✓" : "Key verified ✓"} — {choiceLabel} added and selected.
+          Type a message to start.
         </p>
       )}
       {connectProvider.isPending && (

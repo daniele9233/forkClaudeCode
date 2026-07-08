@@ -15,6 +15,10 @@ import {
   ScanEye,
   Accessibility,
   Palette,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreviewStore } from "@/stores/preview.store";
@@ -54,6 +58,40 @@ export function PreviewPanel() {
   const [urlInput, setUrlInput] = useState(previewUrl ?? "");
   const [reloadKey, setReloadKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Panel width (px). null → default half-width (w-1/2). Drag the left edge or
+  // hit expand to widen it up to nearly full-window.
+  const [widthPx, setWidthPx] = useState<number | null>(null);
+  // Zoom of the previewed page inside the iframe (0.25–2). Independent of the
+  // panel width; lets you see a full desktop layout or zoom into detail.
+  const [zoom, setZoom] = useState(1);
+
+  // Drag the panel's left edge to resize. The preview is docked right, so its
+  // width is the distance from the pointer to the right window edge.
+  const startResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    const onMove = (ev: PointerEvent) => {
+      const next = window.innerWidth - ev.clientX;
+      setWidthPx(Math.min(Math.max(next, 320), window.innerWidth - 260));
+    };
+    const onUp = () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  }, []);
+
+  const expanded = widthPx !== null && widthPx > window.innerWidth * 0.66;
+  const toggleExpand = () =>
+    setWidthPx(expanded ? null : Math.round(window.innerWidth * 0.85));
+  const zoomOut = () => setZoom((z) => Math.max(0.25, +(z - 0.1).toFixed(2)));
+  const zoomIn = () => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)));
+  const resetZoom = () => setZoom(1);
 
   const devRunning = useDevServerStore((s) => s.running);
   const devStarting = useDevServerStore((s) => s.starting);
@@ -367,7 +405,19 @@ Guidelines: add real alt text; label every control; ensure text contrast ≥ 4.5
   };
 
   return (
-    <div className="flex h-full w-1/2 shrink-0 flex-col border-l border-[var(--border)] bg-[var(--background)]">
+    <div
+      style={widthPx !== null ? { width: widthPx } : undefined}
+      className={cn(
+        "relative flex h-full shrink-0 flex-col border-l border-[var(--border)] bg-[var(--background)]",
+        widthPx === null && "w-1/2",
+      )}
+    >
+      {/* Drag handle — resize the preview width by dragging the left edge. */}
+      <div
+        onPointerDown={startResize}
+        title="Drag to resize the preview"
+        className="absolute left-0 top-0 z-20 h-full w-1.5 -translate-x-1/2 cursor-col-resize hover:bg-[var(--primary)]/30"
+      />
       {/* Toolbar */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--border)] px-2 py-1.5">
         <button
@@ -522,6 +572,46 @@ Guidelines: add real alt text; label every control; ensure text contrast ≥ 4.5
           </button>
         )}
 
+        {/* Zoom controls for the previewed page */}
+        {previewUrl && (
+          <div className="flex shrink-0 items-center rounded border border-[var(--border)]">
+            <button
+              onClick={zoomOut}
+              className="rounded-l p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+              title="Zoom out"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={resetZoom}
+              className="min-w-[38px] px-1 font-mono text-[10px] text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+              title="Reset zoom to 100%"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              onClick={zoomIn}
+              className="rounded-r p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+              title="Zoom in"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Widen / restore the preview panel */}
+        <button
+          onClick={toggleExpand}
+          className="shrink-0 rounded p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+          title={expanded ? "Restore preview width" : "Expand preview (wider)"}
+        >
+          {expanded ? (
+            <Minimize2 className="h-3.5 w-3.5" />
+          ) : (
+            <Maximize2 className="h-3.5 w-3.5" />
+          )}
+        </button>
+
         <input
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
@@ -667,14 +757,23 @@ Guidelines: add real alt text; label every control; ensure text contrast ≥ 4.5
       {/* Iframe (a URL is loaded) or empty-state guidance (no server yet) */}
       {previewUrl ? (
         <div
-          className={cn("min-h-0 flex-1 bg-white", selectionMode && "cursor-crosshair")}
+          className={cn(
+            "min-h-0 flex-1 overflow-auto bg-white",
+            selectionMode && "cursor-crosshair",
+          )}
         >
           <iframe
             ref={iframeRef}
             key={`${reloadKey}-${reloadNonce}`}
             src={frameUrl ?? previewUrl}
             title="Web preview"
-            className="h-full w-full border-0"
+            className="border-0"
+            style={{
+              width: `${100 / zoom}%`,
+              height: `${100 / zoom}%`,
+              transform: `scale(${zoom})`,
+              transformOrigin: "top left",
+            }}
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
             onLoad={handleIframeLoad}
           />

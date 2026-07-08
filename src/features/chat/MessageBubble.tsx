@@ -1,4 +1,5 @@
-import { memo } from "react";
+import { memo, useState } from "react";
+import { Undo2, Loader2 } from "lucide-react";
 import type {
   Message,
   AssistantMessage,
@@ -10,6 +11,50 @@ import type {
 import { MarkdownContent } from "./MarkdownContent";
 import { ToolCallCard } from "./ToolCallCard";
 import { parseSkills, skillById } from "@/skills/match";
+import { useRevertSession } from "@/opencode/session";
+
+/**
+ * "Rewind to this prompt" — reverts the session to this user message, undoing
+ * every task after it (files + conversation). Reversible from the Timeline tab
+ * (Unrevert). Two-step so it isn't triggered by accident.
+ */
+function RewindButton({
+  sessionId,
+  messageId,
+}: {
+  sessionId: string;
+  messageId: string;
+}) {
+  const revert = useRevertSession();
+  const [armed, setArmed] = useState(false);
+
+  if (!sessionId) return null;
+
+  const doRevert = async () => {
+    try {
+      await revert.mutateAsync({ sessionId, messageId });
+    } finally {
+      setArmed(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={armed ? doRevert : () => setArmed(true)}
+      onBlur={() => setArmed(false)}
+      disabled={revert.isPending}
+      title="Rewind the session to this prompt (undo everything after — reversible from Timeline)"
+      className="mr-1.5 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+    >
+      {revert.isPending ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Undo2 className="h-3 w-3" />
+      )}
+      {armed ? "Rewind here?" : "Rewind"}
+    </button>
+  );
+}
 
 interface Props {
   message: Message;
@@ -56,6 +101,11 @@ function UserBubble({ message, parts }: { message: Message; parts: Part[] }) {
     <div className="border border-[var(--border)]">
       <div className="flex items-center border-b border-[var(--border)]">
         <span className="bp-tab">user · {time}</span>
+        {message.sessionID && (
+          <div className="ml-auto">
+            <RewindButton sessionId={message.sessionID} messageId={message.id} />
+          </div>
+        )}
       </div>
       {skillIds.length > 0 && (
         <div className="flex flex-wrap gap-1.5 border-b border-[var(--border)] px-3.5 py-1.5">

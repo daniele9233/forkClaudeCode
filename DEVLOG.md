@@ -16,6 +16,40 @@
 
 ---
 
+## 2026-07-08 · v0.4.0 — anti-slop taste + 5 ricette + OSS models + rewind + preview zoom
+
+**Fase:** 12.53 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (5 richieste utente)
+
+1. **Skill `taste` (🎯 anti-slop)** in `catalog.ts` (da Leonxlnx/taste-skill): 3
+   "dial" (DESIGN_VARIANCE/MOTION_INTENSITY/VISUAL_DENSITY) + 8 ban che colpiscono
+   ESATTAMENTE i problemi elencati dall'utente (blu di default, mix framework/
+   inline, no gerarchia, whitespace a caso, card-syndrome, larghezze px, div-soup,
+   a11y ignorata). Keyword ampie → si attiva su ogni richiesta front-end.
+2. **Studio 33 → 5 ricette perfette** (`recipes.ts`): bento-saas, editorial-minimal,
+   glass-aurora-ai, neubrutalist-agency, awwwards-scroll. `BAR` ora include il
+   mandato anti-slop nel testo del prompt; `RECIPE_BASE` forza `taste` in tutte.
+3. **Modelli open source** (`AddProviderKey.tsx`): preset **Ollama** e **LM Studio**
+   `local:true` — nessuna chiave, si nomina il modello locale; verifica su
+   `localhost`, registrazione via `addProvider` (openai-compatible).
+4. **Rewind ai task precedenti**: pulsante su ogni messaggio utente (`MessageBubble`)
+   → `useRevertSession` (two-step). Il revert esisteva già (tab Timeline) ma non
+   era scopribile; ora è dove sono i task.
+5. **Preview resize + zoom** (`PreviewPanel.tsx`): maniglia drag sul bordo sinistro
+   - toggle Expand (fino ~85vw); controlli zoom −/%/+ (25–200%) via transform
+     scale sull'iframe in un contenitore scrollabile.
+
+### Gotcha / attenzione
+
+- taste-skill: repo non recuperabile verbatim via WebFetch (404 sui path); portata
+  fedelmente da README (filosofia + 3 dial) + lista problemi dell'utente. Fonte
+  accreditata.
+- Ollama/LM Studio: reqwest usa già `.no_proxy()` → localhost raggiungibile; il
+  motore usa il provider byok openai-compatible (Ollama espone `/v1`).
+- Zoom iframe: `width/height: 100/zoom%` + `scale(zoom)` origin top-left, wrapper
+  `overflow-auto`. 81 test verdi. Bump 0.4.0.
+
 ## 2026-07-07 · v0.3.0 — seconda interfaccia selezionabile: "Retro OS" 🕹️
 
 **Fase:** 12.52 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

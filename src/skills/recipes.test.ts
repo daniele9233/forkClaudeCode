@@ -5,9 +5,16 @@ import { SKILLS } from "./catalog";
 const skillIds = new Set(SKILLS.map((s) => s.id));
 
 describe("studio recipes", () => {
-  it("ships a rich catalog (style starters + enterprise verticals)", () => {
-    expect(RECIPES.length).toBeGreaterThanOrEqual(20);
+  it("ships a small, curated set of perfect recipes", () => {
+    // Deliberately few (5) impeccable briefs rather than a long, noisy list.
+    expect(RECIPES.length).toBe(5);
     expect(RECIPES.some((r) => r.category === "enterprise")).toBe(true);
+  });
+
+  it("every recipe forces the anti-slop `taste` skill", () => {
+    for (const r of RECIPES) {
+      expect(r.skillIds, `recipe ${r.id} must use taste`).toContain("taste");
+    }
   });
 
   it("has unique ids", () => {
