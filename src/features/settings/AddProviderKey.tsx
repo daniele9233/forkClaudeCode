@@ -16,7 +16,13 @@ interface Template {
   baseURL: string;
   /** Local open-source runtime (Ollama/LM Studio): no API key, you pick the model. */
   local?: boolean;
-  /** Default model id to pre-fill for a local runtime. */
+  /**
+   * Cloud OpenAI-compatible provider that isn't a native opencode template
+   * (e.g. GLM / z.ai): registered via `addProvider` with a key + a model you
+   * pick, instead of the env-var connect path.
+   */
+  openaiCompat?: boolean;
+  /** Default model id to pre-fill (local or openaiCompat). */
   defaultModel?: string;
 }
 
@@ -69,6 +75,16 @@ const TEMPLATES: Template[] = [
     envVar: "MISTRAL_API_KEY",
     baseURL: "https://api.mistral.ai/v1",
   },
+  {
+    id: "glm",
+    label: "GLM (z.ai / Zhipu)",
+    envVar: "",
+    // z.ai's OpenAI-compatible endpoint. Key format is `id.secret`. You pick
+    // the model (e.g. glm-4.6, glm-4.5-flash, or a newer glm-5.x).
+    baseURL: "https://api.z.ai/api/paas/v4",
+    openaiCompat: true,
+    defaultModel: "glm-4.6",
+  },
   // Open-source / local runtimes — no cloud key. OpenRouter and Groq (above)
   // already serve open-weight models with a key; these run fully on your machine.
   {
@@ -107,11 +123,13 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
 
   const selectedTemplate = TEMPLATES.find((t) => t.id === choice);
   const isLocal = !!selectedTemplate?.local;
+  const isOpenaiCompat = !!selectedTemplate?.openaiCompat;
+  const needsModel = isLocal || isOpenaiCompat;
   const choiceLabel = choice === OTHER ? "the provider" : selectedTemplate?.label;
 
-  // Pre-fill the model field when a local runtime is picked.
+  // Pre-fill the model field when a runtime that lets you pick a model is chosen.
   useEffect(() => {
-    if (selectedTemplate?.local) {
+    if (selectedTemplate?.local || selectedTemplate?.openaiCompat) {
       setCustomModel((m) => m || selectedTemplate.defaultModel || "");
     }
   }, [choice, selectedTemplate]);
@@ -184,6 +202,34 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
 
     if (!trimmedKey) {
       setError("Paste an API key.");
+      return;
+    }
+
+    // Cloud OpenAI-compatible provider (e.g. GLM / z.ai): register with the key
+    // + chosen model. Key verification is best-effort — some of these endpoints
+    // don't implement GET /models, so a failed probe must NOT block a valid key
+    // (a bad key surfaces on the first message).
+    if (selectedTemplate?.openaiCompat) {
+      const model = customModel.trim() || selectedTemplate.defaultModel || "";
+      if (!model) {
+        setError("Type the model id (e.g. glm-4.6).");
+        return;
+      }
+      try {
+        await addProvider.mutateAsync({
+          id: selectedTemplate.id,
+          name: selectedTemplate.label.replace(/\s*\(.*\)$/, ""),
+          npm: OPENAI_COMPAT,
+          baseURL: selectedTemplate.baseURL,
+          apiKey: trimmedKey,
+          models: { [model]: model },
+        });
+        finish();
+      } catch (e) {
+        setError(
+          `Could not add ${selectedTemplate.label}: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
       return;
     }
 
@@ -282,21 +328,32 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
         </div>
       )}
 
-      {isLocal && (
+      {needsModel && (
         <div className="space-y-1">
           <input
             type="text"
-            placeholder="local model id (e.g. llama3.1, qwen2.5-coder)"
+            placeholder={
+              isLocal
+                ? "local model id (e.g. llama3.1, qwen2.5-coder)"
+                : "model id (e.g. glm-4.6, glm-4.5-flash)"
+            }
             value={customModel}
             onChange={(e) => setCustomModel(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
             className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
           />
-          <p className="text-[10px] leading-relaxed text-[var(--muted-foreground)]">
-            Runs on your machine — no cloud, no key. Start the server first (Ollama:{" "}
-            <code>ollama serve</code> + <code>ollama pull …</code>) at{" "}
-            <code>{selectedTemplate?.baseURL}</code>.
-          </p>
+          {isLocal ? (
+            <p className="text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+              Runs on your machine — no cloud, no key. Start the server first (Ollama:{" "}
+              <code>ollama serve</code> + <code>ollama pull …</code>) at{" "}
+              <code>{selectedTemplate?.baseURL}</code>.
+            </p>
+          ) : (
+            <p className="text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+              Paste your key below (GLM keys look like <code>id.secret</code>) and set the
+              model id. Endpoint: <code>{selectedTemplate?.baseURL}</code>.
+            </p>
+          )}
         </div>
       )}
 
@@ -331,8 +388,8 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
       {error && <p className="text-[10px] leading-relaxed text-red-300">{error}</p>}
       {saved && (
         <p className="text-[10px] leading-relaxed text-[var(--color-online)]">
-          {isLocal ? "Connected ✓" : "Key verified ✓"} — {choiceLabel} added and selected.
-          Type a message to start.
+          {isLocal ? "Connected ✓" : isOpenaiCompat ? "Added ✓" : "Key verified ✓"} —{" "}
+          {choiceLabel} added and selected. Type a message to start.
         </p>
       )}
       {connectProvider.isPending && (

@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-07-08 · v0.4.2 — provider GLM (z.ai) + connessione GitHub con repo picker
+
+**Fase:** 12.55 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato
+
+- **GLM/z.ai come provider** (`AddProviderKey`): nuovo flag `openaiCompat` sul
+  Template + entry **GLM (z.ai / Zhipu)** (baseURL `https://api.z.ai/api/paas/v4`,
+  key richiesta formato `id.secret`, model input default `glm-4.6`). Registrato
+  via `addProvider` (openai-compatible); verifica /models saltata (endpoint non
+  garantito) — un errore chiave emerge al primo messaggio.
+- **Connessione GitHub** (`ProjectPicker` tab "GitHub"): `github.store` (token
+  persistito) + `opencode/github.ts` (`listGithubRepos`, `authedCloneUrl`). Con
+  il token elenchi i tuoi repo (owner/collaboratore/org, privati inclusi con 🔒),
+  ricerca, "clone into", click → clone (URL con token per i privati) + apri.
+  Fallback "or clone from a URL" mantenuto. Come Claude Code: si lavora sul clone
+  locale.
+
+### Gotcha / attenzione
+
+- **Chiave GLM non testabile qui**: il proxy egress dell'ambiente blocca
+  `api.z.ai` e `open.bigmodel.cn` (**403 CONNECT** per policy org — il README dice
+  di non aggirare). Verificato solo a livello di codice (typecheck/build); la
+  chiave la prova l'utente sul suo PC.
+- Token GitHub in localStorage (persist) — accettabile per app desktop local-first;
+  `api.github.com` ha CORS `*` e la CSP è null → fetch dal webview ok.
+- 78 test. Bump 0.4.2.
+
 ## 2026-07-08 · v0.4.1 — rimozione Retro OS + FREE tag + overlay opachi
 
 **Fase:** 12.54 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

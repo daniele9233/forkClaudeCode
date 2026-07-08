@@ -4,6 +4,16 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] — 2026-07-08
+
+### Added
+
+- **GLM (z.ai / Zhipu) provider** — pick "GLM (z.ai / Zhipu)" when adding a
+  key, paste your `id.secret` token and the model id (e.g. `glm-4.6`).
+- **Connect GitHub & pick a repo** — the GitHub tab now lets you paste a token
+  and browse your repositories (private included), then clone & open one in a
+  click to work on it directly. Cloning from a URL is still there as a fallback.
+
 ## [0.4.1] — 2026-07-08
 
 ### Added

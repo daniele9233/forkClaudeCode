@@ -8,11 +8,16 @@ import {
   Clock,
   Trash2,
   ArrowRight,
+  Lock,
+  RefreshCw,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { useProjectActions } from "@/opencode/workspace";
 import { useWorkspaceStore, baseName } from "@/stores/workspace.store";
+import { useGithubStore } from "@/stores/github.store";
+import { listGithubRepos, authedCloneUrl, type GithubRepo } from "@/opencode/github";
 
 type Tab = "open" | "clone" | "new";
 
@@ -34,6 +39,13 @@ export function ProjectPicker({ onClose }: Props) {
   // Clone tab state
   const [repoUrl, setRepoUrl] = useState("");
   const [cloneParent, setCloneParent] = useState<string | null>(null);
+  // GitHub repo picker state
+  const githubToken = useGithubStore((s) => s.token);
+  const setGithubToken = useGithubStore((s) => s.setToken);
+  const [tokenInput, setTokenInput] = useState("");
+  const [repos, setRepos] = useState<GithubRepo[] | null>(null);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [repoQuery, setRepoQuery] = useState("");
   // New-project tab state
   const [newParent, setNewParent] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
@@ -78,6 +90,51 @@ export function ProjectPicker({ onClose }: Props) {
       await cloneRepo(repoUrl.trim(), parent);
     });
 
+  // Load the user's GitHub repos with the saved token.
+  const loadRepos = async (token: string) => {
+    setError(null);
+    setLoadingRepos(true);
+    try {
+      setRepos(await listGithubRepos(token));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setRepos(null);
+    } finally {
+      setLoadingRepos(false);
+    }
+  };
+
+  // Auto-load repos when opening the GitHub tab with a token already saved.
+  useEffect(() => {
+    if (tab === "clone" && githubToken && repos === null && !loadingRepos) {
+      void loadRepos(githubToken);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, githubToken]);
+
+  const saveToken = () => {
+    const t = tokenInput.trim();
+    if (!t) return;
+    setGithubToken(t);
+    setTokenInput("");
+    void loadRepos(t);
+  };
+
+  // Clone a selected repo (token-authenticated for private repos) and open it.
+  const cloneSelected = (repo: GithubRepo) =>
+    run(async () => {
+      let parent = cloneParent;
+      if (!parent) {
+        parent = await pickDirectory("Choose where to clone");
+        if (!parent) throw new AbortSilently();
+      }
+      const url =
+        repo.private && githubToken
+          ? authedCloneUrl(repo.cloneUrl, githubToken)
+          : repo.cloneUrl;
+      await cloneRepo(url, parent);
+    });
+
   const handleCreate = () =>
     run(async () => {
       if (!newName.trim()) throw new Error("Enter a project name");
@@ -91,7 +148,7 @@ export function ProjectPicker({ onClose }: Props) {
 
   const TABS: { id: Tab; label: string; icon: typeof FolderOpen }[] = [
     { id: "open", label: "Open folder", icon: FolderOpen },
-    { id: "clone", label: "Clone from GitHub", icon: Github },
+    { id: "clone", label: "GitHub", icon: Github },
     { id: "new", label: "New project", icon: FolderPlus },
   ];
 
@@ -181,39 +238,153 @@ export function ProjectPicker({ onClose }: Props) {
 
           {tab === "clone" && (
             <div className="space-y-3">
-              <p className="text-xs text-[var(--muted-foreground)]">
-                Clone an existing GitHub repository. Uses your system git, so private
-                repos work if git is already authenticated on this PC.
-              </p>
-              <div className="space-y-1">
-                <label className="hud-label">repository URL</label>
-                <input
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  placeholder="https://github.com/user/repo.git"
-                  className="w-full rounded-md border border-[var(--border)] bg-[var(--muted)]/30 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
-                />
-              </div>
-              <FolderField
-                label="clone into"
-                value={cloneParent}
-                onPick={async () => {
-                  const d = await pickDirectory("Choose where to clone");
-                  if (d) setCloneParent(d);
-                }}
-              />
-              <button
-                onClick={handleClone}
-                disabled={busy || !repoUrl.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-4 py-2.5 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--primary)]/20 disabled:opacity-50"
-              >
-                {busy ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Github className="h-4 w-4" />
-                )}
-                Clone & open
-              </button>
+              {/* Connect GitHub (token) to browse your repos */}
+              {!githubToken ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    Connect GitHub to pick a repository from your account (private ones
+                    included) and work on it directly. Create a token at{" "}
+                    <code>github.com/settings/tokens</code> with the <code>repo</code>{" "}
+                    scope — it stays on this machine.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      value={tokenInput}
+                      onChange={(e) => setTokenInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && saveToken()}
+                      placeholder="GitHub token (ghp_… / github_pat_…)"
+                      className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--muted)]/30 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
+                    />
+                    <button
+                      onClick={saveToken}
+                      disabled={!tokenInput.trim()}
+                      className="shrink-0 rounded-md border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-3 py-2 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--primary)]/20 disabled:opacity-50"
+                    >
+                      Connect
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="relative min-w-0 flex-1">
+                      <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                      <input
+                        value={repoQuery}
+                        onChange={(e) => setRepoQuery(e.target.value)}
+                        placeholder="Search your repositories…"
+                        className="w-full rounded-md border border-[var(--border)] bg-[var(--muted)]/30 py-2 pl-7 pr-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
+                      />
+                    </div>
+                    <button
+                      onClick={() => void loadRepos(githubToken)}
+                      disabled={loadingRepos}
+                      title="Refresh"
+                      className="shrink-0 rounded-md border border-[var(--border)] p-2 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+                    >
+                      <RefreshCw
+                        className={cn("h-3.5 w-3.5", loadingRepos && "animate-spin")}
+                      />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setGithubToken(null);
+                        setRepos(null);
+                      }}
+                      title="Disconnect GitHub"
+                      className="shrink-0 rounded-md border border-[var(--border)] px-2 py-2 text-[10px] text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+
+                  <FolderField
+                    label="clone into"
+                    value={cloneParent}
+                    onPick={async () => {
+                      const d = await pickDirectory("Choose where to clone");
+                      if (d) setCloneParent(d);
+                    }}
+                  />
+
+                  <div className="max-h-56 space-y-0.5 overflow-y-auto rounded-md border border-[var(--border)]">
+                    {loadingRepos && (
+                      <div className="flex items-center gap-2 px-3 py-3 text-xs text-[var(--muted-foreground)]">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading your
+                        repositories…
+                      </div>
+                    )}
+                    {!loadingRepos &&
+                      repos &&
+                      repos
+                        .filter(
+                          (r) =>
+                            !repoQuery.trim() ||
+                            r.fullName
+                              .toLowerCase()
+                              .includes(repoQuery.trim().toLowerCase()),
+                        )
+                        .map((r) => (
+                          <button
+                            key={r.id}
+                            onClick={() => cloneSelected(r)}
+                            disabled={busy}
+                            className="group flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.04] disabled:opacity-50"
+                          >
+                            {r.private ? (
+                              <Lock className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                            ) : (
+                              <Github className="h-3.5 w-3.5 shrink-0 text-[var(--muted-foreground)]" />
+                            )}
+                            <span className="shrink-0 text-xs font-medium text-[var(--foreground)]">
+                              {r.name}
+                            </span>
+                            <span className="truncate text-[10px] text-[var(--muted-foreground)]/70">
+                              {r.fullName}
+                            </span>
+                            <ArrowRight className="ml-auto h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-60" />
+                          </button>
+                        ))}
+                    {!loadingRepos && repos && repos.length === 0 && (
+                      <div className="px-3 py-3 text-xs text-[var(--muted-foreground)]">
+                        No repositories found for this token.
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-[var(--muted-foreground)]/70">
+                    Pick a repo to clone &amp; open it — private repos clone with your
+                    token. You then work on the local copy (commit/push as usual).
+                  </p>
+                </>
+              )}
+
+              {/* Fallback: clone any URL directly */}
+              <details className="rounded-md border border-[var(--border)] px-3 py-2">
+                <summary className="cursor-pointer text-[11px] text-[var(--muted-foreground)]">
+                  or clone from a URL
+                </summary>
+                <div className="mt-2 space-y-2">
+                  <input
+                    value={repoUrl}
+                    onChange={(e) => setRepoUrl(e.target.value)}
+                    placeholder="https://github.com/user/repo.git"
+                    className="w-full rounded-md border border-[var(--border)] bg-[var(--muted)]/30 px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)]"
+                  />
+                  <button
+                    onClick={handleClone}
+                    disabled={busy || !repoUrl.trim()}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--primary)]/20 disabled:opacity-50"
+                  >
+                    {busy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Github className="h-4 w-4" />
+                    )}
+                    Clone &amp; open
+                  </button>
+                </div>
+              </details>
             </div>
           )}
 
