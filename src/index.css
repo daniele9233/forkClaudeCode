@@ -291,8 +291,11 @@ samp {
   backdrop-filter: blur(16px) saturate(1.1);
   -webkit-backdrop-filter: blur(16px) saturate(1.1);
 }
+/* Overlays that sit ON TOP of the chat (model dropdown, command palette, etc.)
+   must be opaque so the prompt text behind never bleeds through and hurts
+   readability. Near-solid dark; blur kept only as a subtle edge. */
 .glass-strong {
-  background-color: rgba(14, 15, 18, 0.7);
+  background-color: rgba(11, 12, 15, 0.985);
   backdrop-filter: blur(24px) saturate(1.15);
   -webkit-backdrop-filter: blur(24px) saturate(1.15);
 }
@@ -300,7 +303,7 @@ samp {
   background-color: rgba(255, 255, 255, 0.55);
 }
 .light .glass-strong {
-  background-color: rgba(255, 255, 255, 0.82);
+  background-color: rgba(248, 250, 252, 0.99);
 }
 
 /* Bordo "vetro" sottile e luminoso */
@@ -365,104 +368,4 @@ samp {
     var(--primary),
     color-mix(in srgb, var(--primary) 25%, transparent)
   );
-}
-
-/* ==========================================================================
-   RETRO OS — seconda interfaccia selezionabile (synthwave, "Kikkocode Retro OS")
-   Attivata con <html data-ui="retro"> (vedi theme.store). Stessi componenti,
-   stessa logica: qui cambiano solo i token + un livello di effetti CRT/neon.
-   Palette dal prototipo: magenta neon, cyan, verde terminale su nero puro.
-   ========================================================================== */
-:root[data-ui="retro"] {
-  --background: #000000;
-  --foreground: #e4e1ed;
-
-  --card: #0a0010;
-  --card-foreground: #e4e1ed;
-
-  --popover: #0a0010;
-  --popover-foreground: #e4e1ed;
-
-  --primary: #ffabf3; /* magenta neon */
-  --primary-foreground: #5b005b;
-
-  --secondary: #16000f;
-  --secondary-foreground: #dcfdff; /* cyan */
-
-  --muted: #1c0d1a;
-  --muted-foreground: #a4899d;
-
-  --accent: #ff00ff;
-  --accent-foreground: #ffd7f5;
-
-  --destructive: #ffb4ab;
-  --destructive-foreground: #690005;
-
-  --border: #564052;
-  --input: #564052;
-  --ring: #ff00ff;
-
-  --color-online: #2ae500; /* verde terminale */
-  --color-alert: #ffb4ab;
-
-  color-scheme: dark;
-}
-
-/* Effetti neon del skin retro (usati da RetroLayer e da chi vuole il glow). */
-[data-ui="retro"] .hud-label {
-  text-shadow: 0 0 6px color-mix(in srgb, var(--primary) 70%, transparent);
-  letter-spacing: 0.12em;
-}
-.retro-glow-magenta {
-  text-shadow: 0 0 8px rgba(255, 171, 243, 0.8);
-}
-.retro-glow-terminal {
-  text-shadow: 0 0 5px rgba(42, 229, 0, 0.5);
-}
-@keyframes retro-pulse-glow {
-  0%,
-  100% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-    filter: brightness(1.2);
-  }
-}
-.retro-pulse-glow {
-  animation: retro-pulse-glow 2s infinite ease-in-out;
-}
-
-/* Scanline CRT a tutto schermo (solo in retro; rispetta reduced-motion). */
-.retro-scanlines {
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(255, 0, 255, 0.02) 3px,
-    rgba(0, 0, 0, 0.12) 4px
-  );
-  mix-blend-mode: multiply;
-}
-@media (prefers-reduced-motion: no-preference) {
-  [data-ui="retro"] .retro-crt {
-    animation: retro-flicker 4s infinite steps(1);
-  }
-  @keyframes retro-flicker {
-    0%,
-    97% {
-      opacity: 1;
-    }
-    98% {
-      opacity: 0.985;
-    }
-    99%,
-    100% {
-      opacity: 1;
-    }
-  }
 }

@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-07-08 · v0.4.1 — rimozione Retro OS + FREE tag + overlay opachi
+
+**Fase:** 12.54 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback utente)
+
+- **Retro OS rimossa** (non piaceva): eliminati `features/retro/*`, `UiToggle`,
+  `ui` mode nel `theme.store` (+ test), blocco CSS retro in `index.css`, e
+  riferimenti in `App.tsx`/`ChatShell.tsx`. Classic è di nuovo l'unica UI.
+- **Tag FREE** sui modelli: `isFreeModel` (cost.input/output === 0) → badge verde
+  **FREE** in `ModelSwitcher` (come OpenCode). Il provider Zen `opencode` non è
+  più nascosto: mostro **solo i suoi modelli free** (mimo, nemotron, north-code…)
+  senza spingere il gateway a pagamento.
+- **Overlay opachi**: `.glass-strong` da `rgba(14,15,18,0.7)` → `rgba(11,12,15,0.985)`
+  (light: `0.99`). Copre il dropdown modelli E il Settings (`<Panel strong>`),
+  così il testo del prompt dietro non traspare più.
+
+### Gotcha / attenzione
+
+- **GLM non risponde**: è il provider `zai` (auto-login free tier). DeepSeek e
+  Claude funzionano → problema lato provider/endpoint zai, NON del nostro codice
+  (inviamo `model:{providerID,modelID}` come per gli altri). Non riproducibile/
+  debuggabile in questo ambiente headless. Mitigazione: ora i modelli **free**
+  del gateway Zen sono selezionabili come alternativa funzionante. Serve l'errore
+  esatto mostrato in-app per andare oltre.
+- 78 test (−3 test retro-ui). Bump 0.4.1.
+
 ## 2026-07-08 · v0.4.0 — anti-slop taste + 5 ricette + OSS models + rewind + preview zoom
 
 **Fase:** 12.53 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

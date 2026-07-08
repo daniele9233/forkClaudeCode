@@ -4,6 +4,24 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] — 2026-07-08
+
+### Added
+
+- **FREE model tags** — every zero-cost model shows a green **FREE** badge (like
+  OpenCode), and the built-in Zen gateway now surfaces its free models (mimo,
+  nemotron, north-code, …) instead of being hidden.
+
+### Changed
+
+- **Overlays are opaque now.** The model dropdown and the Settings modal no
+  longer let the prompt text behind them bleed through — much more readable.
+
+### Removed
+
+- **Retro OS interface** (and its Tetris) — removed per feedback; the classic
+  interface is the only one again.
+
 ## [0.4.0] — 2026-07-08
 
 ### Added

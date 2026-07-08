@@ -8,11 +8,16 @@ import { useModelStore } from "@/stores/model.store";
 import { AddProviderKey } from "./AddProviderKey";
 import { isCurrentAnthropicModel } from "./modelFilter";
 
+/** A model is FREE when both input and output cost per token are 0. */
+function isFreeModel(model: { cost?: { input?: number; output?: number } }): boolean {
+  return !!model.cost && model.cost.input === 0 && model.cost.output === 0;
+}
+
 /**
  * Model indicator + provider connector. The dropdown has "Add provider API key"
- * on top and, below it, the models of the providers you've connected (the
- * built-in paid "OpenCode Zen" gateway is hidden) — so you can switch between
- * e.g. a fast chat model and a slower reasoning model.
+ * on top and, below it, the models of the connected providers — each free model
+ * is tagged FREE (like OpenCode), and the built-in Zen gateway is trimmed to its
+ * free models so you can pick e.g. mimo / nemotron / north-code at no cost.
  */
 export function ModelSwitcher() {
   const [open, setOpen] = useState(false);
@@ -36,8 +41,10 @@ export function ModelSwitcher() {
   const displayProvider = currentProviderId.replace(/^byok-/, "");
   const displayModel = currentModelId || "Select model";
 
-  // Only providers the user connected — hide the built-in Zen gateway.
-  const visibleProviders = providers.filter((p) => p.id !== "opencode");
+  // Show every provider. The built-in "opencode" Zen gateway is included but
+  // trimmed to its FREE models only (below), so free models like mimo /
+  // nemotron / north-code appear without pushing the paid gateway.
+  const visibleProviders = providers;
 
   // Vision capability of the currently selected model (drives the "sees images"
   // hint for the Audit + style-from-URL/screenshot features).
@@ -156,6 +163,10 @@ export function ModelSwitcher() {
                   ) {
                     return false;
                   }
+                  // The built-in Zen gateway: surface only its FREE models.
+                  if (provider.id === "opencode" && !isFreeModel(model)) {
+                    return false;
+                  }
                   if (!q) return true;
                   return (
                     modelId.toLowerCase().includes(q) || name.toLowerCase().includes(q)
@@ -194,6 +205,12 @@ export function ModelSwitcher() {
                         >
                           {model.name || modelId}
                         </span>
+                        {/* FREE tag (like OpenCode) on zero-cost models */}
+                        {isFreeModel(model) && (
+                          <span className="shrink-0 rounded-sm bg-[var(--color-online)]/15 px-1 text-[9px] font-bold uppercase tracking-wider text-[var(--color-online)]">
+                            free
+                          </span>
+                        )}
                         {active && (
                           <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-[var(--color-online)]">
                             online

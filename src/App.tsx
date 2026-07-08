@@ -10,7 +10,6 @@ import { StatusBar } from "@/features/statusbar/StatusBar";
 import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
 import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
 import { UpdateBanner } from "@/features/statusbar/UpdateBanner";
-import { RetroLayer } from "@/features/retro/RetroLayer";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 
 // Heavy / conditionally-shown panels are code-split so they don't bloat the
@@ -165,13 +164,12 @@ export default function App() {
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="retro-crt flex h-full flex-col overflow-hidden"
+      className="flex h-full flex-col overflow-hidden"
     >
       {/* Global engine status (connecting / disconnected) */}
       <SidecarStatusBanner />
       <EngineVersionBanner />
       <UpdateBanner />
-      <RetroLayer />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Left sidebar: sessions (top) + file tree + context sparkline */}

@@ -4,8 +4,7 @@ import { useThemeStore } from "./theme.store";
 beforeEach(() => {
   localStorage.clear();
   document.documentElement.classList.remove("light");
-  document.documentElement.removeAttribute("data-ui");
-  useThemeStore.setState({ theme: "dark", ui: "classic" });
+  useThemeStore.setState({ theme: "dark" });
 });
 
 describe("theme.store", () => {
@@ -30,31 +29,5 @@ describe("theme.store", () => {
   it("reflects colorScheme on the document element", () => {
     useThemeStore.getState().setTheme("light");
     expect(document.documentElement.style.colorScheme).toBe("light");
-  });
-});
-
-describe("ui mode (classic / retro)", () => {
-  it("setUi('retro') stamps data-ui on <html> and persists", () => {
-    useThemeStore.getState().setUi("retro");
-    expect(document.documentElement.getAttribute("data-ui")).toBe("retro");
-    expect(localStorage.getItem("kikkocode.ui")).toBe("retro");
-
-    useThemeStore.getState().setUi("classic");
-    expect(document.documentElement.hasAttribute("data-ui")).toBe(false);
-    expect(localStorage.getItem("kikkocode.ui")).toBe("classic");
-  });
-
-  it("toggleUi flips between classic and retro", () => {
-    useThemeStore.getState().toggleUi();
-    expect(useThemeStore.getState().ui).toBe("retro");
-    useThemeStore.getState().toggleUi();
-    expect(useThemeStore.getState().ui).toBe("classic");
-  });
-
-  it("switching to retro forces the dark theme (retro is a dark skin)", () => {
-    useThemeStore.getState().setTheme("light");
-    useThemeStore.getState().setUi("retro");
-    expect(useThemeStore.getState().theme).toBe("dark");
-    expect(document.documentElement.classList.contains("light")).toBe(false);
   });
 });
