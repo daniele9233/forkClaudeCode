@@ -16,6 +16,36 @@
 
 ---
 
+## 2026-07-09 · v0.4.4 — GLM "Invalid API key" causa vera (endpoint ↔ tipo chiave) + picker GLM pulito
+
+**Fase:** 12.57 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback utente: "glm-5.2 non va, ho rigenerato la key, non funziona; 20 modelli GLM")
+
+- **Causa reale di "Invalid API key"**: z.ai ha DUE endpoint NON intercambiabili.
+  - `https://api.z.ai/api/paas/v4` = API generale pay-as-you-go (chiave normale
+    dalla lista *API Keys*, formato `id.secret`).
+  - `https://api.z.ai/api/coding/paas/v4` = GLM **Coding Plan** (abbonamento).
+  Una chiave generale sull'endpoint *coding* → rifiutata "Invalid API key" (err
+  1113). In v0.4.3 il default era l'endpoint **coding** → l'utente, con una key
+  normale rigenerata dalla apikey list, prendeva "Invalid API key". **Fix:**
+  default riportato all'endpoint **generale** (`AddProviderKey` template `zai`),
+  hint riscritto per accoppiare esplicitamente endpoint↔tipo chiave (generale /
+  Coding Plan / Zhipu China). Endpoint resta editabile.
+- **Picker GLM pulito**: z.ai pubblicizza tutto il catalogo (~20 modelli:
+  GLM-4.5, 4.5V, 4.7-FlashX, 5.1, EV-Turbo, …). Nuovo `isCurrentGlmModel`
+  (`modelFilter.ts`, regex `(^|[^0-9.])(4\.6|5\.2)`) applicato in `ModelSwitcher`
+  al provider `zai` → restano solo le famiglie **4.6** (incl. 4.6V vision) e
+  **5.2**. La selezione attiva resta sempre visibile.
+
+### Gotcha / attenzione
+
+- Fix applicabile SUBITO anche senza aggiornare l'app: il campo endpoint è già
+  editabile → l'utente può cambiare `…/coding/paas/v4` → `…/paas/v4` e ri-salvare.
+- z.ai ancora non testabile qui (proxy egress blocca api.z.ai/docs.z.ai 403) →
+  diagnosi da docs ufficiali via WebSearch; la prova finale la fa l'utente.
+- 78 test verdi. Bump 0.4.4.
+
 ## 2026-07-08 · v0.4.3 — filtro provider nei modelli + GLM endpoint corretto
 
 **Fase:** 12.56 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

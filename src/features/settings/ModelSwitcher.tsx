@@ -6,7 +6,7 @@ import { useProviders } from "@/opencode/context";
 import { modelSupportsVision } from "@/opencode/modelCaps";
 import { useModelStore } from "@/stores/model.store";
 import { AddProviderKey } from "./AddProviderKey";
-import { isCurrentAnthropicModel } from "./modelFilter";
+import { isCurrentAnthropicModel, isCurrentGlmModel } from "./modelFilter";
 
 /** A model is FREE when both input and output cost per token are 0. */
 function isFreeModel(model: { cost?: { input?: number; output?: number } }): boolean {
@@ -194,6 +194,11 @@ export function ModelSwitcher() {
                       provider.id === "anthropic" &&
                       !isCurrentAnthropicModel(modelId, name)
                     ) {
+                      return false;
+                    }
+                    // z.ai advertises its full GLM catalog (~20 models) — trim
+                    // it to the current 4.6/5.2 families so the list is legible.
+                    if (provider.id === "zai" && !isCurrentGlmModel(modelId, name)) {
                       return false;
                     }
                     // OpenCode gateways (Zen / Go): surface only their FREE

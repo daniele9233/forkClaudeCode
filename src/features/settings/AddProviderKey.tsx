@@ -79,10 +79,14 @@ const TEMPLATES: Template[] = [
     id: "zai",
     label: "Z.ai (GLM)",
     envVar: "",
-    // z.ai's OpenAI-compatible CODING endpoint (the one that works with the GLM
-    // Coding Plan). Key format is `id.secret`; you pick the model (glm-5.2,
-    // glm-4.6, …). Provider id `zai` matches OpenCode's naming → `zai/glm-5.2`.
-    baseURL: "https://api.z.ai/api/coding/paas/v4",
+    // z.ai's OpenAI-compatible GENERAL endpoint — the one a normal API key from
+    // your z.ai "API Keys" list works with. The `/api/coding/paas/v4` CODING
+    // endpoint is a *different* product (GLM Coding Plan subscription) and
+    // rejects a general key with "Invalid API key" (error 1113) — the two are
+    // NOT interchangeable, so default to the general one and let Coding-Plan
+    // users switch. Key format is `id.secret`; pick the model (glm-5.2, …).
+    // Provider id `zai` matches OpenCode's naming → `zai/glm-5.2`.
+    baseURL: "https://api.z.ai/api/paas/v4",
     openaiCompat: true,
     defaultModel: "glm-5.2",
   },
@@ -366,10 +370,16 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
           ) : (
             <p className="text-[10px] leading-relaxed text-[var(--muted-foreground)]">
               Creates a <b>Z.ai</b> provider (<code>zai/glm-5.2</code>) you then select
-              below. Uses the GLM <b>coding</b> endpoint by default. Key is{" "}
-              <code>id.secret</code> from your z.ai apikey list. If your key is a Zhipu
-              China one instead, change the endpoint to{" "}
+              below. The two z.ai endpoints are <b>not</b> interchangeable — match the one
+              to your key:
+              <br />• Normal API key (from your z.ai <b>API Keys</b> list,{" "}
+              <code>id.secret</code>) → keep <code>…/api/paas/v4</code> (default).
+              <br />• <b>GLM Coding Plan</b> subscription → change to{" "}
+              <code>…/api/coding/paas/v4</code>.
+              <br />• Zhipu <b>China</b> key →{" "}
               <code>https://open.bigmodel.cn/api/paas/v4</code>.
+              <br />
+              Using the wrong pair gives “Invalid API key”.
             </p>
           )}
         </div>

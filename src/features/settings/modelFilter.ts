@@ -36,3 +36,16 @@ export function isCurrentAnthropicModel(id: string, name = ""): boolean {
   const norm = normalizeId(id);
   return ANTHROPIC_CURRENT_MODELS.some((p) => norm.includes(p));
 }
+
+/**
+ * Is this GLM (z.ai) model part of the current, worth-using lineup? The z.ai
+ * OpenAI-compatible endpoint advertises its whole catalog (~20 entries: GLM-4.5,
+ * 4.5V, 4.7-FlashX, 5.1, EV-Turbo, …), which floods the picker. Keep only the
+ * current families — the 4.6 line (incl. the 4.6V vision model) and 5.2 — so the
+ * list reads cleanly. The selected model always stays visible regardless (the
+ * caller keeps the active selection before applying this).
+ */
+export function isCurrentGlmModel(id: string, name = ""): boolean {
+  const hay = `${id} ${name}`;
+  return /(^|[^0-9.])(4\.6|5\.2)/.test(hay);
+}

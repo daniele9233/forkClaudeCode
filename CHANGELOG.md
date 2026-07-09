@@ -4,6 +4,22 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.4] — 2026-07-09
+
+### Fixed
+
+- **GLM / Z.ai "Invalid API key" — the real cause.** z.ai has two separate,
+  non-interchangeable endpoints: the general per-token API (`/api/paas/v4`, for a
+  normal API key from your z.ai _API Keys_ list) and the GLM Coding Plan
+  subscription (`/api/coding/paas/v4`). A general key on the coding endpoint is
+  rejected as "Invalid API key". The provider now defaults to the **general**
+  endpoint (what most keys are), and the hint spells out which endpoint goes with
+  which key — switch to the coding one only if you have a Coding Plan.
+- **No more ~20 GLM models cluttering the picker.** The z.ai catalog advertises
+  its whole lineup (GLM-4.5, 4.5V, 4.7-FlashX, 5.1, EV-Turbo, …); the picker now
+  shows only the current families — the **4.6** line (incl. 4.6V vision) and
+  **5.2** — so the list is legible. Your selected model always stays visible.
+
 ## [0.4.3] — 2026-07-08
 
 ### Added
