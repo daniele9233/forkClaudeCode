@@ -16,6 +16,36 @@
 
 ---
 
+## 2026-07-09 · v0.4.5 — GLM risponde 4.6 invece di 5.2: selezione stantìa che vince sull'invio
+
+**Fase:** 12.58 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback utente: "con la key risponde glm-4.6 / model ID glm/glm-4.6, ma la mia key è per glm-5.2")
+
+- **Diagnosi:** la chiave FUNZIONA (il modello risponde) ma viene usato `glm/glm-4.6`,
+  non `zai/glm-5.2`. Il path di invio (`ChatShell`) usa
+  `useModelStore.selected ?? config.model`. `useAddProvider` aggiornava solo
+  `config.model` (a `zai/glm-5.2`) **ma non** lo store → una selezione persistita
+  da una versione precedente (`glm/glm-4.6`: in v0.4.2 il template GLM aveva id
+  `glm` e default `glm-4.6`) restava in `model.store` (zustand persist, sopravvive
+  agli update) e **vinceva** su ogni messaggio, pur mostrando il picker su 5.2.
+- **Fix (`config.ts`):** `useAddProvider` ora chiama
+  `useModelStore.getState().setSelected(model)` per il modello appena aggiunto →
+  `zai/glm-5.2` diventa la selezione attiva e batte quella vecchia.
+- **Curatela GLM** estesa anche a un provider legacy `glm` (`ModelSwitcher`), non
+  solo `zai`.
+
+### Gotcha / attenzione
+
+- Fix immediato per l'utente senza update: **cliccare `glm-5.2` nel dropdown**
+  (sezione Z.ai) chiama `setSelected` e sovrascrive la selezione stantìa; oppure
+  installare v0.4.5. Verificare la barra di stato in basso: deve dire `zai/glm-5.2`.
+- Caveat: i modelli GLM a volte **dichiarano** un nome diverso dal reale (identità
+  da training) — l'ID autorevole è quello nella status bar, non la frase del modello.
+- Nessun tool per rimuovere il provider `glm` stantìo da opencode.json (persist non
+  ha remove) → resta in lista ma innocuo una volta che 5.2 è la selezione.
+- 78 test verdi. Bump 0.4.5.
+
 ## 2026-07-09 · v0.4.4 — GLM "Invalid API key" causa vera (endpoint ↔ tipo chiave) + picker GLM pulito
 
 **Fase:** 12.57 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

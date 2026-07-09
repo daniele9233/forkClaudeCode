@@ -198,7 +198,12 @@ export function ModelSwitcher() {
                     }
                     // z.ai advertises its full GLM catalog (~20 models) — trim
                     // it to the current 4.6/5.2 families so the list is legible.
-                    if (provider.id === "zai" && !isCurrentGlmModel(modelId, name)) {
+                    // Covers a legacy `glm` provider id too (earlier versions used
+                    // it before standardising on `zai`).
+                    if (
+                      (provider.id === "zai" || provider.id === "glm") &&
+                      !isCurrentGlmModel(modelId, name)
+                    ) {
                       return false;
                     }
                     // OpenCode gateways (Zen / Go): surface only their FREE

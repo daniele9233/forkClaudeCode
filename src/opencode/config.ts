@@ -113,6 +113,16 @@ export function useAddProvider() {
         throwOnError: true,
       });
 
+      // CRITICAL: also make this the active selection in our own store. The send
+      // path (ChatShell) uses `useModelStore.selected ?? config.model`, so a
+      // stale *persisted* selection from an earlier version (e.g. `glm/glm-4.6`
+      // when the GLM template used id `glm` with a 4.6 default) would otherwise
+      // keep winning — the user adds `zai/glm-5.2` but every message still routes
+      // to the old provider/model. Overwrite it here so the new key is used.
+      if (firstModelId && model) {
+        useModelStore.getState().setSelected(model);
+      }
+
       // Persist to the global opencode.json on disk so the provider survives an
       // engine/app restart (the runtime config.update may not write to disk).
       // Best-effort — non-fatal if the path can't be resolved.

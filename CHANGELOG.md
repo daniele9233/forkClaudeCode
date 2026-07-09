@@ -4,6 +4,20 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.5] — 2026-07-09
+
+### Fixed
+
+- **Adding a provider now actually switches to its model.** When you added a key
+  (e.g. `zai/glm-5.2`), the engine's default was updated but the app's own
+  selection wasn't — so a stale selection persisted from an earlier version
+  (e.g. `glm/glm-4.6`, back when the GLM template used id `glm` with a 4.6
+  default) kept winning, and every message quietly routed to the old model even
+  though the picker showed the new one. Adding a provider now sets it as the
+  active selection too. If you were stuck on GLM-4.6, GLM-5.2 is used now.
+- The GLM picker trim (4.6/5.2 families) also applies to a legacy `glm`
+  provider, not just `zai`.
+
 ## [0.4.4] — 2026-07-09
 
 ### Fixed
