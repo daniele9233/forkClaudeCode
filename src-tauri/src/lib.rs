@@ -3,6 +3,7 @@ mod dev_runner;
 mod preview_server;
 mod process;
 mod sidecar;
+mod skills_install;
 
 use dev_runner::{DevRunner, DevStatus};
 use preview_server::PreviewServer;
@@ -808,7 +809,10 @@ pub fn run() {
             start_dev_server,
             stop_dev_server,
             dev_server_status,
-            dev_command_info
+            dev_command_info,
+            skills_install::install_skill_repo,
+            skills_install::list_installed_skills,
+            skills_install::remove_installed_skill
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

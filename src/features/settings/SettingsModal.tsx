@@ -32,8 +32,9 @@ import { useSkillsStore } from "@/stores/skills.store";
 import { useStylesStore } from "@/stores/styles.store";
 import { useComposerStore } from "@/stores/composer.store";
 import { useMemoryStore } from "@/stores/memory.store";
-import { Image as ImageIcon, Link as LinkIcon, Eye, EyeOff } from "lucide-react";
+import { Image as ImageIcon, Link as LinkIcon, Eye, EyeOff, Package } from "lucide-react";
 import { RulesTab } from "./RulesTab";
+import { useSkillMarketplace } from "@/stores/skillMarketplace.store";
 
 type Tab = "studio" | "styles" | "skills" | "agents" | "mcp" | "rules";
 
@@ -847,11 +848,30 @@ function SkillManagerTab({ query }: { query: string }) {
     <div className="space-y-2">
       {/* What skills are */}
       <p className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/10 p-2.5 text-[10px] leading-relaxed text-[var(--muted-foreground)]">
-        Le <b className="text-[var(--foreground)]">skill</b> sono playbook di un esperto.
-        Quando la tua richiesta contiene le loro parole-chiave, la skill viene iniettata
-        in automatico nel prompt e l'agente la segue. Per iniziare subito usa la scheda{" "}
-        <b className="text-[var(--foreground)]">Studio</b>.
+        Le <b className="text-[var(--foreground)]">skill</b> qui sotto sono{" "}
+        <b className="text-[var(--foreground)]">playbook</b> di design: quando la tua
+        richiesta contiene le loro parole-chiave vengono iniettate in automatico nel
+        prompt. Sono diverse dalle{" "}
+        <b className="text-[var(--foreground)]">skill del motore</b> (invocabili, in{" "}
+        <code>~/.claude/skills</code>) — quelle si installano qui sotto.
       </p>
+
+      {/* Install real engine skills (marketplace) */}
+      <button
+        onClick={() => useSkillMarketplace.getState().openMarket()}
+        className="flex w-full items-center gap-2 rounded-lg border border-[var(--primary)]/30 bg-[var(--primary)]/10 p-3 text-left transition-colors hover:bg-[var(--primary)]/15"
+      >
+        <Package className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+        <span className="flex-1">
+          <span className="block text-xs font-semibold text-[var(--foreground)]">
+            Installa skill del motore
+          </span>
+          <span className="block text-[10px] text-[var(--muted-foreground)]">
+            Skill vere e invocabili (taste, gsap, ui-ux-pro-max, impeccable, remotion,
+            ufficiali Anthropic…) — o da qualsiasi URL GitHub.
+          </span>
+        </span>
+      </button>
 
       {/* Auto-apply master toggle */}
       <button

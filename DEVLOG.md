@@ -16,6 +16,43 @@
 
 ---
 
+## 2026-07-09 · v0.4.6 — menu "/" nel prompt + installer di skill VERE del motore
+
+**Fase:** 12.59 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback utente: "ho solo 2 skill vere; con / non esce la lista")
+
+Chiarito il malinteso: le "33 skill" del `catalog.ts` sono **playbook** auto-iniettati
+(sistema interno kikko), NON le skill invocabili del motore (quelle stanno in
+`~/.claude/skills`, l'utente ne vedeva 2). Aggiunte DUE cose:
+
+- **A) Menu `/` nel composer** (`ChatInput`): digitando `/` (token singolo, senza
+  spazi) appare un popover filtrabile con **skill** (pin), **ricette** (carica il
+  brief via `composer.fill`) e **azioni** (Installa skill… / Plan / Build).
+  Navigazione ↑↓, Invio/Tab per scegliere, Esc per chiudere. `slashItems` + override
+  di `handleKeyDown` quando il menu è aperto.
+- **B) Installer VERO di skill** (come `npx skills add`):
+  - Rust `skills_install.rs`: `install_skill_repo(url)` clona shallow il repo, trova
+    le cartelle `*/SKILL.md` sotto `.opencode/skills` / `.claude/skills` / `skills`
+    (dedupe per nome, priorità opencode), le copia in `~/.claude/skills/<nome>`;
+    `list_installed_skills`, `remove_installed_skill`. Registrati in `lib.rs`.
+    Riuso `process::hide_console` (no console Windows).
+  - Frontend: `skillInstall.ts` (invoke wrapper + `restartEngine`), `skillPacks.ts`
+    (7 pack curati: taste-skill 13, impeccable, ui-ux-pro-max, gsap 8, remotion,
+    anthropics/skills 18, superpowers 14 — tutti verificati raggiungibili+formato),
+    store `skillMarketplace`, modale `SkillMarketplace.tsx` (install/rimuovi/URL
+    custom/riavvia motore), montato in `App`. Pulsante d'accesso anche in Settings→Skills.
+
+### Gotcha / attenzione
+
+- Le skill vengono lette dal motore al **restart**: dopo l'install il modale offre
+  "Riavvia motore" (`restart_opencode`).
+- Target install = `~/.claude/skills` (dove l'utente vedeva le skill del motore).
+- **Rust non compilabile a mano nell'ambiente** → validato con `cargo check` locale
+  quando possibile + la **CI Windows** compila al push `[release]` (build fallita = nessuna
+  release). Frontend: typecheck + 78 test + build verdi.
+- L'installer funziona con QUALSIASI repo con cartelle `*/SKILL.md` (box URL custom).
+
 ## 2026-07-09 · v0.4.5 — GLM risponde 4.6 invece di 5.2: selezione stantìa che vince sull'invio
 
 **Fase:** 12.58 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

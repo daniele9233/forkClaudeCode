@@ -4,6 +4,27 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.6] — 2026-07-09
+
+### Added
+
+- **`/` command menu in the prompt** (like Claude Code) — type `/` to get a
+  filterable list of **skills** (pin one), **recipes** (load a full brief) and
+  **actions** (Install skills…, Plan/Build mode). Arrow keys + Enter to pick.
+- **Install real engine skills.** A new Skill Marketplace (open from `/` →
+  "Installa skill…" or Settings → Skills) installs proper OpenCode/Claude skills
+  from a git repo into `~/.claude/skills`, so the engine exposes them as
+  **invocable** skills — not just the built-in design playbooks. Curated packs:
+  Taste (design), Impeccable, UI/UX Pro Max, GSAP (motion), Remotion (video),
+  the official Anthropic pack, and Superpowers (workflow) — plus install from any
+  GitHub URL. One click to restart the engine so it rescans.
+
+### Note
+
+- The built-in 33 design **playbooks** (auto-injected by keyword) and the
+  **engine skills** (invocable, in `~/.claude/skills`) are now clearly separated
+  in the Skills tab — they were easy to confuse.
+
 ## [0.4.5] — 2026-07-09
 
 ### Fixed

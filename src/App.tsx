@@ -20,6 +20,11 @@ const FileDiffPanel = lazy(() =>
 const TerminalPanel = lazy(() =>
   import("@/features/terminal/TerminalPanel").then((m) => ({ default: m.TerminalPanel })),
 );
+const SkillMarketplace = lazy(() =>
+  import("@/features/skills/SkillMarketplace").then((m) => ({
+    default: m.SkillMarketplace,
+  })),
+);
 const PreviewPanel = lazy(() =>
   import("@/features/preview/PreviewPanel").then((m) => ({ default: m.PreviewPanel })),
 );
@@ -307,6 +312,7 @@ export default function App() {
         {settingsOpen && <SettingsModal onClose={closeSettings} />}
         {projectPickerOpen && <ProjectPicker onClose={closeProjectPicker} />}
         {showOnboarding && <OnboardingWizard />}
+        <SkillMarketplace />
       </Suspense>
     </motion.div>
   );

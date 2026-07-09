@@ -21,7 +21,19 @@ import { useSkillsStore } from "@/stores/skills.store";
 import { useStylesStore } from "@/stores/styles.store";
 import { useComposerStore } from "@/stores/composer.store";
 import { enhancePrompt } from "@/opencode/enhance";
-import { planInjection } from "@/skills/match";
+import { planInjection, activeCatalog } from "@/skills/match";
+import { RECIPES } from "@/skills/recipes";
+import { useSkillMarketplace } from "@/stores/skillMarketplace.store";
+
+/** An entry in the "/" quick menu: a skill to pin, a recipe to load, or an action. */
+interface SlashItem {
+  kind: "skill" | "recipe" | "action";
+  id: string;
+  label: string;
+  emoji: string;
+  hint: string;
+  run: () => void;
+}
 
 export type AgentMode = "build" | "plan";
 
@@ -95,6 +107,86 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   const activeStyle = styleActiveId
     ? styles.find((s) => s.id === styleActiveId)
     : undefined;
+
+  // "/" quick menu (like Claude Code): typing "/" opens a filterable list of
+  // skills (pin), recipes (load a brief) and actions. Active while the field
+  // holds a single "/word" token (no space/newline yet).
+  const fillComposer = useComposerStore((s) => s.fill);
+  const openMarket = useSkillMarketplace((s) => s.openMarket);
+  const [slashSel, setSlashSel] = useState(0);
+  const slashQuery = useMemo(() => {
+    if (!text.startsWith("/") || /\s/.test(text)) return null;
+    return text.slice(1).toLowerCase();
+  }, [text]);
+  const slashItems = useMemo((): SlashItem[] => {
+    if (slashQuery === null) return [];
+    const q = slashQuery;
+    const match = (s: string) => !q || s.toLowerCase().includes(q);
+    const items: SlashItem[] = [];
+    const actions: SlashItem[] = [
+      {
+        kind: "action",
+        id: "install-skills",
+        label: "Installa skill…",
+        emoji: "📦",
+        hint: "apri il marketplace delle skill del motore",
+        run: () => {
+          openMarket();
+          setText("");
+        },
+      },
+      {
+        kind: "action",
+        id: "plan",
+        label: "Modalità Plan",
+        emoji: "🗺️",
+        hint: "pianifica senza eseguire",
+        run: () => {
+          setMode("plan");
+          setText("");
+        },
+      },
+      {
+        kind: "action",
+        id: "build",
+        label: "Modalità Build",
+        emoji: "🔨",
+        hint: "esegui: scrive file e comandi",
+        run: () => {
+          setMode("build");
+          setText("");
+        },
+      },
+    ];
+    for (const a of actions) if (match(`${a.label} ${a.id}`)) items.push(a);
+    for (const r of RECIPES) {
+      if (!match(`${r.name} ${r.id}`)) continue;
+      items.push({
+        kind: "recipe",
+        id: r.id,
+        label: r.name,
+        emoji: r.emoji,
+        hint: r.description,
+        run: () => fillComposer(r.prompt, "recipe", r.skillIds),
+      });
+    }
+    for (const sk of activeCatalog()) {
+      if (!match(`${sk.name} ${sk.id}`)) continue;
+      items.push({
+        kind: "skill",
+        id: sk.id,
+        label: sk.name,
+        emoji: sk.emoji,
+        hint: sk.description,
+        run: () => {
+          if (!pinned.includes(sk.id)) togglePin(sk.id);
+          setText("");
+        },
+      });
+    }
+    return items.slice(0, 40);
+  }, [slashQuery, fillComposer, openMarket, pinned, togglePin]);
+  useEffect(() => setSlashSel(0), [slashQuery]);
 
   // Textarea auto-size that plays nice with the manual resize handle:
   // - grows AND shrinks to fit the content (up to 60vh) until the user drags
@@ -231,6 +323,30 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
   }, [text, enhancing, autoGrow]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // When the "/" menu is open it captures navigation keys.
+    if (slashItems.length > 0) {
+      const n = slashItems.length;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashSel((i) => (i + 1) % n);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashSel((i) => (i - 1 + n) % n);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        slashItems[Math.min(slashSel, n - 1)].run();
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setText("");
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       submit();
@@ -449,7 +565,40 @@ export function ChatInput({ onSend, onAbort, disabled, isRunning }: Props) {
       )}
 
       {/* Textarea + send button row */}
-      <div className="flex items-end gap-2 px-3 py-2.5">
+      <div className="relative flex items-end gap-2 px-3 py-2.5">
+        {/* "/" quick menu — skills, recipes, actions (floats above the input) */}
+        {slashItems.length > 0 && (
+          <div className="glass-strong glass-border absolute bottom-full left-2 right-2 z-50 mb-2 max-h-64 overflow-y-auto rounded-xl p-1 shadow-xl">
+            <div className="px-2 py-1 text-[9px] uppercase tracking-wider text-[var(--muted-foreground)]/70">
+              / comandi — ↑↓ per scorrere, Invio per scegliere
+            </div>
+            {slashItems.map((it, i) => (
+              <button
+                key={`${it.kind}:${it.id}`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  it.run();
+                }}
+                onMouseEnter={() => setSlashSel(i)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
+                  i === slashSel ? "bg-[var(--primary)]/15" : "hover:bg-white/5",
+                )}
+              >
+                <span className="shrink-0 text-sm">{it.emoji}</span>
+                <span className="shrink-0 text-xs font-medium text-[var(--foreground)]">
+                  {it.label}
+                </span>
+                <span className="shrink-0 rounded-sm bg-[var(--muted)]/50 px-1 text-[8px] uppercase tracking-wide text-[var(--muted-foreground)]">
+                  {it.kind}
+                </span>
+                <span className="ml-auto truncate pl-2 text-[10px] text-[var(--muted-foreground)]">
+                  {it.hint}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         <textarea
           ref={textareaRef}
           value={text}
