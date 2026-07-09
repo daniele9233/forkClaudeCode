@@ -4,6 +4,24 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.3] — 2026-07-08
+
+### Added
+
+- **Filter the model list by provider** — the model dropdown now has provider
+  chips (All · DeepSeek · Anthropic · …); pick one to see only that provider's
+  models instead of every provider at once.
+
+### Fixed
+
+- **GLM / Z.ai works out of the box.** The provider now uses the correct GLM
+  coding endpoint (`https://api.z.ai/api/coding/paas/v4`) and id `zai`, so
+  `zai/glm-5.2` connects with your key (was "Invalid API key"). The endpoint is
+  also editable (switch to Zhipu `open.bigmodel.cn` if your key is a China one).
+- **No more "Invalid API key" from paid gateway models.** The OpenCode Zen/Go
+  gateways now show only their FREE models; paid gateway models (which need an
+  OpenCode subscription) are hidden.
+
 ## [0.4.2] — 2026-07-08
 
 ### Added

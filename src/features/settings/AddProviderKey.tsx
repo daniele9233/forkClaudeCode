@@ -76,14 +76,15 @@ const TEMPLATES: Template[] = [
     baseURL: "https://api.mistral.ai/v1",
   },
   {
-    id: "glm",
-    label: "GLM (z.ai / Zhipu)",
+    id: "zai",
+    label: "Z.ai (GLM)",
     envVar: "",
-    // z.ai's OpenAI-compatible endpoint. Key format is `id.secret`. You pick
-    // the model (e.g. glm-4.6, glm-4.5-flash, or a newer glm-5.x).
-    baseURL: "https://api.z.ai/api/paas/v4",
+    // z.ai's OpenAI-compatible CODING endpoint (the one that works with the GLM
+    // Coding Plan). Key format is `id.secret`; you pick the model (glm-5.2,
+    // glm-4.6, …). Provider id `zai` matches OpenCode's naming → `zai/glm-5.2`.
+    baseURL: "https://api.z.ai/api/coding/paas/v4",
     openaiCompat: true,
-    defaultModel: "glm-4.6",
+    defaultModel: "glm-5.2",
   },
   // Open-source / local runtimes — no cloud key. OpenRouter and Groq (above)
   // already serve open-weight models with a key; these run fully on your machine.
@@ -127,10 +128,14 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
   const needsModel = isLocal || isOpenaiCompat;
   const choiceLabel = choice === OTHER ? "the provider" : selectedTemplate?.label;
 
-  // Pre-fill the model field when a runtime that lets you pick a model is chosen.
+  // Pre-fill the model (and, for cloud OpenAI-compatible providers, the editable
+  // endpoint) when a runtime that lets you pick a model is chosen.
   useEffect(() => {
     if (selectedTemplate?.local || selectedTemplate?.openaiCompat) {
       setCustomModel((m) => m || selectedTemplate.defaultModel || "");
+    }
+    if (selectedTemplate?.openaiCompat) {
+      setCustomBaseUrl((b) => b || selectedTemplate.baseURL);
     }
   }, [choice, selectedTemplate]);
 
@@ -211,6 +216,7 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
     // (a bad key surfaces on the first message).
     if (selectedTemplate?.openaiCompat) {
       const model = customModel.trim() || selectedTemplate.defaultModel || "";
+      const baseURL = customBaseUrl.trim() || selectedTemplate.baseURL;
       if (!model) {
         setError("Type the model id (e.g. glm-4.6).");
         return;
@@ -220,7 +226,7 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
           id: selectedTemplate.id,
           name: selectedTemplate.label.replace(/\s*\(.*\)$/, ""),
           npm: OPENAI_COMPAT,
-          baseURL: selectedTemplate.baseURL,
+          baseURL,
           apiKey: trimmedKey,
           models: { [model]: model },
         });
@@ -330,12 +336,21 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
 
       {needsModel && (
         <div className="space-y-1">
+          {isOpenaiCompat && (
+            <input
+              type="text"
+              placeholder="endpoint (base URL)"
+              value={customBaseUrl}
+              onChange={(e) => setCustomBaseUrl(e.target.value)}
+              className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            />
+          )}
           <input
             type="text"
             placeholder={
               isLocal
                 ? "local model id (e.g. llama3.1, qwen2.5-coder)"
-                : "model id (e.g. glm-4.6, glm-4.5-flash)"
+                : "model id (e.g. glm-5.2, glm-4.6)"
             }
             value={customModel}
             onChange={(e) => setCustomModel(e.target.value)}
@@ -350,8 +365,11 @@ export function AddProviderKey({ onConnected }: { onConnected?: () => void } = {
             </p>
           ) : (
             <p className="text-[10px] leading-relaxed text-[var(--muted-foreground)]">
-              Paste your key below (GLM keys look like <code>id.secret</code>) and set the
-              model id. Endpoint: <code>{selectedTemplate?.baseURL}</code>.
+              Creates a <b>Z.ai</b> provider (<code>zai/glm-5.2</code>) you then select
+              below. Uses the GLM <b>coding</b> endpoint by default. Key is{" "}
+              <code>id.secret</code> from your z.ai apikey list. If your key is a Zhipu
+              China one instead, change the endpoint to{" "}
+              <code>https://open.bigmodel.cn/api/paas/v4</code>.
             </p>
           )}
         </div>

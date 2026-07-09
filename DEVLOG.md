@@ -16,6 +16,31 @@
 
 ---
 
+## 2026-07-08 · v0.4.3 — filtro provider nei modelli + GLM endpoint corretto
+
+**Fase:** 12.56 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback utente)
+
+- **Filtro per provider** nel dropdown modelli (`ModelSwitcher`): chip
+  `All · <provider>…` (`providerFilter`) → mostra un provider alla volta (troppi
+  modelli tutti insieme).
+- **GLM/Z.ai corretto**: l'utente ha trovato l'endpoint giusto. Template `glm`
+  → **id `zai`**, baseURL `https://api.z.ai/api/coding/paas/v4` (endpoint
+  **coding**, non `/paas/v4`), defaultModel `glm-5.2` → `zai/glm-5.2` connette con
+  la chiave (era "Invalid API key" per endpoint sbagliato). Endpoint reso anche
+  **editabile** (campo baseURL per openaiCompat) per il fallback bigmodel.cn.
+- **Gateway free-only esteso**: i modelli a pagamento di **OpenCode Zen E Go**
+  (che davano "Invalid API key" al click senza abbonamento gateway) sono nascosti;
+  restano i FREE. Rilevati con `id === "opencode" || id.startsWith("opencode-") ||
+/opencode/i.test(name)`.
+
+### Gotcha / attenzione
+
+- z.ai key ancora non testabile qui (proxy egress blocca api.z.ai) → il fix è a
+  livello di config (endpoint corretto fornito dall'utente); la prova l'utente.
+- 78 test. Bump 0.4.3.
+
 ## 2026-07-08 · v0.4.2 — provider GLM (z.ai) + connessione GitHub con repo picker
 
 **Fase:** 12.55 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

@@ -22,6 +22,7 @@ function isFreeModel(model: { cost?: { input?: number; output?: number } }): boo
 export function ModelSwitcher() {
   const [open, setOpen] = useState(false);
   const [modelQuery, setModelQuery] = useState("");
+  const [providerFilter, setProviderFilter] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const { data: config } = useConfig();
   const { data: providers = [] } = useProviders();
@@ -126,13 +127,43 @@ export function ModelSwitcher() {
           </div>
 
           {visibleProviders.length > 0 && (
-            <div className="shrink-0 border-t border-[var(--border)] px-2 py-1.5">
+            <div className="shrink-0 space-y-1.5 border-t border-[var(--border)] px-2 py-1.5">
               <input
                 value={modelQuery}
                 onChange={(e) => setModelQuery(e.target.value)}
                 placeholder="Search models… (e.g. opus 4.8)"
                 className="h-7 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
               />
+              {/* Provider filter — show one provider at a time. */}
+              {visibleProviders.length > 1 && (
+                <div className="flex gap-1 overflow-x-auto pb-0.5">
+                  <button
+                    onClick={() => setProviderFilter(null)}
+                    className={cn(
+                      "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
+                      providerFilter === null
+                        ? "bg-[var(--primary)]/20 text-[var(--primary)]"
+                        : "bg-[var(--muted)]/40 text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
+                    )}
+                  >
+                    All
+                  </button>
+                  {visibleProviders.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setProviderFilter(p.id)}
+                      className={cn(
+                        "shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
+                        providerFilter === p.id
+                          ? "bg-[var(--primary)]/20 text-[var(--primary)]"
+                          : "bg-[var(--muted)]/40 text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
+                      )}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -142,101 +173,110 @@ export function ModelSwitcher() {
                 No models yet — add a provider key above.
               </p>
             )}
-            {visibleProviders.map((provider) => {
-              const q = modelQuery.trim().toLowerCase();
-              // Curate the list: always keep the selected model; drop
-              // `deprecated` ones; for Anthropic show only the current lineup
-              // (hides old point releases, "(latest)" aliases and "Fast"
-              // variants); then apply the search box (id or display name).
-              const models = Object.entries(provider.models ?? {}).filter(
-                ([modelId, model]) => {
-                  const isActiveSelection =
-                    currentProviderId === provider.id && currentModelId === modelId;
-                  if (isActiveSelection) return true;
-                  const name = model.name ?? "";
-                  if ((model as { status?: string }).status === "deprecated") {
-                    return false;
-                  }
-                  if (
-                    provider.id === "anthropic" &&
-                    !isCurrentAnthropicModel(modelId, name)
-                  ) {
-                    return false;
-                  }
-                  // The built-in Zen gateway: surface only its FREE models.
-                  if (provider.id === "opencode" && !isFreeModel(model)) {
-                    return false;
-                  }
-                  if (!q) return true;
-                  return (
-                    modelId.toLowerCase().includes(q) || name.toLowerCase().includes(q)
-                  );
-                },
-              );
-              if (models.length === 0) return null;
-              return (
-                <div key={provider.id}>
-                  <div className="px-3 pb-0.5 pt-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
-                    {provider.name}
-                  </div>
-                  {models.map(([modelId, model]) => {
-                    const active =
+            {visibleProviders
+              .filter((p) => !providerFilter || p.id === providerFilter)
+              .map((provider) => {
+                const q = modelQuery.trim().toLowerCase();
+                // Curate the list: always keep the selected model; drop
+                // `deprecated` ones; for Anthropic show only the current lineup
+                // (hides old point releases, "(latest)" aliases and "Fast"
+                // variants); then apply the search box (id or display name).
+                const models = Object.entries(provider.models ?? {}).filter(
+                  ([modelId, model]) => {
+                    const isActiveSelection =
                       currentProviderId === provider.id && currentModelId === modelId;
+                    if (isActiveSelection) return true;
+                    const name = model.name ?? "";
+                    if ((model as { status?: string }).status === "deprecated") {
+                      return false;
+                    }
+                    if (
+                      provider.id === "anthropic" &&
+                      !isCurrentAnthropicModel(modelId, name)
+                    ) {
+                      return false;
+                    }
+                    // OpenCode gateways (Zen / Go): surface only their FREE
+                    // models. The paid gateway models need an OpenCode
+                    // subscription and otherwise fail with "Invalid API key" when
+                    // clicked — hide them and keep the free ones.
+                    const isGateway =
+                      provider.id === "opencode" ||
+                      provider.id.startsWith("opencode-") ||
+                      /opencode/i.test(provider.name ?? "");
+                    if (isGateway && !isFreeModel(model)) {
+                      return false;
+                    }
+                    if (!q) return true;
                     return (
-                      <button
-                        key={modelId}
-                        onClick={() => selectModel(provider.id, modelId)}
-                        className={cn(
-                          "flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
-                          active
-                            ? "bg-[var(--color-online)]/10"
-                            : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]",
-                        )}
-                      >
-                        {/* Online dot on the connected model */}
-                        {active && (
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-online)] shadow-[0_0_6px_var(--color-online)]" />
-                        )}
-                        <span
+                      modelId.toLowerCase().includes(q) || name.toLowerCase().includes(q)
+                    );
+                  },
+                );
+                if (models.length === 0) return null;
+                return (
+                  <div key={provider.id}>
+                    <div className="px-3 pb-0.5 pt-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+                      {provider.name}
+                    </div>
+                    {models.map(([modelId, model]) => {
+                      const active =
+                        currentProviderId === provider.id && currentModelId === modelId;
+                      return (
+                        <button
+                          key={modelId}
+                          onClick={() => selectModel(provider.id, modelId)}
                           className={cn(
-                            "flex-1 truncate text-xs",
-                            active && "font-semibold text-[var(--color-online)]",
+                            "flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
+                            active
+                              ? "bg-[var(--color-online)]/10"
+                              : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]",
                           )}
                         >
-                          {model.name || modelId}
-                        </span>
-                        {/* FREE tag (like OpenCode) on zero-cost models */}
-                        {isFreeModel(model) && (
-                          <span className="shrink-0 rounded-sm bg-[var(--color-online)]/15 px-1 text-[9px] font-bold uppercase tracking-wider text-[var(--color-online)]">
-                            free
+                          {/* Online dot on the connected model */}
+                          {active && (
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-online)] shadow-[0_0_6px_var(--color-online)]" />
+                          )}
+                          <span
+                            className={cn(
+                              "flex-1 truncate text-xs",
+                              active && "font-semibold text-[var(--color-online)]",
+                            )}
+                          >
+                            {model.name || modelId}
                           </span>
-                        )}
-                        {active && (
-                          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-[var(--color-online)]">
-                            online
-                          </span>
-                        )}
-                        {/* Vision-capable models show an eye */}
-                        {modelSupportsVision(model) && (
-                          <Eye
-                            className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]"
-                            aria-label="Vede le immagini"
-                          />
-                        )}
-                        {model.limit?.context ? (
-                          <span className="shrink-0 text-[9px] text-[var(--muted-foreground)]">
-                            {(model.limit.context / 1000).toFixed(0)}K
-                          </span>
-                        ) : null}
-                        {active && (
-                          <Check className="h-3 w-3 shrink-0 text-[var(--color-online)]" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                          {/* FREE tag (like OpenCode) on zero-cost models */}
+                          {isFreeModel(model) && (
+                            <span className="shrink-0 rounded-sm bg-[var(--color-online)]/15 px-1 text-[9px] font-bold uppercase tracking-wider text-[var(--color-online)]">
+                              free
+                            </span>
+                          )}
+                          {active && (
+                            <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-[var(--color-online)]">
+                              online
+                            </span>
+                          )}
+                          {/* Vision-capable models show an eye */}
+                          {modelSupportsVision(model) && (
+                            <Eye
+                              className="h-3 w-3 shrink-0 text-[var(--muted-foreground)]"
+                              aria-label="Vede le immagini"
+                            />
+                          )}
+                          {model.limit?.context ? (
+                            <span className="shrink-0 text-[9px] text-[var(--muted-foreground)]">
+                              {(model.limit.context / 1000).toFixed(0)}K
+                            </span>
+                          ) : null}
+                          {active && (
+                            <Check className="h-3 w-3 shrink-0 text-[var(--color-online)]" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
           </div>
 
           {/* Written vision status of the selected model */}
