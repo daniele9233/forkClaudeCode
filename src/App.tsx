@@ -25,6 +25,11 @@ const SkillMarketplace = lazy(() =>
     default: m.SkillMarketplace,
   })),
 );
+const ThinkingPulse = lazy(() =>
+  import("@/features/thinking/ThinkingPulse").then((m) => ({
+    default: m.ThinkingPulse,
+  })),
+);
 const PreviewPanel = lazy(() =>
   import("@/features/preview/PreviewPanel").then((m) => ({ default: m.PreviewPanel })),
 );
@@ -313,6 +318,7 @@ export default function App() {
         {projectPickerOpen && <ProjectPicker onClose={closeProjectPicker} />}
         {showOnboarding && <OnboardingWizard />}
         <SkillMarketplace />
+        <ThinkingPulse />
       </Suspense>
     </motion.div>
   );

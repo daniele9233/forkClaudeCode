@@ -98,9 +98,11 @@ function UserBubble({ message, parts }: { message: Message; parts: Part[] }) {
     : "";
 
   return (
-    <div className="border border-[var(--border)]">
+    <div className="rounded-r-sm border border-[var(--border)] border-l-2 border-l-[var(--chat-user-accent)] bg-[var(--chat-user-bg)]">
       <div className="flex items-center border-b border-[var(--border)]">
-        <span className="bp-tab">user · {time}</span>
+        <span className="bp-tab font-semibold text-[var(--chat-user-accent)]">
+          user · {time}
+        </span>
         {message.sessionID && (
           <div className="ml-auto">
             <RewindButton sessionId={message.sessionID} messageId={message.id} />
@@ -153,7 +155,12 @@ function AssistantBubble({ parts, isStreaming, error }: AssistantBubbleProps) {
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] min-w-0">
+      {/* Role-tinted container so the model's answer is visually distinct from
+          the user's amber question box (works in light and dark). */}
+      <div className="max-w-[85%] min-w-0 rounded-r-sm border-l-2 border-l-[var(--chat-agent-accent)] bg-[var(--chat-agent-bg)] px-3 py-2">
+        <span className="hud-label mb-1 block font-semibold text-[var(--chat-agent-accent)]">
+          agent
+        </span>
         {!hasVisibleContent && isStreaming && (
           <div className="flex items-center gap-2 py-1 text-sm text-[var(--muted-foreground)]">
             <span className="inline-flex gap-0.5">

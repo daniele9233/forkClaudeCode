@@ -4,6 +4,19 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.7] — 2026-07-11
+
+### Added
+
+- **Chat role colors** — you can now tell your question and the model's answer
+  apart at a glance: your messages sit in an **amber**-accented box, the agent's
+  replies in a **cyan**-accented one (with an "agent" label). Works in both the
+  light and dark theme.
+- **ThinkingPulse** — while the agent works, an elegant floating visual appears:
+  a living waveform of amber/cyan light with rising sparks that **pulses with
+  real activity** (every streamed token feeds its energy). Dismissible per run;
+  honors `prefers-reduced-motion` (static gradient instead).
+
 ## [0.4.6] — 2026-07-09
 
 ### Added

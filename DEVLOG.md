@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-07-11 · v0.4.7 — colori di ruolo in chat + ThinkingPulse (visual "sta pensando")
+
+**Fase:** 12.60 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback utente: "non distinguo domanda/risposta; voglio qualcosa da vedere mentre pensa")
+
+- **Colori di ruolo in chat**: nuovi token `--chat-user-accent/bg` (ambra) e
+  `--chat-agent-accent/bg` (ciano) in `:root` E `.light` (`index.css`).
+  `MessageBubble`: il box utente ha bordo-sinistro ambra + tinta + label ambra;
+  la risposta dell'agente ora ha un contenitore con bordo-sinistro ciano + tinta
+  + label "agent" (prima era testo nudo → si fondeva con tutto).
+- **ThinkingPulse** (`features/thinking/ThinkingPulse.tsx`, montato in App):
+  card flottante in basso a destra visibile solo mentre `runningSessions` ha la
+  sessione attiva. Canvas RAF: 2 onde (ambra+eco ciano, glow) + 22 scintille che
+  salgono. **Energia legata all'attività reale**: ogni update di `liveMessages`
+  fa +0.35 (decay 0.006/frame) → pulsa forte quando i token scorrono, si calma
+  da fermo. Chiudibile per-run (torna al run dopo). `prefers-reduced-motion` →
+  gradiente statico, zero animazione. L'utente ha chiesto "la più bella da
+  vedere" tra le opzioni proposte (Tetris/ticker/pulse/stats) → scelto pulse.
+
+### Gotcha / attenzione
+
+- Canvas usa colori hex fissi (ambra #e7a93c / ciano #38bdf8) leggibili su
+  entrambi i temi; la card usa glass-strong quindi si adatta da sola.
+- 78 test verdi, typecheck, build. Bump 0.4.7.
+
 ## 2026-07-09 · v0.4.6 — menu "/" nel prompt + installer di skill VERE del motore
 
 **Fase:** 12.59 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
