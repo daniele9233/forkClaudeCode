@@ -16,6 +16,43 @@
 
 ---
 
+## 2026-07-12 · v0.4.8 — Tetris in sidebar, colori netti, Files tab, web3d, MCP Blender+21st
+
+**Fase:** 12.61 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (batch di feedback utente)
+
+- **Colori chat più netti**: `--chat-user-*` → blu elettrico (#2979ff), `--chat-agent-*`
+  → verde neon (#39ff14); light theme con varianti scure leggibili (#1d4ed8/#16a34a).
+- **Tetris al posto del pulse**: `ThinkingPulse` eliminato; `Tetris.tsx` ripristinato
+  dalla history git (era della Retro OS, rimossa in v0.4.1) in `features/thinking/`,
+  adattato (via classi retro-glow) + `SidebarTetris.tsx` montato in App **sotto
+  Sessions** (h-64, solo mentre `runningSessions` ha la sessione attiva, X per-run).
+- **File tree fuori dalla sidebar**: rimosso da App sidebar (sessions ora flex-1);
+  nuova tab **Files** nel pannello inferiore (`BottomTab` + blocco con `<FileTree/>`).
+  `openFile` apre già la tab Diff → click su file = diff, UX invariata.
+- **Specializzazione 3D/motion (`web3d`)**: nuova skill playbook con trigger
+  aggressivi ("sito","website","landing","3d","webgl","hero"…) che IMPONE stack
+  three/R3F+drei, GSAP ScrollTrigger (pin/scrub/batch), Lenis, micro-motion
+  magnetica, fallback reduced-motion. negativeKeywords ("semplice","no 3d") per
+  l'opt-out. Aggiunta alle **5 ricette** Studio dopo "taste". Root cause del
+  feedback "template carino ma niente degno di nota": nessuna skill spingeva 3D/
+  scroll-storytelling di default.
+- **MCP consigliati estesi** (SettingsModal): RECOMMENDED_MCP ora supporta
+  `command` (local) O `remote {url,keyHeader}`. Aggiunti **Blender**
+  (`uvx blender-mcp`; richiede uv + addon in Blender) e **21st.dev Magic**
+  (remote `https://21st.dev/api/mcp`, header `x-api-key` con input chiave nel
+  pannello — la chiave resta nel config locale del motore, MAI nel repo).
+
+### Gotcha / attenzione
+
+- La chiave 21st incollata in chat dall'utente → da RIGENERARE sul dashboard
+  21st.dev (mai committata).
+- I comandi `claude mcp add` incollati sono per Claude Code CLI — in kikkoCode
+  equivalgono a Settings → MCP → Consigliati → 21st (+ chiave).
+- ui-ux-pro-max era GIÀ presente (playbook `uiux-pro-max` + pack marketplace).
+- 78 test verdi, typecheck, build. Bump 0.4.8.
+
 ## 2026-07-11 · v0.4.7 — colori di ruolo in chat + ThinkingPulse (visual "sta pensando")
 
 **Fase:** 12.60 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

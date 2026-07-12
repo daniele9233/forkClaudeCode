@@ -147,8 +147,27 @@ const RECOMMENDED_MCP: {
   name: string;
   label: string;
   desc: string;
-  command: string[];
+  /** Local stdio server — the command to spawn. */
+  command?: string[];
+  /** Remote (HTTP) server — URL + the header the API key goes into. */
+  remote?: { url: string; keyHeader?: string; keyPlaceholder?: string };
 }[] = [
+  {
+    name: "21st",
+    label: "21st.dev Magic (componenti UI)",
+    desc: "Genera/raffina componenti UI di livello 21st.dev direttamente in chat (serve la API key dal tuo account 21st.dev — resta solo sul tuo PC).",
+    remote: {
+      url: "https://21st.dev/api/mcp",
+      keyHeader: "x-api-key",
+      keyPlaceholder: "21st_sk_…",
+    },
+  },
+  {
+    name: "blender",
+    label: "Blender (3D)",
+    desc: "L'agente modella scene 3D in Blender (crea/modifica oggetti, materiali, render). Richiede uv + l'addon blender-mcp installato e avviato in Blender.",
+    command: ["uvx", "blender-mcp"],
+  },
   {
     name: "kubernetes",
     label: "Kubernetes / RKE2",
@@ -174,16 +193,34 @@ function McpTab({ query }: { query: string }) {
   const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
-  /** One-click connect a recommended server (adds a local MCP entry). */
+  // API keys typed for recommended remote servers (e.g. 21st) — kept in local
+  // state, written only into the local engine config, never into the repo.
+  const [mcpKeys, setMcpKeys] = useState<Record<string, string>>({});
+
+  /** One-click connect a recommended server (local command or remote URL). */
   const addRecommended = async (r: (typeof RECOMMENDED_MCP)[number]) => {
     if (saving) return;
     setSaving(true);
     try {
-      const updated = {
-        ...config?.mcp,
-        [r.name]: { type: "local" as const, command: r.command, enabled: true },
-      };
+      let entry: McpLocalConfig | McpRemoteConfig;
+      if (r.command) {
+        entry = { type: "local", command: r.command, enabled: true };
+      } else if (r.remote) {
+        const key = (mcpKeys[r.name] ?? "").trim();
+        entry = {
+          type: "remote",
+          url: r.remote.url,
+          enabled: true,
+          ...(r.remote.keyHeader && key
+            ? { headers: { [r.remote.keyHeader]: key } }
+            : {}),
+        };
+      } else {
+        return;
+      }
+      const updated = { ...config?.mcp, [r.name]: entry };
       await updateConfig.mutateAsync({ mcp: updated });
+      setMcpKeys((k) => ({ ...k, [r.name]: "" }));
     } finally {
       setSaving(false);
     }
@@ -248,35 +285,55 @@ function McpTab({ query }: { query: string }) {
             Consigliati — collega in un click
           </div>
           <div className="flex flex-col gap-1.5">
-            {missingRecommended.map((r) => (
-              <button
-                key={r.name}
-                onClick={() => void addRecommended(r)}
-                disabled={saving}
-                className="flex items-start gap-2 rounded-md border border-[var(--border)] bg-[var(--muted)]/20 p-2 text-left transition-colors hover:border-[var(--primary)]/50 hover:bg-[var(--muted)]/40 disabled:opacity-50"
-              >
-                {saving ? (
-                  <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-[var(--primary)]" />
-                ) : (
-                  <Plus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
-                )}
-                <span className="min-w-0">
-                  <span className="text-xs font-medium text-[var(--foreground)]">
-                    {r.label}
-                  </span>
-                  <span className="block text-[10px] leading-relaxed text-[var(--muted-foreground)]">
-                    {r.desc}
-                  </span>
-                  <code className="mt-0.5 block truncate font-mono text-[9px] text-[var(--muted-foreground)]/70">
-                    {r.command.join(" ")}
-                  </code>
-                </span>
-              </button>
-            ))}
+            {missingRecommended.map((r) => {
+              const needsKey = !!r.remote?.keyHeader;
+              return (
+                <div
+                  key={r.name}
+                  className="rounded-md border border-[var(--border)] bg-[var(--muted)]/20 p-2"
+                >
+                  <button
+                    onClick={() => void addRecommended(r)}
+                    disabled={saving || (needsKey && !(mcpKeys[r.name] ?? "").trim())}
+                    className="flex w-full items-start gap-2 text-left transition-colors hover:opacity-90 disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-[var(--primary)]" />
+                    ) : (
+                      <Plus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
+                    )}
+                    <span className="min-w-0">
+                      <span className="text-xs font-medium text-[var(--foreground)]">
+                        {r.label}
+                      </span>
+                      <span className="block text-[10px] leading-relaxed text-[var(--muted-foreground)]">
+                        {r.desc}
+                      </span>
+                      <code className="mt-0.5 block truncate font-mono text-[9px] text-[var(--muted-foreground)]/70">
+                        {r.command ? r.command.join(" ") : r.remote?.url}
+                      </code>
+                    </span>
+                  </button>
+                  {needsKey && (
+                    <input
+                      type="password"
+                      value={mcpKeys[r.name] ?? ""}
+                      onChange={(e) =>
+                        setMcpKeys((k) => ({ ...k, [r.name]: e.target.value }))
+                      }
+                      onKeyDown={(e) => e.key === "Enter" && void addRecommended(r)}
+                      placeholder={`API key (${r.remote?.keyPlaceholder ?? "…"}) — poi clicca sopra`}
+                      className="mt-1.5 h-6 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[10px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
           <p className="mt-1.5 text-[9px] leading-relaxed text-[var(--muted-foreground)]/70">
-            Richiedono Node/npx (e per Kubernetes un `kubeconfig` valido; per Playwright i
-            browser installati). Si avviano quando l'agente li usa.
+            Richiedono Node/npx (Kubernetes: `kubeconfig`; Playwright: browser; Blender:
+            `uv` + addon blender-mcp attivo in Blender; 21st: API key dal tuo account). Si
+            avviano quando l'agente li usa.
           </p>
         </div>
       )}

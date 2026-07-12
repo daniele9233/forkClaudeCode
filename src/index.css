@@ -117,11 +117,11 @@
   --sidebar-ring: var(--color-accent-400);
 
   /* Chat role colors — tell the user's question and the model's answer apart at
-     a glance: user = amber (the app accent), agent = cyan/steel. */
-  --chat-user-accent: var(--color-accent-400);
-  --chat-user-bg: rgba(231, 169, 60, 0.07);
-  --chat-agent-accent: #38bdf8;
-  --chat-agent-bg: rgba(56, 189, 248, 0.05);
+     a glance: user = electric blue, agent = neon green (netto, per feedback). */
+  --chat-user-accent: #2979ff;
+  --chat-user-bg: rgba(41, 121, 255, 0.1);
+  --chat-agent-accent: #39ff14;
+  --chat-agent-bg: rgba(57, 255, 20, 0.06);
 }
 
 /* Tema chiaro (Fase 9.2) — superfici calde, accento rame più scuro per contrasto */
@@ -159,11 +159,12 @@
   --shadow-popover:
     0 4px 6px -1px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.08);
 
-  /* Chat role colors (light): deeper hues so the tint reads on white */
-  --chat-user-accent: var(--color-accent-500);
-  --chat-user-bg: rgba(217, 119, 6, 0.06);
-  --chat-agent-accent: #0369a1;
-  --chat-agent-bg: rgba(3, 105, 161, 0.05);
+  /* Chat role colors (light): deeper blue/green so the tint reads on white
+     (pure neon would be illegible on a light surface) */
+  --chat-user-accent: #1d4ed8;
+  --chat-user-bg: rgba(29, 78, 216, 0.08);
+  --chat-agent-accent: #16a34a;
+  --chat-agent-bg: rgba(22, 163, 74, 0.07);
 }
 
 /* Transizione morbida quando si cambia tema (saltata con reduced-motion) */

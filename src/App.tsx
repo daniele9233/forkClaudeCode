@@ -10,6 +10,7 @@ import { StatusBar } from "@/features/statusbar/StatusBar";
 import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
 import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
 import { UpdateBanner } from "@/features/statusbar/UpdateBanner";
+import { SidebarTetris } from "@/features/thinking/SidebarTetris";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 
 // Heavy / conditionally-shown panels are code-split so they don't bloat the
@@ -23,11 +24,6 @@ const TerminalPanel = lazy(() =>
 const SkillMarketplace = lazy(() =>
   import("@/features/skills/SkillMarketplace").then((m) => ({
     default: m.SkillMarketplace,
-  })),
-);
-const ThinkingPulse = lazy(() =>
-  import("@/features/thinking/ThinkingPulse").then((m) => ({
-    default: m.ThinkingPulse,
   })),
 );
 const PreviewPanel = lazy(() =>
@@ -182,16 +178,15 @@ export default function App() {
       <UpdateBanner />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Left sidebar: sessions (top) + file tree + context sparkline */}
+        {/* Left sidebar: sessions (full height) + auto-Tetris while the agent
+            works + context sparkline. The file tree moved to the bottom
+            panel's "Files" tab (per feedback: less clutter here). */}
         <div className="glass flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
           <ProjectBar />
-          <div className="shrink-0 overflow-hidden" style={{ maxHeight: "42%" }}>
+          <div className="min-h-0 flex-1 overflow-hidden">
             <SessionSidebar />
           </div>
-          <div className="h-px shrink-0 bg-[var(--border)]" />
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <FileTree />
-          </div>
+          <SidebarTetris />
           <ContextSparkline />
         </div>
 
@@ -224,6 +219,12 @@ export default function App() {
                       tab="terminal"
                       label="Terminal"
                       active={bottomTab === "terminal"}
+                      onClick={setBottomTab}
+                    />
+                    <BottomTabButton
+                      tab="files"
+                      label="Files"
+                      active={bottomTab === "files"}
                       onClick={setBottomTab}
                     />
                     {selectedFilePath && (
@@ -266,6 +267,15 @@ export default function App() {
                       )}
                     >
                       <TerminalPanel />
+                    </div>
+                    {/* Project files — moved here from the left sidebar */}
+                    <div
+                      className={cn(
+                        "h-full overflow-hidden",
+                        bottomTab === "files" ? "block" : "hidden",
+                      )}
+                    >
+                      <FileTree />
                     </div>
                     {selectedFilePath && (
                       <div
@@ -318,7 +328,6 @@ export default function App() {
         {projectPickerOpen && <ProjectPicker onClose={closeProjectPicker} />}
         {showOnboarding && <OnboardingWizard />}
         <SkillMarketplace />
-        <ThinkingPulse />
       </Suspense>
     </motion.div>
   );

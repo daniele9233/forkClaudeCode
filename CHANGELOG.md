@@ -4,6 +4,31 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.8] — 2026-07-12
+
+### Added
+
+- **Auto-Tetris in the sidebar** — while the agent works, an auto-playing
+  Tetris appears in the left sidebar under Sessions (replaces the pulse visual;
+  dismissible per run).
+- **`web3d` — next-gen websites by default.** New always-on playbook that fires
+  on any website/landing request: real 3D hero (three.js / React Three Fiber),
+  GSAP ScrollTrigger storytelling (pinning, scrub, staggers), Lenis smooth
+  scroll, magnetic/cursor micro-motion — no more "nice but forgettable
+  templates". All 5 Studio recipes now force it too.
+- **Blender MCP** — one-click connect in Settings → MCP (needs `uv` and the
+  blender-mcp addon running in Blender): the agent can model 3D scenes.
+- **21st.dev Magic MCP** — connect with your own API key (stored only in your
+  local engine config): 21st.dev-grade UI components generated in chat.
+
+### Changed
+
+- **Sharper chat colors** — user = electric blue, agent = neon green (deeper
+  variants in the light theme for readability).
+- **File tree moved out of the sidebar** into a new **Files** tab in the bottom
+  panel (next to Terminal/Diff/Inspector/Timeline); sessions now get the whole
+  sidebar. Clicking a file still opens its diff.
+
 ## [0.4.7] — 2026-07-11
 
 ### Added

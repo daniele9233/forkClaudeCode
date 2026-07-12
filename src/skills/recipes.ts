@@ -96,6 +96,7 @@ export const RECIPES: WebsiteRecipe[] = [
     accent: "#f59e0b",
     skillIds: [
       "taste",
+      "web3d",
       "web-architect",
       "bento-grid",
       "impeccable",
@@ -118,6 +119,7 @@ export const RECIPES: WebsiteRecipe[] = [
     accent: "#78716c",
     skillIds: [
       "taste",
+      "web3d",
       "minimalism",
       "web-layouts",
       "impeccable",
@@ -140,6 +142,7 @@ export const RECIPES: WebsiteRecipe[] = [
     accent: "#8b5cf6",
     skillIds: [
       "taste",
+      "web3d",
       "glass-aurora",
       "creative-3d",
       "hero-page",
@@ -162,6 +165,7 @@ export const RECIPES: WebsiteRecipe[] = [
     accent: "#eab308",
     skillIds: [
       "taste",
+      "web3d",
       "neubrutalism",
       "web-layouts",
       "impeccable",
@@ -185,6 +189,7 @@ export const RECIPES: WebsiteRecipe[] = [
     category: "enterprise",
     skillIds: [
       "taste",
+      "web3d",
       "scroll-media",
       "gsap-motion",
       "smooth-scroll",

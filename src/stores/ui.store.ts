@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type BottomTab = "terminal" | "diff" | "inspector" | "timeline";
+export type BottomTab = "terminal" | "files" | "diff" | "inspector" | "timeline";
 
 interface UIState {
   bottomOpen: boolean;

@@ -35,6 +35,44 @@ export interface Skill {
 
 export const SKILLS: Skill[] = [
   {
+    id: "web3d",
+    name: "Web 3D & Next-Gen Motion",
+    emoji: "🌐",
+    command: "web3d",
+    description:
+      "Use when the user asks for a website, landing page or portfolio — raise it to awwwards level with 3D (three.js/R3F), GSAP ScrollTrigger storytelling, smooth scroll and cinematic motion instead of a static template.",
+    keywords: [
+      "sito",
+      "website",
+      "landing",
+      "homepage",
+      "portfolio",
+      "webgl",
+      "3d",
+      "three",
+      "shader",
+      "immersive",
+      "immersivo",
+      "awwwards",
+      "hero",
+    ],
+    phrases: ["fammi un sito", "crea un sito", "make a website", "build a landing"],
+    negativeKeywords: ["semplice", "minimal", "no 3d", "senza animazioni", "statico"],
+    body: [
+      "MANDATE: do NOT ship a static 'pretty template'. This site must feel state-of-the-art — the kind that wins awwwards. Non-negotiables:",
+      "- STACK: React + Vite. Install and USE: three + @react-three/fiber + @react-three/drei (3D), gsap + @gsap/react (ScrollTrigger), lenis (smooth scroll). Do not fake motion with CSS alone.",
+      "- HERO 3D: an interactive WebGL hero (R3F <Canvas>) — e.g. a floating object/scene with mouse-parallax (useFrame + pointer), environment lighting, soft shadows. Fallback poster for reduced-motion/no-WebGL.",
+      "- SCROLL STORYTELLING: GSAP ScrollTrigger with pinned sections, scrub timelines, staggered reveals (batch), progress-linked 3D transforms (rotate/morph the scene while scrolling).",
+      "- SMOOTH SCROLL: Lenis, synced via lenis.on('scroll', ScrollTrigger.update) + gsap.ticker.",
+      "- MICRO-MOTION: magnetic buttons, cursor-aware cards (tilt/glow), text split reveals (chars/words with stagger), marquee where fitting — 150–400ms, custom eases (power3/expo).",
+      "- CRAFT: transforms/opacity only (GPU); will-change sparingly; lazy-load the 3D bundle (React.lazy); ~60fps target; prefers-reduced-motion honored everywhere (kill timelines, static hero).",
+      "- STRUCTURE: every section earns motion tied to narrative — no random floaters. One coherent visual concept end-to-end.",
+      "If a needed package is missing, add it to package.json and install before coding.",
+    ].join("\n"),
+    source:
+      "three.js / React Three Fiber, GSAP ScrollTrigger, Lenis — awwwards-tier patterns",
+  },
+  {
     id: "uiux-pro-max",
     name: "UI/UX Pro Max",
     emoji: "✨",
