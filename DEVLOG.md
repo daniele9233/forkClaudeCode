@@ -16,6 +16,39 @@
 
 ---
 
+## 2026-07-12 · v0.4.9 — Cervello neurale 3D in sidebar (al posto del Tetris) + sidebar ridimensionabile
+
+**Fase:** 12.62 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback utente: video TikTok "Z.E.R.O." — "voglio lo stesso cervello 3D al posto del tetris + sidebar allargabile")
+
+- **`NeuralBrain.tsx`**: cervello 3D in canvas 2D puro (proiezione prospettica
+  hand-rolled, zero dipendenze — niente three.js). 10 regioni cerebrali come nel
+  video (PREFRONTAL/MOTOR/ASSOCIATION/SENSORY/CONCEPT/PREDICTIVE/FEATURE/
+  LANGUAGE/HIPPOCAMPUS/BRAINSTEM), ognuna un cluster di neuroni al neon
+  (colori del video) + cablaggio intra-regione (2 nearest) e fascicoli
+  inter-regione; rotazione lenta attorno a Y; **impulsi** luminosi che viaggiano
+  sulle sinapsi con rate ∝ energia; **etichette HUD on-canvas** (box bordato
+  colore-regione: nome + "N neurons · firing X%"), starfield di fondo.
+  PRNG seedato (mulberry32) → stesso cervello a ogni mount. Energia da
+  `liveMessages` (+0.3/update, decay 0.004/frame) + kick a inizio run → si
+  accende quando l'agente lavora. DPR-aware, ResizeObserver, reduced-motion →
+  frame statico.
+- **`SidebarBrain.tsx`**: header "neurolink · cortex — live/idle" (dot verde
+  pulsante quando gira), comprimibile; altezza ∝ larghezza sidebar
+  (clamp 240–480). SEMPRE visibile (non solo durante i run, come il video).
+- **Sidebar ridimensionabile**: `sidebarWidth` in ui.store (default 256, clamp
+  220–min(560, 50vw)); maniglia `col-resize` sul bordo destro in App. Cervello
+  più grande allargando.
+- **Rimossi** `Tetris.tsx` + `SidebarTetris.tsx` (sostituiti dal cervello).
+
+### Gotcha / attenzione
+
+- ~180 nodi, ~400 archi, ≤60 impulsi a 60fps su canvas 2D: leggero; niente
+  three.js per non gonfiare il bundle.
+- Le etichette si nascondono sotto 230px di larghezza (leggibilità).
+- 78 test verdi, typecheck, build. Bump 0.4.9.
+
 ## 2026-07-12 · v0.4.8 — Tetris in sidebar, colori netti, Files tab, web3d, MCP Blender+21st
 
 **Fase:** 12.61 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

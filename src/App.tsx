@@ -10,7 +10,7 @@ import { StatusBar } from "@/features/statusbar/StatusBar";
 import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
 import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
 import { UpdateBanner } from "@/features/statusbar/UpdateBanner";
-import { SidebarTetris } from "@/features/thinking/SidebarTetris";
+import { SidebarBrain } from "@/features/thinking/SidebarBrain";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 
 // Heavy / conditionally-shown panels are code-split so they don't bloat the
@@ -95,6 +95,8 @@ export default function App() {
     closeBottom,
     bottomHeight,
     setBottomHeight,
+    sidebarWidth,
+    setSidebarWidth,
     commandPaletteOpen,
     openCommandPalette,
     closeCommandPalette,
@@ -140,6 +142,29 @@ export default function App() {
     return () => document.removeEventListener("keydown", handleGlobalKey);
   }, [handleGlobalKey]);
 
+  // Drag the sidebar's right edge to widen it — a bigger sidebar means a
+  // bigger neural brain (that's the point). Clamped so chat keeps room.
+  const startSidebarResize = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      const onMove = (ev: PointerEvent) => {
+        const max = Math.min(560, window.innerWidth * 0.5);
+        setSidebarWidth(Math.min(Math.max(ev.clientX, 220), max));
+      };
+      const onUp = () => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.body.style.userSelect = "";
+        document.body.style.cursor = "";
+      };
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+    },
+    [setSidebarWidth],
+  );
+
   // Drag the divider above the bottom panel to raise/lower it. The panel is
   // anchored to the bottom, so its height is the distance from the pointer up
   // to just above the ~28px status bar; clamped so the chat always keeps room.
@@ -178,16 +203,27 @@ export default function App() {
       <UpdateBanner />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Left sidebar: sessions (full height) + auto-Tetris while the agent
-            works + context sparkline. The file tree moved to the bottom
-            panel's "Files" tab (per feedback: less clutter here). */}
-        <div className="glass flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)]">
+        {/* Left sidebar: sessions (full height) + the neural brain (always
+            alive, fires harder while the agent works) + context sparkline.
+            Resizable via the right-edge handle — wider sidebar = bigger brain. */}
+        <div
+          className="glass flex h-full shrink-0 flex-col border-r border-[var(--border)]"
+          style={{ width: sidebarWidth }}
+        >
           <ProjectBar />
           <div className="min-h-0 flex-1 overflow-hidden">
             <SessionSidebar />
           </div>
-          <SidebarTetris />
+          <SidebarBrain />
           <ContextSparkline />
+        </div>
+        {/* Sidebar resize handle */}
+        <div
+          onPointerDown={startSidebarResize}
+          className="group relative w-1.5 shrink-0 cursor-col-resize touch-none select-none bg-transparent transition-colors hover:bg-[var(--primary)]/30"
+          title="Trascina per allargare la sidebar (cervello più grande)"
+        >
+          <span className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--muted-foreground)]/40 transition-colors group-hover:bg-[var(--primary)]" />
         </div>
 
         {/* Main area: chat + bottom panel + status bar */}

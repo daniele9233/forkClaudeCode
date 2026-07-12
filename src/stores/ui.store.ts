@@ -7,6 +7,8 @@ interface UIState {
   bottomTab: BottomTab;
   /** Height (px) of the bottom panel — user-resizable via the drag handle. */
   bottomHeight: number;
+  /** Width (px) of the left sidebar — user-resizable (bigger = bigger brain). */
+  sidebarWidth: number;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
   projectPickerOpen: boolean;
@@ -18,6 +20,7 @@ interface UIState {
   closeBottom: () => void;
   setBottomTab: (tab: BottomTab) => void;
   setBottomHeight: (h: number) => void;
+  setSidebarWidth: (w: number) => void;
   toggleTerminal: () => void;
   openCommandPalette: () => void;
   closeCommandPalette: () => void;
@@ -33,6 +36,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   bottomOpen: false,
   bottomTab: "terminal",
   bottomHeight: 340,
+  sidebarWidth: 256,
   commandPaletteOpen: false,
   settingsOpen: false,
   projectPickerOpen: false,
@@ -43,6 +47,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   closeBottom: () => set({ bottomOpen: false }),
   setBottomTab: (tab) => set({ bottomTab: tab }),
   setBottomHeight: (h) => set({ bottomHeight: h }),
+  setSidebarWidth: (w) => set({ sidebarWidth: w }),
   toggleTerminal: () => {
     const { bottomOpen, bottomTab } = get();
     if (bottomOpen && bottomTab === "terminal") {

@@ -4,6 +4,22 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.9] — 2026-07-12
+
+### Added
+
+- **The 3D Neural Brain** 🧠 — the sidebar now hosts a living "digital cortex"
+  (video-inspired): neon neuron clusters laid out as real brain regions
+  (PREFRONTAL, MOTOR CORTEX, ASSOCIATION, SENSORY CORTEX, CONCEPT LAYER,
+  PREDICTIVE, FEATURE LAYER, LANGUAGE, HIPPOCAMPUS, BRAINSTEM), each with its
+  HUD label ("N neurons · firing %"), wired by synapses, slowly rotating in 3D
+  with firing pulses traveling along the connections. It's fed by **real
+  activity**: the cortex lights up while the agent streams and idles down
+  after. Collapsible header shows `neurolink · cortex — live/idle`.
+  Replaces the sidebar Tetris. Honors `prefers-reduced-motion`.
+- **Resizable sidebar** — drag the sidebar's right edge to widen it (220–560px):
+  a wider sidebar means a bigger brain.
+
 ## [0.4.8] — 2026-07-12
 
 ### Added
