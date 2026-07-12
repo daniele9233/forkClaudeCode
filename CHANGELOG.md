@@ -4,6 +4,19 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.11] — 2026-07-12
+
+### Added
+
+- **Model auto-routing (design / coding)** 🎨⌨ — assign one model to the
+  **Design** role (Claude / any multimodal model: front-end, UI, motion, 3D)
+  and one to the **Coding** role (glm-5.2, DeepSeek: logic, fixes, scripts),
+  then flip the **Auto-routing** toggle in the model dropdown: every prompt is
+  classified and sent to the right model automatically. Studio recipes always
+  route to Design; the visual **Audit** prefers the Design model too (it needs
+  vision). Hover a model row and click 🎨 or ⌨ to assign; multiple provider
+  keys already coexist, so Claude + GLM + DeepSeek can all stay connected.
+
 ## [0.4.10] — 2026-07-12
 
 ### Added

@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { FilePartInput } from "@opencode-ai/sdk/client";
 import { getClient } from "./client";
 import { useChatStore } from "@/stores/chat.store";
-import { useModelStore, splitModel } from "@/stores/model.store";
+import { splitModel, modelForRole } from "@/stores/model.store";
 import { toFileUrl } from "@/lib/utils";
 
 /** The breakpoints a real team checks — captured and handed to the agent. */
@@ -56,7 +56,9 @@ export async function runDesignAudit(sessionId: string, url: string): Promise<vo
 
   useChatStore.getState().setSessionRunning(sessionId, true);
   try {
-    const { providerID, modelID } = splitModel(useModelStore.getState().selected ?? "");
+    // Audits are visual work → prefer the DESIGN role's model (vision-capable)
+    // when auto-routing is configured.
+    const { providerID, modelID } = splitModel(modelForRole("design") ?? "");
     await getClient().session.prompt({
       path: { id: sessionId },
       body: {

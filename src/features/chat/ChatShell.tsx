@@ -14,7 +14,8 @@ import { useDevServerEvents } from "@/features/preview/useDevServerEvents";
 import { useUIStore } from "@/stores/ui.store";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useQueueStore } from "@/stores/queue.store";
-import { useModelStore, splitModel } from "@/stores/model.store";
+import { useModelStore, splitModel, modelForRole } from "@/stores/model.store";
+import { classifyPrompt } from "@/opencode/modelRouter";
 import { openBestPreview } from "@/opencode/preview";
 import { cn } from "@/lib/utils";
 import { DevServerBanner } from "@/features/preview/DevServerBanner";
@@ -109,9 +110,13 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       const userText = tagSkills(clean, skills);
 
       // Send with the explicitly selected model so the request never falls back
-      // to the engine's default provider. kikkoCode's own selection wins over
-      // the engine config (which auth plugins like zai/GLM can pin).
-      const selected = useModelStore.getState().selected ?? config?.model ?? "";
+      // to the engine's default provider. With AUTO-ROUTING on, the prompt is
+      // classified (design vs coding) and sent to the model assigned to that
+      // role (e.g. Claude for design, glm/deepseek for coding); otherwise the
+      // manual selection wins over the engine config (which auth plugins like
+      // zai/GLM can pin).
+      const role = classifyPrompt(clean, opts?.forcedSkillIds);
+      const selected = modelForRole(role) ?? config?.model ?? "";
       const { providerID, modelID } = splitModel(selected);
 
       sendPrompt.mutate({

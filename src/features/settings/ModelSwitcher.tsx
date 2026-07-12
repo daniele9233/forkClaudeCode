@@ -33,6 +33,12 @@ export function ModelSwitcher() {
   // param make the choice effective regardless.
   const localSelected = useModelStore((s) => s.selected);
   const setSelected = useModelStore((s) => s.setSelected);
+  // Auto-routing: one model for DESIGN (Claude/multimodal), one for CODING
+  // (glm/deepseek); each prompt is classified and routed automatically.
+  const roles = useModelStore((s) => s.roles);
+  const setRole = useModelStore((s) => s.setRole);
+  const autoRoute = useModelStore((s) => s.autoRoute);
+  const setAutoRoute = useModelStore((s) => s.setAutoRoute);
   const currentModel = localSelected ?? config?.model ?? "";
   const slash = currentModel.indexOf("/");
   const currentProviderId = slash > 0 ? currentModel.slice(0, slash) : "";
@@ -125,6 +131,44 @@ export function ModelSwitcher() {
           <div className="shrink-0">
             <AddProviderKey onConnected={() => setOpen(false)} />
           </div>
+
+          {/* Auto-routing: design → multimodal model, coding → fast coder. */}
+          {visibleProviders.length > 0 && (
+            <div className="shrink-0 space-y-1 border-t border-[var(--border)] px-2 py-1.5">
+              <button
+                onClick={() => setAutoRoute(!autoRoute)}
+                className="flex w-full items-center gap-1.5 text-left"
+                title="Con l'auto-routing ogni prompt viene classificato: design/front-end → modello Design; il resto → modello Coding. Assegna i ruoli con i bottoni 🎨/⌨ accanto ai modelli."
+              >
+                <span
+                  className={cn(
+                    "flex h-3.5 w-6 items-center rounded-full px-0.5 transition-colors",
+                    autoRoute ? "bg-[var(--color-online)]/60" : "bg-[var(--muted)]",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-2.5 w-2.5 rounded-full bg-white transition-transform",
+                      autoRoute && "translate-x-2.5",
+                    )}
+                  />
+                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--foreground)]">
+                  Auto-routing
+                </span>
+                <span className="ml-auto truncate text-[9px] text-[var(--muted-foreground)]">
+                  🎨 {roles.design ? roles.design.split("/").pop() : "—"} · ⌨{" "}
+                  {roles.coding ? roles.coding.split("/").pop() : "—"}
+                </span>
+              </button>
+              {autoRoute && (!roles.design || !roles.coding) && (
+                <p className="text-[9px] leading-relaxed text-amber-400">
+                  Assegna i ruoli: passa col mouse su un modello e clicca 🎨 (design) o ⌨
+                  (coding). Ruoli mancanti usano la selezione manuale.
+                </p>
+              )}
+            </div>
+          )}
 
           {visibleProviders.length > 0 && (
             <div className="shrink-0 space-y-1.5 border-t border-[var(--border)] px-2 py-1.5">
@@ -232,17 +276,63 @@ export function ModelSwitcher() {
                     {models.map(([modelId, model]) => {
                       const active =
                         currentProviderId === provider.id && currentModelId === modelId;
+                      const full = `${provider.id}/${modelId}`;
+                      const isDesign = roles.design === full;
+                      const isCoding = roles.coding === full;
                       return (
                         <button
                           key={modelId}
                           onClick={() => selectModel(provider.id, modelId)}
                           className={cn(
-                            "flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
+                            "group flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors",
                             active
                               ? "bg-[var(--color-online)]/10"
                               : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/50 hover:text-[var(--foreground)]",
                           )}
                         >
+                          {/* Role assign: design 🎨 / coding ⌨ (for auto-routing) */}
+                          <span
+                            role="button"
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRole("design", isDesign ? null : full);
+                            }}
+                            title={
+                              isDesign
+                                ? "Modello DESIGN (clicca per rimuovere)"
+                                : "Usa come modello DESIGN (front-end/visual, auto-routing)"
+                            }
+                            className={cn(
+                              "shrink-0 rounded-sm px-0.5 text-[10px] leading-none transition-opacity",
+                              isDesign
+                                ? "opacity-100"
+                                : "opacity-0 group-hover:opacity-50 hover:!opacity-100",
+                            )}
+                          >
+                            🎨
+                          </span>
+                          <span
+                            role="button"
+                            tabIndex={-1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRole("coding", isCoding ? null : full);
+                            }}
+                            title={
+                              isCoding
+                                ? "Modello CODING (clicca per rimuovere)"
+                                : "Usa come modello CODING (logica/fix/script, auto-routing)"
+                            }
+                            className={cn(
+                              "shrink-0 rounded-sm px-0.5 text-[10px] leading-none transition-opacity",
+                              isCoding
+                                ? "opacity-100"
+                                : "opacity-0 group-hover:opacity-50 hover:!opacity-100",
+                            )}
+                          >
+                            ⌨
+                          </span>
                           {/* Online dot on the connected model */}
                           {active && (
                             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-online)] shadow-[0_0_6px_var(--color-online)]" />

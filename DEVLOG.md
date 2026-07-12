@@ -16,6 +16,39 @@
 
 ---
 
+## 2026-07-12 · v0.4.11 — auto-routing dei modelli: design→Claude, coding→glm/deepseek
+
+**Fase:** 12.64 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback: "più chiavi API e in automatico: design→Claude/multimodale, coding→glm-5.2/deepseek — si può?")
+
+Sì: le chiavi multiple erano GIÀ supportate (i provider convivono); mancava il
+router. Implementato:
+
+- **`model.store`**: `roles: {design, coding}` (persistiti) + `autoRoute` +
+  `modelForRole(kind)` (ruolo se autoRoute e assegnato, altrimenti `selected`).
+  Migrazione persist safe (merge shallow con i default).
+- **`modelRouter.ts`**: `classifyPrompt(text, forcedSkillIds)` — keyword scoring
+  IT+EN (DESIGN_WORDS: sito/landing/hero/ui/css/anima/3d/gsap/figma…;
+  CODING_WORDS: bug/fix/api/test/script/db…); ricetta Studio (forcedSkillIds)
+  → sempre design; pareggio/nessun segnale → coding (default economico).
+  +4 unit test (82 totali).
+- **`ChatShell.handleSend`**: `modelForRole(classifyPrompt(clean, forced))` al
+  posto di `selected` secco.
+- **`audit.ts`**: l'audit visivo usa `modelForRole("design")` (serve vision).
+- **UI (`ModelSwitcher`)**: toggle "Auto-routing" con riepilogo 🎨/⌨ dei ruoli
+  (+ hint ambra se mancano); su ogni riga modello, bottoni hover 🎨 (design) e
+  ⌨ (coding) con stopPropagation per assegnare/rimuovere il ruolo.
+
+### Gotcha / attenzione
+
+- Il classificatore è volutamente semplice e trasparente (keyword, non LLM):
+  zero latenza/costo. Default coding sui casi ambigui.
+- Ruolo non assegnato → fallback alla selezione manuale (nessuna sorpresa).
+- La status bar mostra sempre il modello REALE usato dall'ultimo step → si
+  vede il routing in azione.
+- 82 test verdi, typecheck, build. Bump 0.4.11.
+
 ## 2026-07-12 · v0.4.10 — via awwwards: Figma MCP + ricetta Hero 3D + audit col "signature moment"
 
 **Fase:** 12.63 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
