@@ -4,6 +4,23 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.10] — 2026-07-12
+
+### Added
+
+- **Figma MCP (design → code)** — connect Figma in one click (Settings → MCP →
+  Consigliati, paste your Personal Access Token): the agent reads your Figma
+  files (layout, text, styles, measurements) and implements them faithfully.
+  The most reliable route to visual quality: design or buy a top template, the
+  agent codes it.
+- **"Hero 3D Awwwards" Studio recipe** 🏆 — an art-director-grade brief: a
+  concept-driven WebGL hero (R3F + shader, mouse + scroll reactive), split-text
+  reveals, Lenis + ScrollTrigger choreographed storytelling with a pinned
+  scrub section, magnetic cursor details, 60fps and reduced-motion budgets.
+- **Harder design audit** — the multi-viewport Audit now scores a 7th area,
+  the **signature moment** (awwwards bar): a static hero = FAIL, and the agent
+  is instructed to build a real signature hero (R3F/GSAP) first.
+
 ## [0.4.9] — 2026-07-12
 
 ### Added

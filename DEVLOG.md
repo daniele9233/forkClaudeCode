@@ -16,6 +16,38 @@
 
 ---
 
+## 2026-07-12 · v0.4.10 — via awwwards: Figma MCP + ricetta Hero 3D + audit col "signature moment"
+
+**Fase:** 12.63 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback: "non riesco a fare hero page/3D che competano su awwwards, anche via Figma — come facciamo?")
+
+Diagnosi data all'utente (le 3 cause vere): (1) **modello** — glm/deepseek non hanno
+vision → Audit/stile-da-screenshot non funzionano e il gusto è inferiore ai Claude;
+(2) **niente one-shot** — serve il loop genera→guarda→correggi (Audit/Autopilot);
+(3) **manca il riferimento visivo** — i modelli copiano bene e inventano male.
+Poi tre potenziamenti implementati:
+
+- **Figma MCP** nei Consigliati (`figma-developer-mcp` via npx, Framelink):
+  nuovo supporto `keyArg` in RECOMMENDED_MCP — la chiave digitata viene appesa
+  al comando (`--figma-api-key=…`). Flusso: token Figma → click → l'agente
+  legge i file Figma e li implementa. (repo GLips/Figma-Context-MCP verificato)
+- **Ricetta "Hero 3D Awwwards"** (6ª, test aggiornato 5→6): brief da art
+  director — concept dichiarato, hero R3F con shader/MeshTransmissionMaterial
+  reattivo a mouse+scroll, split-text reveal, Lenis+ScrollTrigger con sezione
+  pinnata scrub, cursore magnetico, grain, budget 60fps + reduced-motion.
+- **Audit più duro** (`audit.ts`): 7ª area "SIGNATURE MOMENT (the awwwards
+  bar)" — hero statico = FAIL, l'agente deve costruire il momento firma prima
+  del resto.
+
+### Gotcha / attenzione
+
+- Figma MCP richiede Personal Access Token (Figma → Settings → Security);
+  npx lo scarica al primo uso.
+- Il consiglio operativo resta: modello vision (Claude) per design/audit,
+  riferimenti visivi nel prompt, iterare con Audit/Autopilot.
+- 78 test verdi (recipes.test aggiornato), typecheck, build. Bump 0.4.10.
+
 ## 2026-07-12 · v0.4.9 — Cervello neurale 3D in sidebar (al posto del Tetris) + sidebar ridimensionabile
 
 **Fase:** 12.62 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

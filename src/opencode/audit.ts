@@ -22,8 +22,9 @@ Score /10 and list concrete issues per area:
 4. Layout & spacing — clear focal point, 8pt rhythm, optical alignment, whitespace; not everything nested in cards?
 5. Composition — varied section rhythm, not templated/monotonous?
 6. States & motion — hover/focus/active/disabled/loading/empty/error; 150–250ms ease-out, no bounce, reduced-motion safe.
+7. SIGNATURE MOMENT (the awwwards bar) — does the page have ONE memorable moment (a 3D/WebGL hero, a choreographed pinned scroll sequence, a bold typographic composition)? If the hero is a static headline + button over a plain background, that's a FAIL: design and build a signature hero now (R3F scene or GSAP-choreographed reveal), consistent with the site's concept.
 
-Fix everything below 8/10 now, mobile-first. Prioritize what removes the "AI-generated / templated" look. If you cannot see the images, say so explicitly instead of guessing.`;
+Fix everything below 8/10 now, mobile-first. Prioritize (a) the signature moment and (b) whatever removes the "AI-generated / templated" look. If you cannot see the images, say so explicitly instead of guessing.`;
 }
 
 /**

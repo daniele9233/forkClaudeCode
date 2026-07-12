@@ -149,9 +149,23 @@ const RECOMMENDED_MCP: {
   desc: string;
   /** Local stdio server — the command to spawn. */
   command?: string[];
+  /**
+   * Local server that needs an API key appended as a CLI arg: the typed key is
+   * appended to `command` as `keyArg + key` (e.g. `--figma-api-key=XXX`).
+   */
+  keyArg?: string;
+  keyPlaceholder?: string;
   /** Remote (HTTP) server — URL + the header the API key goes into. */
   remote?: { url: string; keyHeader?: string; keyPlaceholder?: string };
 }[] = [
+  {
+    name: "figma",
+    label: "Figma (design → codice)",
+    desc: "L'agente legge i tuoi file Figma (layout, testi, stili, misure) e li implementa fedelmente — disegna o compra un template top e lui lo codifica. Serve un Personal Access Token Figma (Settings → Security → tokens).",
+    command: ["npx", "-y", "figma-developer-mcp", "--stdio"],
+    keyArg: "--figma-api-key=",
+    keyPlaceholder: "figd_…",
+  },
   {
     name: "21st",
     label: "21st.dev Magic (componenti UI)",
@@ -204,7 +218,9 @@ function McpTab({ query }: { query: string }) {
     try {
       let entry: McpLocalConfig | McpRemoteConfig;
       if (r.command) {
-        entry = { type: "local", command: r.command, enabled: true };
+        const key = (mcpKeys[r.name] ?? "").trim();
+        const command = r.keyArg && key ? [...r.command, r.keyArg + key] : r.command;
+        entry = { type: "local", command, enabled: true };
       } else if (r.remote) {
         const key = (mcpKeys[r.name] ?? "").trim();
         entry = {
@@ -286,7 +302,7 @@ function McpTab({ query }: { query: string }) {
           </div>
           <div className="flex flex-col gap-1.5">
             {missingRecommended.map((r) => {
-              const needsKey = !!r.remote?.keyHeader;
+              const needsKey = !!r.remote?.keyHeader || !!r.keyArg;
               return (
                 <div
                   key={r.name}
@@ -322,7 +338,7 @@ function McpTab({ query }: { query: string }) {
                         setMcpKeys((k) => ({ ...k, [r.name]: e.target.value }))
                       }
                       onKeyDown={(e) => e.key === "Enter" && void addRecommended(r)}
-                      placeholder={`API key (${r.remote?.keyPlaceholder ?? "…"}) — poi clicca sopra`}
+                      placeholder={`API key (${r.remote?.keyPlaceholder ?? r.keyPlaceholder ?? "…"}) — poi clicca sopra`}
                       className="mt-1.5 h-6 w-full rounded border border-[var(--border)] bg-[var(--muted)]/40 px-2 text-[10px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                     />
                   )}

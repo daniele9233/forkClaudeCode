@@ -6,8 +6,8 @@ const skillIds = new Set(SKILLS.map((s) => s.id));
 
 describe("studio recipes", () => {
   it("ships a small, curated set of perfect recipes", () => {
-    // Deliberately few (5) impeccable briefs rather than a long, noisy list.
-    expect(RECIPES.length).toBe(5);
+    // Deliberately few (6) impeccable briefs rather than a long, noisy list.
+    expect(RECIPES.length).toBe(6);
     expect(RECIPES.some((r) => r.category === "enterprise")).toBe(true);
   });
 

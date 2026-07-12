@@ -87,6 +87,45 @@ function brief(core: string): string {
 
 export const RECIPES: WebsiteRecipe[] = [
   {
+    id: "hero-3d-awwwards",
+    name: "Hero 3D Awwwards",
+    emoji: "🏆",
+    style: "WebGL cinematico",
+    layout: "Scroll-storytelling coreografato",
+    description:
+      "Il massimo: hero WebGL con shader, split-text reveal, scroll coreografato sezione per sezione.",
+    accent: "#8b5cf6",
+    skillIds: [
+      "taste",
+      "web3d",
+      "gsap-motion",
+      "smooth-scroll",
+      "creative-3d",
+      "hero-page",
+      "type-color",
+      "impeccable",
+    ],
+    prompt:
+      brief(`Costruisci un SITO DA AWWWARDS SOTD — non un template: un pezzo d'arte interattivo con una direzione creativa forte. Prima di scrivere codice, dichiara in un commento il CONCEPT in una frase (es. "materia liquida che si cristallizza in prodotto") e falla guidare OGNI scelta.
+
+HERO (il momento firma — dedicagli il massimo sforzo):
+- Canvas WebGL full-viewport con React Three Fiber: una scena UNICA legata al concept (es. mesh distorta da un vertex shader con noise, campo di particelle organizzato, oggetto iridescente con MeshTransmissionMaterial di drei). NON una primitiva di default che ruota.
+- Il soggetto 3D reagisce al mouse (parallax morbido via useFrame + lerp) e ALLO SCROLL (la scena si trasforma mentre entri nella sezione successiva — collega il progress di ScrollTrigger a rotazione/morph/uniform dello shader).
+- Titolo sovrapposto con SPLIT-TEXT REVEAL: caratteri che entrano con stagger (30–50ms), ease expo.out, leggero blur→sharp. Font display con carattere, kerning stretto.
+- Micro-dettagli: cursore magnetico sui CTA, indicatore di scroll animato, grain/noise overlay sottile (opacity 3–5%).
+
+SCROLL STORYTELLING (ogni sezione un capitolo, coreografato):
+- Lenis smooth scroll sincronizzato con ScrollTrigger (lenis.on('scroll', ScrollTrigger.update) + gsap.ticker).
+- Almeno UNA sezione PINNATA con scrub: mentre scrolli una sequenza si compie (numeri che contano, immagine che si espande da thumbnail a full-bleed, o il soggetto 3D che si smonta/rimonta).
+- Reveal a stagger per testi e card (ScrollTrigger.batch, once: true); immagini con parallax interno (translateY inverso, overflow hidden).
+- Transizioni di colore di sfondo tra sezioni animate via scroll (il sito "respira").
+
+QUALITÀ NON NEGOZIABILE:
+- 60fps: solo transform/opacity fuori dal canvas; bundle 3D lazy (React.lazy + Suspense con poster); DPR cap a 2.
+- prefers-reduced-motion: hero statico (poster), timelines disattivate, contenuto comunque completo e bello.
+- Le altre sezioni (about/lavori/contatti) mantengono la stessa firma visiva: stessa palette deliberata (MAI blu default), stesso font display, stessi easing.`),
+  },
+  {
     id: "bento-saas",
     name: "Bento SaaS",
     emoji: "🍱",
