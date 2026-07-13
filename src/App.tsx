@@ -11,6 +11,7 @@ import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
 import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
 import { UpdateBanner } from "@/features/statusbar/UpdateBanner";
 import { SidebarBrain } from "@/features/thinking/SidebarBrain";
+import { VisionStudio } from "@/features/vision/VisionStudio";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 
 // Heavy / conditionally-shown panels are code-split so they don't bloat the
@@ -365,6 +366,7 @@ export default function App() {
         {showOnboarding && <OnboardingWizard />}
         <SkillMarketplace />
       </Suspense>
+      <VisionStudio />
     </motion.div>
   );
 }

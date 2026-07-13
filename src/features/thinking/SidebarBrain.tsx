@@ -1,22 +1,36 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useChatStore } from "@/stores/chat.store";
 import { useSessionStore } from "@/stores/session.store";
+import { useSessionChildren } from "@/opencode/session";
 import { useUIStore } from "@/stores/ui.store";
-import { NeuralBrain } from "./NeuralBrain";
+import { NeuralBrain, type Satellite } from "./NeuralBrain";
 
 /**
  * The "digital brain" panel at the bottom of the left sidebar (video-style):
- * always alive, firing harder while the agent works. Widening the sidebar
- * (drag its right edge) makes the brain bigger. Collapsible via the header.
+ * always alive, firing harder while the agent works. Subagents of the active
+ * session orbit the cortex as satellites ("parallel minds"). Widening the
+ * sidebar (drag its right edge) makes the brain bigger. Collapsible header.
  */
 export function SidebarBrain() {
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
-  const running = useChatStore((s) =>
-    activeSessionId ? s.runningSessions.has(activeSessionId) : false,
-  );
+  const runningSessions = useChatStore((s) => s.runningSessions);
+  const running = activeSessionId ? runningSessions.has(activeSessionId) : false;
   const sidebarWidth = useUIStore((s) => s.sidebarWidth);
   const [collapsed, setCollapsed] = useState(false);
+
+  // PARALLEL MINDS: the active session's subagents (child sessions) become
+  // satellites orbiting the cortex, each with its live task label.
+  const { data: children = [] } = useSessionChildren(activeSessionId);
+  const satellites = useMemo(
+    (): Satellite[] =>
+      children.slice(0, 6).map((c) => ({
+        id: c.id,
+        label: (c.title || "subagent").slice(0, 26),
+        running: runningSessions.has(c.id),
+      })),
+    [children, runningSessions],
+  );
 
   // Bigger sidebar → bigger brain (the whole point of the resizable sidebar).
   const height = Math.round(Math.min(Math.max(sidebarWidth * 0.95, 240), 720));
@@ -60,7 +74,7 @@ export function SidebarBrain() {
       </button>
       {!collapsed && (
         <div style={{ height }}>
-          <NeuralBrain running={running} />
+          <NeuralBrain running={running} satellites={satellites} />
         </div>
       )}
     </div>

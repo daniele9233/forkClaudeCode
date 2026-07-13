@@ -16,6 +16,33 @@
 
 ---
 
+## 2026-07-13 · v0.4.14 — satelliti subagent attorno al cervello + Vision Studio (guard vision)
+
+**Fase:** 12.67 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback: 2 delle 5 idee proposte — "agenti paralleli come satelliti" + "Vision Studio, ma se il modello non vede blocca con messaggio")
+
+- **Satelliti subagent** (`NeuralBrain` + `SidebarBrain`): nuovo type/prop
+  `Satellite[]`; i child-session della sessione attiva (`useSessionChildren`)
+  orbitano la corteccia — corpo pulsante (verde neon se running), **light-line
+  con impulso** verso il centro, **mini-card HUD** `AGENT-0n · <title> ✓`.
+  Cap 6, angolo ∝ tick, letti da un ref nel RAF loop (no re-mount).
+- **Vision Studio** (`visionStudio.store` + `features/vision/VisionStudio.tsx`,
+  montato in App, bottone 🏆 in ChatShell toolbar): dialog che prende
+  un'immagine (`plugin-dialog`) e lancia la ricetta **hero-3d-awwwards** con il
+  riferimento allegato come `FilePartInput`, instradata al modello **design**
+  (`modelForRole("design")`). **Guard vision**: calcola il modello EFFETTIVO
+  (design-role o selezione), `modelSupportsVision`; se `known && !hasVision` →
+  **upload disabilitato + banner esplicito** "questo modello non supporta la
+  vision" (come chiesto). Se ignoto → warning soft; se vision → conferma verde.
+
+### Gotcha / attenzione
+
+- Il Vision Studio crea la sessione se non attiva e setta running via
+  `chat.store` (l'evento idle lo spegne).
+- Le card satellite riusano il pattern box HUD delle regioni (textBaseline top).
+- 82 test verdi, typecheck, build. Bump 0.4.14.
+
 ## 2026-07-13 · v0.4.13 — cervello con memoria REALE + più grande + ricette con arsenale MCP
 
 **Fase:** 12.66 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

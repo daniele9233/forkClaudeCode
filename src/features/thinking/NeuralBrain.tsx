@@ -139,6 +139,14 @@ interface Pulse {
   speed: number;
 }
 
+/** A subagent orbiting the cortex ("parallel minds"). */
+export interface Satellite {
+  id: string;
+  /** Short task label shown on the mini-card. */
+  label: string;
+  running: boolean;
+}
+
 /** Deterministic-ish PRNG so the brain looks the same every mount. */
 function mulberry32(seed: number) {
   return () => {
@@ -221,7 +229,13 @@ function growthCounts(counts: Record<BrainMetric, number>): number[] {
   });
 }
 
-export function NeuralBrain({ running }: { running: boolean }) {
+export function NeuralBrain({
+  running,
+  satellites = [],
+}: {
+  running: boolean;
+  satellites?: Satellite[];
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const energyRef = useRef(0);
@@ -240,6 +254,8 @@ export function NeuralBrain({ running }: { running: boolean }) {
   );
   const countsRef = useRef(counts);
   countsRef.current = counts;
+  const satsRef = useRef(satellites);
+  satsRef.current = satellites;
 
   // REAL FILE ACTIVITY: agent writes → MOTOR CORTEX; project file churn →
   // SENSORY CORTEX. This is what ties the brain to the actual files on disk.
@@ -404,6 +420,85 @@ export function NeuralBrain({ running }: { running: boolean }) {
           ctx.shadowBlur = 0;
         }
         ctx.globalAlpha = 1;
+      }
+
+      // PARALLEL MINDS — subagents orbit the cortex as satellites, each with a
+      // light-line pulsing into the brain and a mini HUD card (video-style).
+      const sats = satsRef.current.slice(0, 6);
+      if (sats.length > 0) {
+        ctx.textBaseline = "top";
+        const cx0 = W / 2;
+        const cy0 = H / 2;
+        const orbitR = Math.min(W, H) * 0.46;
+        sats.forEach((sat, si) => {
+          const a =
+            (si / sats.length) * Math.PI * 2 + tick * (sat.running ? 0.004 : 0.0015);
+          const sx = cx0 + Math.cos(a) * orbitR;
+          const sy = cy0 + Math.sin(a) * orbitR * 0.82;
+          const col = sat.running ? "#39ff14" : "#8a93a6";
+
+          // Light-line to the cortex, with a traveling pulse while running.
+          ctx.globalAlpha = sat.running ? 0.35 : 0.15;
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 0.7;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(cx0, cy0);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          if (sat.running && !reduced) {
+            const pt = (tick * 0.014 + si * 0.37) % 1;
+            const px = sx + (cx0 - sx) * pt;
+            const py = sy + (cy0 - sy) * pt;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = col;
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(px, py, 1.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+
+          // Satellite body (pulsing halo while running).
+          if (sat.running) {
+            ctx.globalAlpha = 0.25 + 0.2 * Math.sin(tick * 0.1 + si);
+            ctx.fillStyle = col;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(sx, sy, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Mini HUD card: AGENT-0n · label (✓ when done).
+          const name = `AGENT-${String(si + 1).padStart(2, "0")}`;
+          const text = `${sat.label}${sat.running ? "" : " ✓"}`;
+          ctx.font = "700 8px ui-monospace, monospace";
+          const wName = ctx.measureText(name).width;
+          ctx.font = "400 7px ui-monospace, monospace";
+          const wText = ctx.measureText(text).width;
+          const bw = Math.max(wName, wText) + 10;
+          const bh = 20;
+          const onLeft = sx > cx0;
+          let bx = onLeft ? sx - bw - 8 : sx + 8;
+          let by = sy - bh / 2;
+          bx = Math.max(2, Math.min(W - bw - 2, bx));
+          by = Math.max(2, Math.min(H - bh - 2, by));
+          ctx.fillStyle = "rgba(0,0,0,0.82)";
+          ctx.fillRect(bx, by, bw, bh);
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+          ctx.font = "700 8px ui-monospace, monospace";
+          ctx.fillStyle = col;
+          ctx.fillText(name, bx + 5, by + 3);
+          ctx.font = "400 7px ui-monospace, monospace";
+          ctx.fillStyle = "rgba(255,255,255,0.85)";
+          ctx.fillText(text, bx + 5, by + 11);
+        });
       }
 
       // HUD label boxes (like the video): region name + neurons · firing %.

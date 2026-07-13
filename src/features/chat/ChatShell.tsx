@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { TerminalSquare, Settings, MonitorPlay, ListPlus, X } from "lucide-react";
+import { TerminalSquare, Settings, MonitorPlay, ListPlus, X, Trophy } from "lucide-react";
 import { useChatEvents } from "@/opencode/useChatEvents";
 import { useSessionStore } from "@/stores/session.store";
 import { useSendPrompt, useCreateSession, useAbortSession } from "@/opencode/session";
@@ -15,6 +15,7 @@ import { useUIStore } from "@/stores/ui.store";
 import { usePreviewStore } from "@/stores/preview.store";
 import { useQueueStore } from "@/stores/queue.store";
 import { useModelStore, splitModel, modelForRole } from "@/stores/model.store";
+import { useVisionStudio } from "@/stores/visionStudio.store";
 import { classifyPrompt } from "@/opencode/modelRouter";
 import { openBestPreview } from "@/opencode/preview";
 import { cn } from "@/lib/utils";
@@ -213,6 +214,13 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
         <div className="flex items-center gap-1.5">
           <ModelSwitcher />
           <ThemeToggle />
+          <button
+            onClick={() => useVisionStudio.getState().openStudio()}
+            title="Vision Studio — da immagine/screenshot/Figma a sito (livello awwwards)"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            <Trophy className="h-4 w-4" />
+          </button>
           <button
             onClick={togglePreview}
             title="Toggle web preview (in-app)"

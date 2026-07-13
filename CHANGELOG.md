@@ -4,6 +4,22 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.14] — 2026-07-13
+
+### Added
+
+- **Parallel minds — subagents orbit the brain** 🛰️ (Z.E.R.O.-style). The
+  active session's subagents now appear as satellites orbiting the neural
+  cortex, each with a mini HUD card (`AGENT-02 · <task> ✓`) and a light-line
+  pulsing into the brain while it works. You can finally _see_ the parallel
+  work that used to be invisible.
+- **Vision Studio** 🏆 — one gesture from image to awwwards site. Click the
+  trophy in the top bar, drop a reference (an awwwards screenshot, a paper
+  sketch, a Figma frame export), and the agent studies it and builds the site
+  with the Hero-3D recipe, routed to the Design model. **Hard guard:** if the
+  active/design model can't see images, the upload is **blocked with an
+  explicit "this model doesn't support vision" message** — no silent failures.
+
 ## [0.4.13] — 2026-07-13
 
 ### Added
