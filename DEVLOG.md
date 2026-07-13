@@ -16,6 +16,32 @@
 
 ---
 
+## 2026-07-13 · v0.4.12 — auto-routing zero-config (auto-assegnazione ruoli al toggle)
+
+**Fase:** 12.65 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback: "voglio scrivere e basta e che scelga lui — oppure selezionarli io a mano")
+
+Chiarito: il routing "scrivi e basta" c'era già (v0.4.11) — mancava solo
+l'ultimo pezzo manuale, l'assegnazione iniziale dei ruoli. Ora:
+
+- **`autoAssignRoles()`** in `ModelSwitcher`: all'accensione del toggle, se i
+  ruoli sono vuoti li sceglie da solo scorrendo i provider connessi —
+  **Design** = miglior modello CON vision (score: anthropic+4, opus/sonnet+3,
+  fable/gpt-5/gemini+2, malus fast/haiku/mini; salta deprecati e paid-gateway);
+  **Coding** = miglior coder (glm-5.2+4, deepseek+3 con bonus v4/pro, qwen/
+  coder+2); mai lo stesso modello per entrambi i ruoli.
+- Hint ambra ora distingue il caso "nessun modello vision collegato" (serve la
+  chiave Anthropic) e ricorda l'override manuale 🎨/⌨.
+- Le due modalità convivono: toggle ON = automatico (con override per-ruolo);
+  toggle OFF = selezione manuale classica.
+
+### Gotcha / attenzione
+
+- L'auto-assegnazione scatta SOLO per ruoli vuoti (non sovrascrive scelte
+  manuali) e solo al momento dell'accensione del toggle.
+- 82 test verdi, typecheck, build. Bump 0.4.12.
+
 ## 2026-07-12 · v0.4.11 — auto-routing dei modelli: design→Claude, coding→glm/deepseek
 
 **Fase:** 12.64 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

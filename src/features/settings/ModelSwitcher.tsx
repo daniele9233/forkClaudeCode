@@ -77,6 +77,52 @@ export function ModelSwitcher() {
     setOpen(false);
   };
 
+  // Zero-config routing: when the toggle is switched ON with unassigned roles,
+  // pick sensible defaults automatically — the best VISION model for design
+  // (Claude preferred) and the best fast coder for coding (glm/deepseek
+  // preferred). The user can always override with the 🎨/⌨ buttons.
+  const autoAssignRoles = () => {
+    let bestDesign: { id: string; score: number } | null = null;
+    let bestCoding: { id: string; score: number } | null = null;
+    for (const p of visibleProviders) {
+      const isGateway =
+        p.id === "opencode" ||
+        p.id.startsWith("opencode-") ||
+        /opencode/i.test(p.name ?? "");
+      for (const [modelId, model] of Object.entries(p.models ?? {})) {
+        if ((model as { status?: string }).status === "deprecated") continue;
+        if (isGateway && !isFreeModel(model)) continue; // paid gateway → invalid key
+        const full = `${p.id}/${modelId}`;
+        const hay = `${modelId} ${model.name ?? ""}`.toLowerCase();
+        if (modelSupportsVision(model)) {
+          let s = 1;
+          if (p.id === "anthropic") s += 4;
+          if (/opus|sonnet/.test(hay)) s += 3;
+          if (/fable|gpt-5|gemini/.test(hay)) s += 2;
+          if (/fast|latest|haiku|mini|flash/.test(hay)) s -= 1;
+          if (!bestDesign || s > bestDesign.score) bestDesign = { id: full, score: s };
+        }
+        {
+          let s = 0;
+          if (/glm-5\.2/.test(hay)) s += 4;
+          else if (/glm/.test(hay)) s += 2;
+          if (/deepseek/.test(hay)) s += 3;
+          if (/v4|pro|reasoner/.test(hay) && /deepseek/.test(hay)) s += 1;
+          if (/coder|qwen/.test(hay)) s += 2;
+          if (s > 0 && (!bestCoding || s > bestCoding.score))
+            bestCoding = { id: full, score: s };
+        }
+      }
+    }
+    if (!roles.design && bestDesign) setRole("design", bestDesign.id);
+    if (!roles.coding && bestCoding) {
+      // Never assign the same model to both roles.
+      const designId = roles.design ?? bestDesign?.id;
+      if (bestCoding.id !== designId) setRole("coding", bestCoding.id);
+      else if (currentModel && currentModel !== designId) setRole("coding", currentModel);
+    }
+  };
+
   return (
     <div ref={panelRef} className="relative">
       <button
@@ -136,9 +182,13 @@ export function ModelSwitcher() {
           {visibleProviders.length > 0 && (
             <div className="shrink-0 space-y-1 border-t border-[var(--border)] px-2 py-1.5">
               <button
-                onClick={() => setAutoRoute(!autoRoute)}
+                onClick={() => {
+                  const on = !autoRoute;
+                  if (on) autoAssignRoles(); // zero-config: pick defaults now
+                  setAutoRoute(on);
+                }}
                 className="flex w-full items-center gap-1.5 text-left"
-                title="Con l'auto-routing ogni prompt viene classificato: design/front-end → modello Design; il resto → modello Coding. Assegna i ruoli con i bottoni 🎨/⌨ accanto ai modelli."
+                title="Con l'auto-routing scrivi e basta: ogni prompt viene classificato e va da solo al modello giusto (design/front-end → modello Design 🎨; il resto → modello Coding ⌨). All'accensione i ruoli si assegnano da soli (miglior modello vision per il design, glm/deepseek per il coding); puoi sempre cambiarli a mano con i bottoni 🎨/⌨ accanto ai modelli."
               >
                 <span
                   className={cn(
@@ -163,8 +213,12 @@ export function ModelSwitcher() {
               </button>
               {autoRoute && (!roles.design || !roles.coding) && (
                 <p className="text-[9px] leading-relaxed text-amber-400">
-                  Assegna i ruoli: passa col mouse su un modello e clicca 🎨 (design) o ⌨
-                  (coding). Ruoli mancanti usano la selezione manuale.
+                  {!roles.design
+                    ? "Nessun modello con vision collegato per il ruolo Design — collega una chiave Anthropic (Claude). "
+                    : ""}
+                  Puoi assegnare/cambiare i ruoli a mano: passa col mouse su un modello e
+                  clicca 🎨 (design) o ⌨ (coding). Ruoli mancanti usano la selezione
+                  manuale.
                 </p>
               )}
             </div>

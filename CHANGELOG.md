@@ -4,6 +4,18 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.12] — 2026-07-13
+
+### Changed
+
+- **Auto-routing is now zero-config.** Flip the toggle and the roles assign
+  themselves: the best **vision** model you have connected becomes the Design
+  model (Claude preferred), and the best fast coder (glm-5.2 / DeepSeek
+  preferred) becomes the Coding model. From then on you just type — every
+  prompt goes to the right model automatically. Manual override stays: hover a
+  model and click 🎨/⌨ to reassign anytime, or turn the toggle off to go back
+  to fully manual selection.
+
 ## [0.4.11] — 2026-07-12
 
 ### Added
