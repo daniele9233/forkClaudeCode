@@ -19,7 +19,7 @@ export function SidebarBrain() {
   const [collapsed, setCollapsed] = useState(false);
 
   // Bigger sidebar → bigger brain (the whole point of the resizable sidebar).
-  const height = Math.round(Math.min(Math.max(sidebarWidth * 0.95, 240), 480));
+  const height = Math.round(Math.min(Math.max(sidebarWidth * 0.95, 240), 720));
 
   return (
     <div className="shrink-0 border-t border-[var(--border)] bg-black">

@@ -60,7 +60,14 @@ const STACK = `Crea un PROGETTO FRONT-END COMPLETO E REALE, non una singola pagi
 - Scaffolding: Vite + React 19 + TypeScript + Tailwind CSS. Struttura in \`src/\` con un componente per ogni sezione, dati/contenuti separati, e un design-system di token (colori, type scale, spacing) centralizzato.
 - Animazioni: Framer Motion per le interazioni React, GSAP + ScrollTrigger per lo scroll-driven, Lenis per lo smooth scroll, e CSS scroll-driven animations dove supportate. Sempre reduced-motion safe.
 - 3D (quando ha senso): React Three Fiber (@react-three/fiber) + @react-three/drei su Three.js, oppure @splinetool/react-spline per scene Spline pronte; modelli .glb/.gltf ottimizzati (Draco), lazy-load in Suspense, dpr limitato, 60fps con fallback statico low-power.
-- Installa le dipendenze, configura \`package.json\`/vite/tailwind e assicurati che il tutto giri con \`npm run dev\`.`;
+- Installa le dipendenze, configura \`package.json\`/vite/tailwind e assicurati che il tutto giri con \`npm run dev\`.
+
+ARSENALE (usa gli strumenti MCP DISPONIBILI — controlla quali sono collegati e sfruttali):
+- FIGMA MCP collegato? Se l'utente indica un file/frame Figma, leggilo e implementa quel design FEDELMENTE (misure, testi, stili esatti) invece di inventare.
+- BLENDER MCP collegato? Per l'hero 3D puoi creare in Blender un asset su misura per il concept (modello + materiali), esportarlo .glb ottimizzato e caricarlo in R3F con drei — un asset UNICO batte qualsiasi primitiva.
+- 21st MCP collegato? Genera lì i componenti UI complessi (pricing, testimonial, nav) a qualità 21st.dev e integrali nel design-system del progetto.
+- Playwright MCP collegato? Dopo il build, apri la pagina e verificane il rendering reale.
+Se uno strumento NON è collegato, procedi senza (nessun blocco) — ma se c'è, usarlo è OBBLIGATORIO quando pertinente.`;
 
 /**
  * Shared quality bar + ANTI-SLOP mandate appended to every brief. This bakes the
@@ -78,7 +85,9 @@ REGOLA ANTI-SLOP (obbligatoria — NON deve sembrare un template AI generico):
 - Layout fluido: rem/%/clamp()/grid/flex, mai larghezze fisse in px che si rompono su mobile.
 - HTML semantico (header/nav/main/section/footer/button/a/h1–h3), niente "div-soup"; un elemento cliccabile è <button>/<a>, mai <div onClick>.
 - Accessibilità reale: focus-visible, tastiera, alt/aria, contrasto AA.
-Deve sembrare art-directed da uno studio top (livello awwwards), non un template. Se potrebbe essere qualsiasi sito, ridisegnalo.`;
+Deve sembrare art-directed da uno studio top (livello awwwards SOTD), non un template. Se potrebbe essere qualsiasi sito, ridisegnalo.
+
+IL MOMENTO FIRMA (obbligatorio): ogni sito deve avere UN momento memorabile — un hero WebGL, una sequenza scroll pinnata coreografata, o una composizione tipografica audace. Un hero statico "titolo+bottone su sfondo piatto" è BOCCIATO in partenza. Dichiara il concept in una frase e falla guidare ogni scelta.`;
 
 /** Compose a full brief: stack scaffold → creative core → quality bar. */
 function brief(core: string): string {

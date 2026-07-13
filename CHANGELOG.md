@@ -4,6 +4,29 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.13] — 2026-07-13
+
+### Added
+
+- **The brain now has real memory** 🧠 (Obsidian-graph style): each cortex
+  region is wired to **real project telemetry** — files the agent writes feed
+  the MOTOR CORTEX, project file churn feeds the SENSORY CORTEX, streamed
+  replies feed LANGUAGE, your asks feed the CONCEPT LAYER, and every run forms
+  a memory in the HIPPOCAMPUS. Counters persist on disk across sessions, HUD
+  labels show the real lifetime numbers, and regions **grow denser** (more
+  neurons) as the project is actually worked on.
+- **Bigger brain** — the sidebar now widens up to ~75% of the window (900px)
+  and the brain panel up to 720px tall.
+
+### Changed
+
+- **Epic Studio recipes.** All 6 briefs now carry an **MCP arsenal** mandate:
+  if Figma is connected, implement the real design faithfully; if Blender is
+  connected, model a bespoke .glb hero asset for R3F; if 21st is connected,
+  generate the complex UI components there; Playwright verifies the real
+  render. Plus a shared "signature moment" rule: a static hero fails by
+  definition — awwwards SOTD is the bar.
+
 ## [0.4.12] — 2026-07-13
 
 ### Changed

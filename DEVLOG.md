@@ -16,6 +16,38 @@
 
 ---
 
+## 2026-07-13 · v0.4.13 — cervello con memoria REALE + più grande + ricette con arsenale MCP
+
+**Fase:** 12.66 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback: "il cervello lavori su file reali con memoria tipo graphify/Obsidian; più grande; ricette epiche con Figma/Blender")
+
+- **Memoria reale del cervello**: nuovo `brain.store.ts` (zustand persist,
+  `kikkocode-brain`) con 5 contatori a vita: edits/reads/replies/runs/prompts.
+  Feed: `file.edited`→edits (MOTOR), `file.watcher.updated`→reads (SENSORY),
+  update di `liveMessages`→replies (LANGUAGE), inizio run→runs (HIPPOCAMPUS)
+  +prompts (CONCEPT). Ogni regione ha `metric`+`weight`; `growthCounts()`:
+  neuroni = base + min(26, 6·log2(1+eventi/8)) → il cervello **cresce col
+  progetto** e sopravvive ai riavvii. `buildBrain(nodeCounts)` ora parametrico,
+  rebuild memoizzato per livello di crescita; label HUD = "N eventi · firing %"
+  con i numeri VERI.
+- **Più grande**: sidebar max 560/50vw → **900px/75vw**; altezza cervello max
+  480 → **720px**.
+- **Ricette epiche**: STACK arricchito con paragrafo **ARSENALE MCP**
+  (Figma→implementa il design reale fedelmente; Blender→modella asset .glb su
+  misura per l'hero R3F; 21st→componenti complessi; Playwright→verifica il
+  render; se collegati usarli è OBBLIGATORIO) + BAR con "MOMENTO FIRMA"
+  obbligatorio (hero statico = bocciato, standard awwwards SOTD). Vale per
+  tutte e 6 le ricette.
+
+### Gotcha / attenzione
+
+- I contatori del cervello includono anche un piccolo drift (replies bump per
+  update stream) → volutamente: misura l'attività, non i messaggi esatti.
+- Import dei tipi evento da `@opencode-ai/sdk/client` (non ri-esportati tutti
+  da opencode/events).
+- 82 test verdi, typecheck, build. Bump 0.4.13.
+
 ## 2026-07-13 · v0.4.12 — auto-routing zero-config (auto-assegnazione ruoli al toggle)
 
 **Fase:** 12.65 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

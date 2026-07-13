@@ -1,5 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useChatStore } from "@/stores/chat.store";
+import { useBrainStore, type BrainMetric } from "@/stores/brain.store";
+import { onEventType } from "@/opencode/events";
+import type { EventFileEdited, EventFileWatcherUpdated } from "@opencode-ai/sdk/client";
 
 /**
  * NeuralBrain — the 3D particle "digital brain" (video-inspired): neon neuron
@@ -19,6 +22,9 @@ interface Region {
   neurons: number;
   center: [number, number, number];
   spread: number;
+  /** Real telemetry metric this region grows with (+ weight). */
+  metric: BrainMetric;
+  weight: number;
 }
 
 // Positions roughly follow the video's layout: prefrontal on top, motor/
@@ -30,6 +36,8 @@ const REGIONS: Region[] = [
     neurons: 140,
     center: [0.12, 0.92, 0.1],
     spread: 0.4,
+    metric: "prompts",
+    weight: 0.8,
   },
   {
     name: "MOTOR CORTEX",
@@ -37,6 +45,8 @@ const REGIONS: Region[] = [
     neurons: 190,
     center: [-0.5, 0.6, 0.22],
     spread: 0.42,
+    metric: "edits",
+    weight: 1,
   },
   {
     name: "ASSOCIATION",
@@ -44,6 +54,8 @@ const REGIONS: Region[] = [
     neurons: 260,
     center: [0.55, 0.42, -0.18],
     spread: 0.46,
+    metric: "replies",
+    weight: 0.5,
   },
   {
     name: "SENSORY CORTEX",
@@ -51,6 +63,8 @@ const REGIONS: Region[] = [
     neurons: 200,
     center: [-0.72, 0.05, -0.15],
     spread: 0.4,
+    metric: "reads",
+    weight: 1,
   },
   {
     name: "CONCEPT LAYER",
@@ -58,6 +72,8 @@ const REGIONS: Region[] = [
     neurons: 160,
     center: [-0.12, 0.3, 0.55],
     spread: 0.44,
+    metric: "prompts",
+    weight: 1,
   },
   {
     name: "PREDICTIVE",
@@ -65,6 +81,8 @@ const REGIONS: Region[] = [
     neurons: 180,
     center: [0.78, -0.15, 0.18],
     spread: 0.4,
+    metric: "replies",
+    weight: 0.4,
   },
   {
     name: "FEATURE LAYER",
@@ -72,6 +90,8 @@ const REGIONS: Region[] = [
     neurons: 180,
     center: [-0.28, -0.32, 0.3],
     spread: 0.4,
+    metric: "edits",
+    weight: 0.6,
   },
   {
     name: "LANGUAGE",
@@ -79,6 +99,8 @@ const REGIONS: Region[] = [
     neurons: 170,
     center: [-0.58, -0.55, -0.22],
     spread: 0.36,
+    metric: "replies",
+    weight: 1,
   },
   {
     name: "HIPPOCAMPUS",
@@ -86,6 +108,8 @@ const REGIONS: Region[] = [
     neurons: 160,
     center: [0.35, -0.65, -0.1],
     spread: 0.38,
+    metric: "runs",
+    weight: 1,
   },
   {
     name: "BRAINSTEM",
@@ -93,6 +117,8 @@ const REGIONS: Region[] = [
     neurons: 120,
     center: [0.02, -0.98, 0.05],
     spread: 0.3,
+    metric: "runs",
+    weight: 0.5,
   },
 ];
 
@@ -124,12 +150,12 @@ function mulberry32(seed: number) {
   };
 }
 
-function buildBrain() {
+function buildBrain(nodeCounts: number[]) {
   const rnd = mulberry32(20260712);
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   REGIONS.forEach((reg, ri) => {
-    const count = Math.max(10, Math.round(reg.neurons / 12));
+    const count = nodeCounts[ri];
     const start = nodes.length;
     for (let i = 0; i < count; i++) {
       // Gaussian-ish scatter around the region center.
@@ -182,21 +208,68 @@ function buildBrain() {
   return { nodes, edges, stars };
 }
 
-const BRAIN = buildBrain();
+/**
+ * Neurons per region = a base population + REAL lifetime growth: the more the
+ * agent has actually done here (files edited, replies, runs…), the denser that
+ * region gets. Log-scaled so the brain grows fast early, then settles.
+ */
+function growthCounts(counts: Record<BrainMetric, number>): number[] {
+  return REGIONS.map((reg) => {
+    const real = Math.round(counts[reg.metric] * reg.weight);
+    const grown = Math.min(26, Math.floor(6 * Math.log2(1 + real / 8)));
+    return Math.max(10, Math.round(reg.neurons / 14) + grown);
+  });
+}
 
 export function NeuralBrain({ running }: { running: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const energyRef = useRef(0);
   const liveMessages = useChatStore((s) => s.liveMessages);
+  const counts = useBrainStore((s) => s.counts);
+  const bump = useBrainStore((s) => s.bump);
 
-  // Every streamed update injects energy; the draw loop decays it.
+  // REAL MEMORY: the brain is rebuilt (rarely) when lifetime activity crosses
+  // a growth level — regions literally get denser as the project is worked on.
+  const nodeCounts = useMemo(() => growthCounts(counts), [counts]);
+  const brainKey = nodeCounts.join(",");
+  const BRAIN = useMemo(
+    () => buildBrain(nodeCounts),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [brainKey],
+  );
+  const countsRef = useRef(counts);
+  countsRef.current = counts;
+
+  // REAL FILE ACTIVITY: agent writes → MOTOR CORTEX; project file churn →
+  // SENSORY CORTEX. This is what ties the brain to the actual files on disk.
+  useEffect(() => {
+    const unsubs = [
+      onEventType<EventFileEdited>("file.edited", () => {
+        energyRef.current = Math.min(1, energyRef.current + 0.2);
+        useBrainStore.getState().bump("edits");
+      }),
+      onEventType<EventFileWatcherUpdated>("file.watcher.updated", () => {
+        useBrainStore.getState().bump("reads");
+      }),
+    ];
+    return () => unsubs.forEach((fn) => fn());
+  }, []);
+
+  // Every streamed update injects energy AND counts as real LANGUAGE activity.
   useEffect(() => {
     energyRef.current = Math.min(1, energyRef.current + 0.3);
+    bump("replies");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveMessages]);
-  // A run starting gives a base kick even before tokens arrive.
+  // A run starting gives a base kick + one prompt + one memory (run) formed.
   useEffect(() => {
-    if (running) energyRef.current = Math.max(energyRef.current, 0.5);
+    if (running) {
+      energyRef.current = Math.max(energyRef.current, 0.5);
+      bump("runs");
+      bump("prompts");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
   useEffect(() => {
@@ -356,7 +429,10 @@ export function NeuralBrain({ running }: { running: boolean }) {
             0.4 * Math.abs(Math.sin(tick * 0.02 + ri))
           ).toFixed(1);
           const title = reg.name;
-          const sub = `${reg.neurons} neurons · firing ${firing}%`;
+          // REAL memory: the label shows this region's lifetime activity.
+          const real = Math.round(countsRef.current[reg.metric] * reg.weight);
+          const realFmt = real >= 1000 ? `${(real / 1000).toFixed(1)}K` : String(real);
+          const sub = `${realFmt} eventi · firing ${firing}%`;
           ctx.font = "700 8px ui-monospace, monospace";
           const wTitle = ctx.measureText(title).width;
           ctx.font = "400 7px ui-monospace, monospace";
@@ -404,7 +480,7 @@ export function NeuralBrain({ running }: { running: boolean }) {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, []);
+  }, [BRAIN]);
 
   return (
     <div ref={wrapRef} className="relative h-full w-full overflow-hidden bg-black">

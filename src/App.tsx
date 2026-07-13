@@ -148,7 +148,7 @@ export default function App() {
     (e: React.PointerEvent) => {
       e.preventDefault();
       const onMove = (ev: PointerEvent) => {
-        const max = Math.min(560, window.innerWidth * 0.5);
+        const max = Math.min(900, window.innerWidth * 0.75);
         setSidebarWidth(Math.min(Math.max(ev.clientX, 220), max));
       };
       const onUp = () => {
