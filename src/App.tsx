@@ -12,6 +12,7 @@ import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
 import { UpdateBanner } from "@/features/statusbar/UpdateBanner";
 import { SidebarBrain } from "@/features/thinking/SidebarBrain";
 import { VisionStudio } from "@/features/vision/VisionStudio";
+import { useSpendTracker } from "@/features/inspector/useSpendTracker";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
 
 // Heavy / conditionally-shown panels are code-split so they don't bloat the
@@ -110,6 +111,8 @@ export default function App() {
   const selectedFilePath = useFileStore((s) => s.selectedFilePath);
   const previewOpen = usePreviewStore((s) => s.previewOpen);
   const reduce = useReducedMotion();
+  // Accumulate real per-model spend from live activity (once, app-wide).
+  useSpendTracker();
   const sidecarStatus = useSessionStore((s) => s.sidecarStatus);
   const onboardingDone = useOnboardingStore((s) => s.completed);
   // Show the first-run wizard once the engine is up (so the provider step can

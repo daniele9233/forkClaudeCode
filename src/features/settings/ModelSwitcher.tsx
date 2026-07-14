@@ -5,12 +5,26 @@ import { useConfig, useUpdateConfig } from "@/opencode/config";
 import { useProviders } from "@/opencode/context";
 import { modelSupportsVision } from "@/opencode/modelCaps";
 import { useModelStore } from "@/stores/model.store";
+import { useSpendStore } from "@/stores/spend.store";
 import { AddProviderKey } from "./AddProviderKey";
 import { isCurrentAnthropicModel, isCurrentGlmModel } from "./modelFilter";
 
 /** A model is FREE when both input and output cost per token are 0. */
 function isFreeModel(model: { cost?: { input?: number; output?: number } }): boolean {
   return !!model.cost && model.cost.input === 0 && model.cost.output === 0;
+}
+
+/** Compact money formatter: $0.0042 / $1.20 / $12. */
+function fmtSpend(c: number): string {
+  if (c <= 0) return "$0";
+  if (c < 0.01) return `$${c.toFixed(4)}`;
+  if (c < 100) return `$${c.toFixed(2)}`;
+  return `$${Math.round(c)}`;
+}
+function fmtTok(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1000) return `${Math.round(n / 1000)}K`;
+  return String(n);
 }
 
 /**
@@ -39,6 +53,8 @@ export function ModelSwitcher() {
   const setRole = useModelStore((s) => s.setRole);
   const autoRoute = useModelStore((s) => s.autoRoute);
   const setAutoRoute = useModelStore((s) => s.setAutoRoute);
+  // Real lifetime spend per model (money + tokens) — shown next to each model.
+  const spend = useSpendStore((s) => s.spend);
   const currentModel = localSelected ?? config?.model ?? "";
   const slash = currentModel.indexOf("/");
   const currentProviderId = slash > 0 ? currentModel.slice(0, slash) : "";
@@ -408,6 +424,17 @@ export function ModelSwitcher() {
                           {active && (
                             <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-[var(--color-online)]">
                               online
+                            </span>
+                          )}
+                          {/* REAL lifetime spend on this model (money + tokens) */}
+                          {spend[full] && spend[full].cost > 0 && (
+                            <span
+                              title={`Consumato con questo modello: ${fmtSpend(spend[full].cost)} · ${fmtTok(
+                                spend[full].tokensIn + spend[full].tokensOut,
+                              )} token (in+out). Il credito residuo non è esposto da questo provider.`}
+                              className="shrink-0 rounded-sm bg-[var(--muted)]/50 px-1 font-mono text-[9px] text-[var(--foreground)]"
+                            >
+                              {fmtSpend(spend[full].cost)}
                             </span>
                           )}
                           {/* Vision-capable models show an eye */}

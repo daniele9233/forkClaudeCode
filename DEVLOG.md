@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-07-13 · v0.4.15 — consumo reale per modello nel dropdown (+ verità sul "credito residuo")
+
+**Fase:** 12.68 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback: "mostra il credito API rimanente per ogni LLM accanto ai costi di consumo, dove metto le chiavi")
+
+**Verità detta all'utente:** il "credito residuo" NON è esponibile per la maggior
+parte dei provider — Anthropic/OpenAI/Groq/Mistral/GLM non hanno API di balance;
+solo DeepSeek (`/user/balance`) e OpenRouter (`/api/v1/credits`) sì. In più le
+chiavi dei provider env-connected non sono trattenute lato JS. Quindi ho fatto
+la parte **reale e universale**: il **consumo per modello**.
+
+- **`spend.store.ts`** (persist `kikkocode-spend`): `Record<"provider/model",
+  {cost,tokensIn,tokensOut,updatedAt}>` + `add(delta)` + `reset`. +3 unit test (85).
+- **`useSpendTracker.ts`** (montato in App): accumula il consumo dai
+  `liveMessages` per **delta su id messaggio** (seen-map in memoria) → niente
+  doppi conteggi in streaming e nessun ri-conteggio dei messaggi storici
+  (che non passano da liveMessages).
+- **`ModelSwitcher`**: accanto a ogni modello, chip `$x.xx` con tooltip
+  "consumato: $ · N token · il credito residuo non è esposto da questo provider".
+
+### Gotcha / attenzione
+
+- Il consumo parte da zero all'installazione e conta solo l'attività fatta
+  tramite l'app (monotòno, corretto). Reset per-modello disponibile nello store.
+- Balance DeepSeek/OpenRouter: fattibile come follow-up mirato (serve trattenere
+  la chiave) — offerto all'utente, non implementato per non mostrare "—" ovunque.
+- 85 test verdi, typecheck, build. Bump 0.4.15.
+
 ## 2026-07-13 · v0.4.14 — satelliti subagent attorno al cervello + Vision Studio (guard vision)
 
 **Fase:** 12.67 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

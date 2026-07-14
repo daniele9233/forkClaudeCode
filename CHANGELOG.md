@@ -4,6 +4,23 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.15] — 2026-07-13
+
+### Added
+
+- **Per-model spend tracking** 💸 — the model dropdown now shows, next to each
+  model, how much you've actually **spent** with it (money + tokens),
+  accumulated from real activity and persisted across sessions. It's the true
+  "consumption" figure for every LLM, right where you manage the keys.
+
+### Note
+
+- **Remaining credit / balance is intentionally not shown for most providers**
+  because they don't expose it: Anthropic, OpenAI, Groq, Mistral and GLM/z.ai
+  have **no balance API**. Only DeepSeek and OpenRouter offer one — the per-model
+  tooltip notes that residual credit isn't exposed. (A targeted DeepSeek /
+  OpenRouter balance readout can be added on request.)
+
 ## [0.4.14] — 2026-07-13
 
 ### Added
