@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useChatStore } from "@/stores/chat.store";
 import { useBrainStore, type BrainMetric } from "@/stores/brain.store";
 import { onEventType } from "@/opencode/events";
-import type { EventFileEdited, EventFileWatcherUpdated } from "@opencode-ai/sdk/client";
+import type { EventFileEdited } from "@opencode-ai/sdk/client";
 
 /**
  * NeuralBrain — the 3D particle "digital brain" (video-inspired): neon neuron
@@ -241,7 +241,6 @@ export function NeuralBrain({
   const energyRef = useRef(0);
   const liveMessages = useChatStore((s) => s.liveMessages);
   const counts = useBrainStore((s) => s.counts);
-  const bump = useBrainStore((s) => s.bump);
 
   // REAL MEMORY: the brain is rebuilt (rarely) when lifetime activity crosses
   // a growth level — regions literally get denser as the project is worked on.
@@ -257,35 +256,23 @@ export function NeuralBrain({
   const satsRef = useRef(satellites);
   satsRef.current = satellites;
 
-  // REAL FILE ACTIVITY: agent writes → MOTOR CORTEX; project file churn →
-  // SENSORY CORTEX. This is what ties the brain to the actual files on disk.
+  // VISUAL ONLY: file activity briefly brightens the cortex. The MEMORY
+  // (counters) is accumulated by useBrainTelemetry (always mounted), so the
+  // brain stays "alive" even while this panel is hidden.
   useEffect(() => {
-    const unsubs = [
-      onEventType<EventFileEdited>("file.edited", () => {
-        energyRef.current = Math.min(1, energyRef.current + 0.2);
-        useBrainStore.getState().bump("edits");
-      }),
-      onEventType<EventFileWatcherUpdated>("file.watcher.updated", () => {
-        useBrainStore.getState().bump("reads");
-      }),
-    ];
-    return () => unsubs.forEach((fn) => fn());
+    const unsub = onEventType<EventFileEdited>("file.edited", () => {
+      energyRef.current = Math.min(1, energyRef.current + 0.2);
+    });
+    return () => unsub();
   }, []);
 
-  // Every streamed update injects energy AND counts as real LANGUAGE activity.
+  // Each streamed update injects visual energy; the draw loop decays it.
   useEffect(() => {
     energyRef.current = Math.min(1, energyRef.current + 0.3);
-    bump("replies");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveMessages]);
-  // A run starting gives a base kick + one prompt + one memory (run) formed.
+  // A run starting gives a base energy kick.
   useEffect(() => {
-    if (running) {
-      energyRef.current = Math.max(energyRef.current, 0.5);
-      bump("runs");
-      bump("prompts");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (running) energyRef.current = Math.max(energyRef.current, 0.5);
   }, [running]);
 
   useEffect(() => {

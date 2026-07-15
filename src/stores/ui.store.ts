@@ -9,6 +9,10 @@ interface UIState {
   bottomHeight: number;
   /** Width (px) of the left sidebar — user-resizable (bigger = bigger brain). */
   sidebarWidth: number;
+  /** Show the 3D neural brain panel. Off at launch (memory keeps running
+   *  regardless via the always-mounted telemetry hook); toggled from the
+   *  bottom-left button. Not persisted → always starts hidden. */
+  brainVisible: boolean;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
   projectPickerOpen: boolean;
@@ -21,6 +25,7 @@ interface UIState {
   setBottomTab: (tab: BottomTab) => void;
   setBottomHeight: (h: number) => void;
   setSidebarWidth: (w: number) => void;
+  toggleBrain: () => void;
   toggleTerminal: () => void;
   openCommandPalette: () => void;
   closeCommandPalette: () => void;
@@ -37,6 +42,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   bottomTab: "terminal",
   bottomHeight: 340,
   sidebarWidth: 256,
+  brainVisible: false,
   commandPaletteOpen: false,
   settingsOpen: false,
   projectPickerOpen: false,
@@ -48,6 +54,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   setBottomTab: (tab) => set({ bottomTab: tab }),
   setBottomHeight: (h) => set({ bottomHeight: h }),
   setSidebarWidth: (w) => set({ sidebarWidth: w }),
+  toggleBrain: () => set((s) => ({ brainVisible: !s.brainVisible })),
   toggleTerminal: () => {
     const { bottomOpen, bottomTab } = get();
     if (bottomOpen && bottomTab === "terminal") {

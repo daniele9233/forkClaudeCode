@@ -11,6 +11,7 @@ import { SidecarStatusBanner } from "@/features/statusbar/SidecarStatusBanner";
 import { EngineVersionBanner } from "@/features/statusbar/EngineVersionBanner";
 import { UpdateBanner } from "@/features/statusbar/UpdateBanner";
 import { SidebarBrain } from "@/features/thinking/SidebarBrain";
+import { useBrainTelemetry } from "@/features/thinking/useBrainTelemetry";
 import { VisionStudio } from "@/features/vision/VisionStudio";
 import { useSpendTracker } from "@/features/inspector/useSpendTracker";
 import { useUIStore, type BottomTab } from "@/stores/ui.store";
@@ -99,6 +100,8 @@ export default function App() {
     setBottomHeight,
     sidebarWidth,
     setSidebarWidth,
+    brainVisible,
+    toggleBrain,
     commandPaletteOpen,
     openCommandPalette,
     closeCommandPalette,
@@ -113,6 +116,8 @@ export default function App() {
   const reduce = useReducedMotion();
   // Accumulate real per-model spend from live activity (once, app-wide).
   useSpendTracker();
+  // The brain's MEMORY runs always, even when the panel is hidden.
+  useBrainTelemetry();
   const sidecarStatus = useSessionStore((s) => s.sidecarStatus);
   const onboardingDone = useOnboardingStore((s) => s.completed);
   // Show the first-run wizard once the engine is up (so the provider step can
@@ -218,8 +223,38 @@ export default function App() {
           <div className="min-h-0 flex-1 overflow-hidden">
             <SessionSidebar />
           </div>
-          <SidebarBrain />
+          {/* 3D neural brain — hidden at launch; toggled from the button below.
+              Its MEMORY keeps running regardless (useBrainTelemetry). */}
+          {brainVisible && <SidebarBrain />}
           <ContextSparkline />
+          {/* Bottom-left: show/hide the brain (memory stays active either way) */}
+          <button
+            onClick={toggleBrain}
+            title={
+              brainVisible
+                ? "Nascondi il cervello 3D (la memoria resta attiva)"
+                : "Mostra il cervello 3D — schema mentale del progetto (la memoria è sempre attiva)"
+            }
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 border-t border-[var(--border)] px-3 py-1.5 text-left transition-colors",
+              brainVisible
+                ? "bg-[var(--chat-agent-accent)]/10 text-[var(--chat-agent-accent)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]",
+            )}
+          >
+            <span className="text-sm leading-none">🧠</span>
+            <span className="hud-label flex-1">
+              {brainVisible ? "cervello · attivo" : "cervello · mostra"}
+            </span>
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                brainVisible
+                  ? "bg-[var(--chat-agent-accent)]"
+                  : "bg-[var(--muted-foreground)]/50",
+              )}
+            />
+          </button>
         </div>
         {/* Sidebar resize handle */}
         <div

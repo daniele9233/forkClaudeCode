@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to create (e.g. v0.4.16)"
+        description: "Release tag to create (e.g. v0.4.17)"
         required: true
-        default: "v0.4.16"
+        default: "v0.4.17"
 
 permissions:
   contents: write
@@ -89,8 +89,8 @@ jobs:
           # dispatch or a "[release]" branch push, use the input (or default
           # v0.1.0) so tauri-action creates a clean v* tag instead of the
           # branch name.
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.4.16' }}
-          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.4.16' }}"
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.4.17' }}
+          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.4.17' }}"
           # Give the GitHub Release page a description instead of an empty body.
           releaseBody: |
             Windows installer for kikkoCode. Download the `*_x64-setup.exe`

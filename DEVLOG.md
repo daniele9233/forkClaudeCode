@@ -16,6 +16,34 @@
 
 ---
 
+## 2026-07-14 · v0.4.17 — cervello nascosto all'avvio + tasto in basso a sinistra (memoria sempre attiva)
+
+**Fase:** 12.70 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback: "il cervello 3D sempre attivo per la memoria/schema mentale ma NON deve apparire all'avvio; tasto in basso a sinistra per attivarlo")
+
+Chiave: la telemetria (memoria) era DENTRO `NeuralBrain` → nascondendolo si
+fermava. Disaccoppiata:
+
+- **`useBrainTelemetry.ts`** (montato SEMPRE in App): sposta lì tutti i `bump`
+  (edits/reads da eventi file, replies da liveMessages, runs+prompts sul fronte
+  di salita di `running` con ref-guard). La memoria cresce sempre, cervello
+  visibile o no.
+- **`NeuralBrain`**: rimossi i `bump` e l'import `EventFileWatcherUpdated`/`bump`;
+  restano solo gli aggiornamenti di `energyRef` (puro visivo). Legge `counts`
+  per disegnare.
+- **`ui.store`**: `brainVisible` (default false, NON persistito → sempre nascosto
+  all'avvio) + `toggleBrain`.
+- **`App`**: `{brainVisible && <SidebarBrain/>}` + **tasto in basso a sinistra**
+  della sidebar (🧠 "cervello · mostra/attivo", dot di stato) sotto la
+  ContextSparkline.
+
+### Gotcha / attenzione
+
+- Non persistito di proposito: l'utente vuole che parta nascosto ogni volta.
+- La memoria (`brain.store`) resta persistita e cresce sempre.
+- 85 test verdi, typecheck, build. Bump 0.4.17.
+
 ## 2026-07-14 · v0.4.16 — FIX: il lavoro dei subagent ora si vede live (parità OpenCode)
 
 **Fase:** 12.69 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

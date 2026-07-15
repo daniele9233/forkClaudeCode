@@ -4,6 +4,17 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.17] — 2026-07-14
+
+### Changed
+
+- **The 3D brain is now hidden at launch, with a bottom-left toggle.** Its
+  **memory stays always active** regardless — the project telemetry (files,
+  replies, runs…) is now tracked by an always-on hook, decoupled from the
+  visual panel — so the brain keeps its mental schema of the project even while
+  hidden. Click **🧠 cervello** at the bottom-left of the sidebar to show/hide
+  the visualization anytime.
+
 ## [0.4.16] — 2026-07-14
 
 ### Fixed
