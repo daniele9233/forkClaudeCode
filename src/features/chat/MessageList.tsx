@@ -86,8 +86,7 @@ export function MessageList({ sessionId, isRunning }: Props) {
     for (const [id, lp] of liveParts) {
       if (seen.has(id) || lp.size === 0) continue;
       const first = lp.values().next().value as
-        | { sessionID?: string; time?: { created?: number } }
-        | undefined;
+        { sessionID?: string; time?: { created?: number } } | undefined;
       if (!first || first.sessionID !== sessionId) continue;
       seen.add(id);
       out.push({

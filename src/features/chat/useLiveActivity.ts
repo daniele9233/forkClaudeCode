@@ -31,7 +31,16 @@ export interface LiveActivity {
 function preview(input: unknown): string | undefined {
   if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
   const o = input as Record<string, unknown>;
-  for (const k of ["command", "cmd", "pattern", "query", "path", "filePath", "file_path", "url"]) {
+  for (const k of [
+    "command",
+    "cmd",
+    "pattern",
+    "query",
+    "path",
+    "filePath",
+    "file_path",
+    "url",
+  ]) {
     const v = o[k];
     if (typeof v === "string" && v) return v;
   }
@@ -67,7 +76,14 @@ export function useLiveActivity(sessionId: string | null): LiveActivity {
   }, [running]);
 
   if (!sessionId || !running) {
-    return { running: false, kind: "waiting", label: "", subagents: 0, silentFor: 0, stalled: false };
+    return {
+      running: false,
+      kind: "waiting",
+      label: "",
+      subagents: 0,
+      silentFor: 0,
+      stalled: false,
+    };
   }
 
   // Latest assistant message belonging to THIS session (live copy).
