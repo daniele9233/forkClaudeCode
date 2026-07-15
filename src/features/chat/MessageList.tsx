@@ -69,11 +69,36 @@ export function MessageList({ sessionId, isRunning }: Props) {
     for (const [id, msg] of liveMessages) {
       if (!msg || seen.has(id)) continue;
       if (msg.sessionID !== sessionId) continue;
+      seen.add(id);
       const lp = liveParts.get(id);
       out.push({
         info: msg,
         parts: lp ? liveArr(lp) : [],
         streaming: isRunning && msg.role === "assistant",
+      });
+    }
+
+    // Stranded live parts: `message.part.updated` can arrive BEFORE the
+    // `message.updated` that carries the message shell. Without this, the first
+    // tokens/tools would be invisible until the metadata lands ("non compare
+    // niente inizialmente"). Synthesize a minimal assistant row from the parts'
+    // own sessionID so streaming shows the instant the first part arrives.
+    for (const [id, lp] of liveParts) {
+      if (seen.has(id) || lp.size === 0) continue;
+      const first = lp.values().next().value as
+        | { sessionID?: string; time?: { created?: number } }
+        | undefined;
+      if (!first || first.sessionID !== sessionId) continue;
+      seen.add(id);
+      out.push({
+        info: {
+          id,
+          role: "assistant",
+          sessionID: sessionId,
+          time: { created: first.time?.created ?? Date.now() / 1000 },
+        } as unknown as Message,
+        parts: liveArr(lp),
+        streaming: isRunning,
       });
     }
 

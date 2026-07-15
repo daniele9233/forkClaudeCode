@@ -16,6 +16,44 @@
 
 ---
 
+## 2026-07-15 · v0.4.18 — agente principale visibile in tempo reale ("identico a opencode")
+**Fase:** streaming/UX  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
+
+### Cosa è cambiato
+- Nuovo hook `src/features/chat/useLiveActivity.ts`: calcola cosa fa l'agente
+  MAIN *adesso* leggendo le live parts della sua ultima assistant message +
+  lo stato dei figli (subagent). Distingue: tool in esecuzione (nome + preview
+  + `startedAt`), reasoning ("thinking…"), testo in scrittura, N subagent
+  attivi, attesa modello. Espone `stalled` = running && niente lavoro in corso
+  && silenzio ≥ 30s.
+- Nuovo componente `src/features/chat/LiveActivityBar.tsx`: barra sempre
+  visibile durante il run (status line stile OpenCode) con icona per tipo,
+  clock live sul tool, e pulsante Stop sempre raggiungibile. Escala al
+  warning ambra "possibile loop" **solo** su silenzio vero.
+- `ChatShell.tsx`: sostituito `<StallBanner>` con `<LiveActivityBar>`.
+- `MessageList.tsx`: rete di sicurezza per le "stranded live parts" — se
+  `message.part.updated` arriva prima di `message.updated`, sintetizza una
+  riga assistant minimale dal `sessionID` della part, così i primi token/tool
+  compaiono subito (fix "non compare niente inizialmente").
+- Rimossi i file orfani `StallBanner.tsx` e `useStallWatch.ts`.
+- Bump versione 0.4.17 → 0.4.18.
+
+### Perché / decisione
+Feedback utente: «pensa pensa e dopo mi da tutto l'output lo voglio identico a
+opencode» + la vecchia StallBanner false-firava "elabora da 50s". Causa reale:
+durante un tool lungo o un `task` (subagent) NESSUN evento raggiunge la
+sessione main → clock di attività stantio → falso stallo e nessun feedback.
+Stesso motore di OpenCode ⇒ stessi eventi: il gap era di presentazione, non di
+buffering del provider.
+
+### Gotcha / attenzione
+- `useLiveActivity` usa `useSessionChildren` (react-query, poll 2s in run) per
+  contare i subagent attivi: un tool `task` in corso vale come lavoro vivo.
+- `lastActivityAt` della sessione main resta stantio durante il lavoro dei
+  figli — è voluto: lo stallo è escluso via `hasLiveWork`, non azzerando il
+  clock.
+- Verificato: `pnpm lint`, `pnpm test` (85), `pnpm build` verdi.
+
 ## 2026-07-14 · v0.4.17 — cervello nascosto all'avvio + tasto in basso a sinistra (memoria sempre attiva)
 
 **Fase:** 12.70 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

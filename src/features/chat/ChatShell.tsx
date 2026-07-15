@@ -25,7 +25,7 @@ import { ThemeToggle } from "@/features/settings/ThemeToggle";
 import { WelcomeScreen } from "@/features/onboarding/WelcomeScreen";
 import { StatStrip } from "@/features/inspector/StatStrip";
 import { MessageList } from "./MessageList";
-import { StallBanner } from "./StallBanner";
+import { LiveActivityBar } from "./LiveActivityBar";
 import { ChatInput, type AgentMode, type SendOpts } from "./ChatInput";
 import { AutopilotBar } from "./AutopilotBar";
 import { useAutopilotStore } from "@/stores/autopilot.store";
@@ -309,8 +309,9 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
           </div>
         )}
         <PermissionBanner />
-        {/* Stall watchdog: warns when a run goes silent (possible loop) + Stop */}
-        <StallBanner sessionId={activeSessionId} onStop={handleAbort} />
+        {/* Live activity: always-on "what the agent is doing now" (like OpenCode's
+            status line); escalates to a loop warning only on true silence. */}
+        <LiveActivityBar sessionId={activeSessionId} onStop={handleAbort} />
         <div className="px-3 pb-3">
           <ChatInput
             onSend={handleSend}

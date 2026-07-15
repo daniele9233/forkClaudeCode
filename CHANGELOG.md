@@ -4,6 +4,27 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.18] — 2026-07-15
+
+### Fixed
+
+- **You now see the MAIN agent working live — "identico a OpenCode".** The main
+  agent used to look like it "thinks and thinks then dumps everything at once":
+  during a long tool run (a `bash` install/build) or when it delegated to a
+  subagent (`task`), no new stream events reached the main session, so the UI
+  went quiet and the old watchdog even false-fired **"elabora da 50s senza
+  output"** on perfectly healthy work.
+  - New **always-on activity bar** (like OpenCode's status line) shows what the
+    agent is doing *right now*: `thinking…`, the **running tool** with its
+    command/path preview and a **live elapsed clock**, `N subagent al lavoro`,
+    or `in attesa del modello…` — plus a Stop button, always reachable.
+  - The **stall/loop warning no longer false-fires**: a running tool or an
+    active subagent counts as real work, so the amber "possible loop" banner
+    only appears on *genuine* silence (30s with nothing in flight).
+  - First tokens/tools now render **the instant they arrive**, even if the
+    part event beats the message-metadata event (fixes "non compare niente
+    inizialmente").
+
 ## [0.4.17] — 2026-07-14
 
 ### Changed
