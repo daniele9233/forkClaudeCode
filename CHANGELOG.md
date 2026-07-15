@@ -4,6 +4,18 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.16] — 2026-07-14
+
+### Fixed
+
+- **You can now see the subagents working, live.** Subagents run in child
+  sessions, which the main chat filtered out — so their work was invisible
+  until they reported back at the end ("nothing happens, then it all appears").
+  A new **live subagent activity** strip shows each running agent
+  (`agent-01 · <task> · ⚙ current tool / latest text`) as it happens, like
+  OpenCode. The child-session list also polls every 2s during a run so new
+  subagents surface immediately.
+
 ## [0.4.15] — 2026-07-13
 
 ### Added

@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-07-14 · v0.4.16 — FIX: il lavoro dei subagent ora si vede live (parità OpenCode)
+
+**Fase:** 12.69 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)
+
+### Cosa è cambiato (feedback: "mando le istruzioni, inizia a lavorare ma non compare niente; non vedo gli agenti lavorare; solo a fine mi dice cosa hanno fatto. OpenCode è più esplicito, vedo il lavoro degli agenti")
+
+**Root cause:** i subagent girano in **child-session**; `MessageList` filtra i
+live message per `sessionID === sessionId` → il lavoro dei subagent era catturato
+nello store ma **invisibile** nella chat principale finché il parent non riportava
+i risultati a fine run.
+
+- **`SubagentActivity.tsx`** (montato in ChatShell dopo PlanTree): per la sessione
+  attiva prende i `useSessionChildren` RUNNING, trova il loro ultimo assistant
+  message live (`liveMessages` filtrati per `sessionID` del figlio) + parti
+  (`liveParts`), estrae l'attività corrente (`⚙ tool` in corso o ultimo testo) e
+  mostra una striscia "agenti al lavoro · N" con card `agent-0n · <title> · attività`
+  che si aggiorna in tempo reale.
+- **`useSessionChildren`**: `refetchInterval: 2s` mentre la sessione è running
+  (oltre all'invalidazione su `session.created`) → i subagent appena creati
+  compaiono subito.
+
+### Gotcha / attenzione
+
+- Lo streaming del parent funzionava già (MessageList unisce liveParts); il gap
+  era SOLO la visibilità dei figli.
+- I subagent restano anche nella sidebar come satelliti (v0.4.14); questa è la
+  versione testuale/dettagliata in chat.
+- 85 test verdi, typecheck, build. Bump 0.4.16.
+
 ## 2026-07-13 · v0.4.15 — consumo reale per modello nel dropdown (+ verità sul "credito residuo")
 
 **Fase:** 12.68 | **Branch:** `claude/opencode-project-setup-1i59cg` | **Commit:** (questo)

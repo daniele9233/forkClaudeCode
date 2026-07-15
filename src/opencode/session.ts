@@ -142,6 +142,11 @@ export function useAbortSession() {
 
 /** Get child (subagent) sessions for a parent session. */
 export function useSessionChildren(sessionId: string | null) {
+  // Poll while the session is running so newly-spawned subagents surface fast
+  // in the live activity panel (session.created invalidation covers the rest).
+  const running = useChatStore((s) =>
+    sessionId ? s.runningSessions.has(sessionId) : false,
+  );
   return useQuery({
     queryKey: [...sessionKeys.detail(sessionId ?? ""), "children"] as const,
     queryFn: async () => {
@@ -153,6 +158,7 @@ export function useSessionChildren(sessionId: string | null) {
     },
     enabled: !!sessionId,
     staleTime: 10_000,
+    refetchInterval: running ? 2_000 : false,
   });
 }
 

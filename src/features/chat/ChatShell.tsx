@@ -32,6 +32,7 @@ import { useAutopilotStore } from "@/stores/autopilot.store";
 import { startAutopilot } from "@/opencode/autopilot";
 import { PermissionBanner } from "./PermissionBanner";
 import { PlanTree } from "./PlanTree";
+import { SubagentActivity } from "./SubagentActivity";
 import { ReviewPanel } from "@/features/review/ReviewPanel";
 
 export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = {}) {
@@ -263,6 +264,9 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
 
       {/* Live plan tree (agent's todo list) — shows only when a plan exists */}
       {activeSessionId && <PlanTree sessionId={activeSessionId} />}
+
+      {/* Live subagent activity — see the parallel agents working (like OpenCode) */}
+      {activeSessionId && <SubagentActivity sessionId={activeSessionId} />}
 
       {/* Review — files the agent touched, with per-file diff & discard */}
       {isReady && <ReviewPanel />}
