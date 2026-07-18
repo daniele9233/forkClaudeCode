@@ -16,6 +16,38 @@
 
 ---
 
+## 2026-07-16 · v0.4.19 — feedback reale sulla connessione MCP (fix "Blender non succede nulla")
+**Fase:** MCP/UX  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
+
+### Cosa è cambiato
+- `SettingsModal.tsx` (McpTab):
+  - Ora mostra **`status.error`** in un box rosso sotto ogni server MCP
+    configurato (prima veniva letto da `useMcpStatus` ma scartato in UI → i
+    fallimenti erano invisibili). Con hint mirato "riavvia kikkoCode del tutto"
+    se l'errore contiene uvx/uv/not found/enoent/command (PATH del motore).
+  - Badge di stato a 3 stati: `connected` (verde), `errore` (rosso, con box),
+    e per i local non ancora avviati **`avvio all'uso`** (grigio, non allarma —
+    si connettono lazy al primo uso) invece del vecchio "disconnected" rosso.
+  - **Refresh dello stato** subito dopo connect/toggle (`refreshMcp` invalida
+    `configKeys.mcp()`), + pulsante **"ricontrolla"** on-demand (utile dopo
+    aver premuto Start MCP Server in Blender). `useMcpStatus` espone
+    `isFetching` per lo spinner del bottone.
+- Bump 0.4.18 → 0.4.19.
+
+### Perché / decisione
+Feedback utente su Blender: "quando premo blender non succede nulla". Causa: il
+click salva solo la config (i server local partono lazy) e ogni eventuale
+errore di avvio (`uvx` non nel PATH del motore, o socket Blender non attiva) non
+era mostrato da nessuna parte. Ora l'utente vede stato + motivo + rimedio.
+
+### Gotcha / attenzione
+- Il caso più comune resta il PATH: `uv` installato DOPO aver aperto kikkoCode →
+  il motore non trova `uvx` finché non si **riavvia l'app** (non basta il
+  restart engine). L'hint lo dice esplicitamente.
+- `status.tools` non è più popolato da `useMcpStatus` (union 1.x): il blocco
+  chips resta innocuo (sempre vuoto).
+- Verificato: lint, 85 test, prettier verdi.
+
 ## 2026-07-15 · v0.4.18 — agente principale visibile in tempo reale ("identico a opencode")
 **Fase:** streaming/UX  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
 

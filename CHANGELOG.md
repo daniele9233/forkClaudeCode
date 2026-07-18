@@ -4,6 +4,23 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.19] — 2026-07-16
+
+### Fixed
+
+- **Connecting an MCP server (e.g. Blender) now tells you what happened.**
+  Clicking a recommended server used to give no feedback and, if it failed to
+  connect, the card showed a bare red **"disconnected"** with no reason — so
+  "non succede nulla" was impossible to diagnose.
+  - The **error is now shown** on the server card (e.g. `uvx` not found, or the
+    Blender socket refused), with a targeted hint to fully restart kikkoCode
+    when the failure looks like a missing `uvx` on the engine's PATH.
+  - A local server that simply hasn't started yet now reads **"avvio all'uso"**
+    (it connects lazily on first use) instead of an alarming "disconnected".
+  - Live status is **refreshed right after connecting/toggling**, and a new
+    **"ricontrolla"** button re-checks on demand (handy after you press *Start
+    MCP Server* in Blender).
+
 ## [0.4.18] — 2026-07-15
 
 ### Fixed

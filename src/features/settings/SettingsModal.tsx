@@ -15,11 +15,20 @@ import {
   ArrowUpRight,
   Palette,
   Check,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Panel } from "@/components/Panel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useAgents, useMcpStatus, useConfig, useUpdateConfig } from "@/opencode/config";
+import {
+  useAgents,
+  useMcpStatus,
+  useConfig,
+  useUpdateConfig,
+  configKeys,
+} from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
 import { SKILLS } from "@/skills/catalog";
 import { activeCatalog } from "@/skills/match";
@@ -198,14 +207,21 @@ const RECOMMENDED_MCP: {
 
 function McpTab({ query }: { query: string }) {
   const { data: config } = useConfig();
-  const { data: mcpStatus = {} } = useMcpStatus();
+  const { data: mcpStatus = {}, isFetching: statusFetching } = useMcpStatus();
   const updateConfig = useUpdateConfig();
+  const qc = useQueryClient();
 
   const [addMode, setAddMode] = useState<AddMode>(null);
   const [newName, setNewName] = useState("");
   const [newCommand, setNewCommand] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Re-check the engine's live MCP connection state. Local servers (uvx/npx)
+  // connect lazily on first use, and failures (missing `uvx`, Blender server
+  // not running) only surface here — so after any change, and on demand, we
+  // pull fresh status instead of waiting out the 10s stale window.
+  const refreshMcp = () => qc.invalidateQueries({ queryKey: configKeys.mcp() });
 
   // API keys typed for recommended remote servers (e.g. 21st) — kept in local
   // state, written only into the local engine config, never into the repo.
@@ -237,6 +253,7 @@ function McpTab({ query }: { query: string }) {
       const updated = { ...config?.mcp, [r.name]: entry };
       await updateConfig.mutateAsync({ mcp: updated });
       setMcpKeys((k) => ({ ...k, [r.name]: "" }));
+      await refreshMcp();
     } finally {
       setSaving(false);
     }
@@ -255,7 +272,7 @@ function McpTab({ query }: { query: string }) {
 
   const handleToggle = (name: string, entry: McpLocalConfig | McpRemoteConfig) => {
     const updated = { ...config?.mcp, [name]: { ...entry, enabled: !entry.enabled } };
-    updateConfig.mutate({ mcp: updated });
+    updateConfig.mutate({ mcp: updated }, { onSuccess: refreshMcp });
   };
 
   const handleRemove = (name: string) => {
@@ -354,6 +371,23 @@ function McpTab({ query }: { query: string }) {
         </div>
       )}
 
+      {mcpEntries.length > 0 && (
+        <div className="flex items-center justify-between px-0.5">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
+            Configurati
+          </span>
+          <button
+            onClick={refreshMcp}
+            disabled={statusFetching}
+            title="Ricontrolla lo stato di connessione (utile dopo aver avviato Blender)"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+          >
+            <RefreshCw className={cn("h-3 w-3", statusFetching && "animate-spin")} />
+            ricontrolla
+          </button>
+        </div>
+      )}
+
       {mcpEntries.length === 0 && (
         <p className="py-4 text-center text-xs text-[var(--muted-foreground)]">
           No MCP servers configured
@@ -390,22 +424,51 @@ function McpTab({ query }: { query: string }) {
                   >
                     {entry.type}
                   </span>
-                  {status !== undefined && (
-                    <span
-                      className={cn(
-                        "rounded px-1 text-[9px]",
-                        status.connected
-                          ? "bg-green-500/15 text-green-400"
-                          : "bg-red-500/15 text-red-400",
-                      )}
-                    >
-                      {status.connected ? "connected" : "disconnected"}
-                    </span>
-                  )}
+                  {status !== undefined &&
+                    (status.connected ? (
+                      <span className="rounded bg-green-500/15 px-1 text-[9px] text-green-400">
+                        connected
+                      </span>
+                    ) : status.error ? (
+                      <span className="rounded bg-red-500/15 px-1 text-[9px] text-red-400">
+                        errore
+                      </span>
+                    ) : (
+                      // No error and not connected: local servers connect lazily
+                      // on first use, so this is normal — not a failure.
+                      <span
+                        className="rounded bg-[var(--muted)] px-1 text-[9px] text-[var(--muted-foreground)]"
+                        title={
+                          entry.type === "local"
+                            ? "Si connette quando l'agente lo usa la prima volta"
+                            : "Non ancora connesso"
+                        }
+                      >
+                        {entry.type === "local" ? "avvio all'uso" : "non connesso"}
+                      </span>
+                    ))}
                 </div>
                 <p className="mt-0.5 truncate text-[10px] text-[var(--muted-foreground)]">
                   {entry.type === "local" ? entry.command.join(" ") : entry.url}
                 </p>
+                {status?.error && (
+                  <div className="mt-1 flex items-start gap-1 rounded border border-red-800/40 bg-red-950/20 px-1.5 py-1 text-[9px] leading-relaxed text-red-300">
+                    <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                    <span className="min-w-0 break-words">
+                      {status.error}
+                      {entry.type === "local" &&
+                        /uvx|uv\b|not found|no such file|enoent|command/i.test(
+                          status.error,
+                        ) && (
+                          <span className="mt-0.5 block text-red-300/80">
+                            Suggerimento: chiudi e riapri kikkoCode del tutto (dopo aver
+                            installato <code>uv</code>) così il motore trova{" "}
+                            <code>uvx</code> nel PATH.
+                          </span>
+                        )}
+                    </span>
+                  </div>
+                )}
                 {status?.tools && status.tools.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {status.tools.slice(0, 8).map((t) => (
