@@ -30,6 +30,8 @@ import {
   configKeys,
 } from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
+import { restartSidecar } from "@/opencode/sidecar";
+import { useSessionStore } from "@/stores/session.store";
 import { SKILLS } from "@/skills/catalog";
 import { activeCatalog } from "@/skills/match";
 import { RECIPES } from "@/skills/recipes";
@@ -216,12 +218,38 @@ function McpTab({ query }: { query: string }) {
   const [newCommand, setNewCommand] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
+  const [restarting, setRestarting] = useState(false);
+  const sidecarStatus = useSessionStore((s) => s.sidecarStatus);
 
   // Re-check the engine's live MCP connection state. Local servers (uvx/npx)
   // connect lazily on first use, and failures (missing `uvx`, Blender server
   // not running) only surface here — so after any change, and on demand, we
   // pull fresh status instead of waiting out the 10s stale window.
   const refreshMcp = () => qc.invalidateQueries({ queryKey: configKeys.mcp() });
+
+  // opencode loads MCP servers at STARTUP, so writing the config isn't enough —
+  // a newly added Blender/Figma server stays invisible to the agent ("non ho
+  // strumenti MCP") until the engine restarts. So every MCP config change is
+  // followed by a sidecar restart; when it comes back ready we re-pull status.
+  const pendingRestart = useRef(false);
+  useEffect(() => {
+    if (pendingRestart.current && sidecarStatus === "ready") {
+      pendingRestart.current = false;
+      qc.invalidateQueries({ queryKey: configKeys.mcp() });
+    }
+  }, [sidecarStatus, qc]);
+
+  /** Persist an MCP config change, then restart the engine so it loads it. */
+  const applyMcp = async (mcp: Record<string, McpLocalConfig | McpRemoteConfig>) => {
+    await updateConfig.mutateAsync({ mcp });
+    pendingRestart.current = true;
+    setRestarting(true);
+    try {
+      await restartSidecar(); // opencode re-reads MCP servers only on boot
+    } finally {
+      setRestarting(false);
+    }
+  };
 
   // API keys typed for recommended remote servers (e.g. 21st) — kept in local
   // state, written only into the local engine config, never into the repo.
@@ -250,10 +278,8 @@ function McpTab({ query }: { query: string }) {
       } else {
         return;
       }
-      const updated = { ...config?.mcp, [r.name]: entry };
-      await updateConfig.mutateAsync({ mcp: updated });
       setMcpKeys((k) => ({ ...k, [r.name]: "" }));
-      await refreshMcp();
+      await applyMcp({ ...config?.mcp, [r.name]: entry });
     } finally {
       setSaving(false);
     }
@@ -271,14 +297,15 @@ function McpTab({ query }: { query: string }) {
   });
 
   const handleToggle = (name: string, entry: McpLocalConfig | McpRemoteConfig) => {
-    const updated = { ...config?.mcp, [name]: { ...entry, enabled: !entry.enabled } };
-    updateConfig.mutate({ mcp: updated }, { onSuccess: refreshMcp });
+    if (saving || restarting) return;
+    void applyMcp({ ...config?.mcp, [name]: { ...entry, enabled: !entry.enabled } });
   };
 
   const handleRemove = (name: string) => {
+    if (saving || restarting) return;
     const updated = { ...config?.mcp };
     delete updated[name];
-    updateConfig.mutate({ mcp: updated });
+    void applyMcp(updated);
   };
 
   const handleAdd = async () => {
@@ -296,12 +323,11 @@ function McpTab({ query }: { query: string }) {
         if (!url) return;
         entry = { type: "remote", url, enabled: true };
       }
-      const updated = { ...config?.mcp, [trimName]: entry };
-      await updateConfig.mutateAsync({ mcp: updated });
       setNewName("");
       setNewCommand("");
       setNewUrl("");
       setAddMode(null);
+      await applyMcp({ ...config?.mcp, [trimName]: entry });
     } finally {
       setSaving(false);
     }
@@ -309,8 +335,23 @@ function McpTab({ query }: { query: string }) {
 
   const missingRecommended = RECOMMENDED_MCP.filter((r) => !config?.mcp?.[r.name]);
 
+  const engineRestarting =
+    restarting || (pendingRestart.current && sidecarStatus !== "ready");
+
   return (
     <div className="space-y-2">
+      {/* Engine-restart notice: MCP servers only load on boot, so any change
+          bounces the engine. Tell the user why the app briefly reconnects. */}
+      {engineRestarting && (
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--primary)]/30 bg-[var(--primary)]/10 px-3 py-2 text-[11px] text-[var(--foreground)]">
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--primary)]" />
+          <span>
+            Riavvio il motore per caricare gli MCP… gli strumenti saranno pronti tra pochi
+            secondi.
+          </span>
+        </div>
+      )}
+
       {/* One-click connect: curated MCP servers not yet configured */}
       {missingRecommended.length > 0 && (
         <div className="rounded-lg border border-[var(--primary)]/25 bg-[var(--primary)]/5 p-3">

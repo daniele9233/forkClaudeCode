@@ -4,6 +4,18 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.22] — 2026-07-16
+
+### Fixed
+
+- **Connecting an MCP server now actually makes its tools available.** The
+  engine loads MCP servers only at startup, so adding Blender/Figma/etc. wrote
+  the config but the agent still reported *"non ho strumenti MCP"* — the tools
+  never appeared because the engine wasn't reloaded. Every MCP change (connect,
+  add, enable/disable, remove) now **restarts the engine** so opencode
+  re-reads its MCP servers, with a clear "riavvio il motore…" notice while it
+  reconnects. After it comes back, the live status refreshes on its own.
+
 ## [0.4.21] — 2026-07-16
 
 ### Fixed

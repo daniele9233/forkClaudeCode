@@ -16,6 +16,35 @@
 
 ---
 
+## 2026-07-16 · v0.4.22 — fix ROOT: cambio MCP riavvia il motore (i tool diventano davvero disponibili) [release]
+**Fase:** MCP  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
+
+### Cosa è cambiato
+- `SettingsModal.tsx` (McpTab): nuova `applyMcp(mcp)` = `updateConfig.mutateAsync`
+  + **`restartSidecar()`**. Usata da addRecommended/handleAdd/handleToggle/
+  handleRemove (prima scrivevano solo la config). `pendingRestart` ref +
+  useEffect su `sidecarStatus`: quando torna "ready" ri-pulla lo stato MCP.
+  Banner "Riavvio il motore per caricare gli MCP…" mentre riparte.
+- Import `restartSidecar` + `useSessionStore` in SettingsModal.
+- Bump 0.4.21 → 0.4.22. Commit `[release]`.
+
+### Perché / decisione
+Screenshot utente (v0.4.20): la direttiva blenderPolicy FUNZIONA — l'agente si
+rifiuta di usare script in background e dice onestamente "Non ho strumenti MCP
+di Blender disponibili — vedo solo Bash/Read/Edit". Root cause: **opencode
+carica gli MCP solo al boot**; kikkoCode scriveva la config ma `restartSidecar`
+era chiamato SOLO dal banner di crash → i tool del server Blender non venivano
+mai caricati nella sessione viva. Ora ogni cambio MCP riavvia il motore.
+
+### Gotcha / attenzione
+- Il riavvio interrompe un eventuale run in corso: accettabile perché è
+  un'azione esplicita in Settings, e serve per forza (no hot-reload MCP in
+  opencode).
+- Se `uvx` non è nel PATH del motore, dopo il restart il server Blender fallirà
+  ad avviarsi → l'errore ora compare nella card MCP (v0.4.19). In quel caso:
+  riavviare kikkoCode del tutto (PATH).
+- Dopo il restart, il PRIMO messaggio dell'agente ha già i tool blender_*.
+
 ## 2026-07-16 · v0.4.21 — fix installer one-liner: scarica davvero l'ultima build [release]
 **Fase:** release-infra  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
 
