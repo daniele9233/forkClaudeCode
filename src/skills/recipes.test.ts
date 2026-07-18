@@ -6,9 +6,24 @@ const skillIds = new Set(SKILLS.map((s) => s.id));
 
 describe("studio recipes", () => {
   it("ships a small, curated set of perfect recipes", () => {
-    // Deliberately few (6) impeccable briefs rather than a long, noisy list.
-    expect(RECIPES.length).toBe(6);
+    // Deliberately curated (6 core + 5 Blender-first) rather than a noisy list.
+    expect(RECIPES.length).toBe(11);
     expect(RECIPES.some((r) => r.category === "enterprise")).toBe(true);
+  });
+
+  it("ships 5 Blender-first recipes that mandate the live MCP pipeline", () => {
+    const blender = RECIPES.filter((r) => r.category === "blender");
+    expect(blender.length).toBe(5);
+    for (const r of blender) {
+      // Each brief must carry the hard pipeline: live scene via MCP, export
+      // .glb, and the explicit ban on `blender --background` fallbacks.
+      expect(r.prompt, `${r.id} must mandate MCP tools`).toContain(
+        "strumenti MCP di Blender",
+      );
+      expect(r.prompt, `${r.id} must ban background scripts`).toContain("--background");
+      expect(r.prompt, `${r.id} must export .glb`).toContain(".glb");
+      expect(r.skillIds, `${r.id} must use web3d`).toContain("web3d");
+    }
   });
 
   it("every recipe forces the anti-slop `taste` skill", () => {

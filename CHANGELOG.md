@@ -4,6 +4,32 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.20] — 2026-07-16
+
+### Added
+
+- **The agent now truly talks to YOUR open Blender.** A new system directive
+  fires whenever the Blender MCP is connected and the prompt is 3D/Blender
+  related: the agent MUST use the MCP tools on the live scene (you watch the
+  objects appear in your viewport) and is explicitly FORBIDDEN from falling
+  back to `blender --background` scripts that create a detached instance and
+  a separate .blend file you never see — which is exactly what happened with
+  the "red cube" test.
+- **5 new Blender-first Studio recipes** (their own "Blender 3D" group): the
+  hero asset is modeled live in your Blender via MCP, exported as an optimized
+  `.glb` into `public/models/`, and loaded in React Three Fiber:
+  - 🛍️ **Product Hero 3D** — the product orbits with scroll and explodes into
+    its features.
+  - 🏝️ **Mondo Low-Poly** — a low-poly diorama the camera flies through,
+    chapter by chapter.
+  - 💎 **Gemma Iridescente** — a faceted gem with living-glass transmission
+    material for a luxury brand.
+  - 🤖 **Mascotte 3D** — a brand character that tracks your cursor and reacts.
+  - ⚙️ **Showroom Esploso** — enterprise hardware site with a pinned
+    exploded-assembly story and live color configurator.
+- The shared recipe STACK's Blender clause now also mandates live-scene MCP
+  work (never background scripts).
+
 ## [0.4.19] — 2026-07-16
 
 ### Fixed

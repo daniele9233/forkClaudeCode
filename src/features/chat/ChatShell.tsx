@@ -7,6 +7,7 @@ import { useConfig } from "@/opencode/config";
 import { useSkillsStore } from "@/stores/skills.store";
 import { planInjection, buildSkillSystem, tagSkills } from "@/skills/match";
 import { previewPolicyNote } from "@/skills/previewPolicy";
+import { blenderPolicyNote } from "@/skills/blenderPolicy";
 import { webDesignerDirective } from "@/skills/webDesigner";
 import { activeStyleDirective } from "@/stores/styles.store";
 import { useTerminalEvents } from "@/features/terminal/useTerminalEvents";
@@ -102,11 +103,16 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       // system message far more reliably than instructions mixed into the user's
       // text). The user message stays clean; hidden id-tags only drive the chips.
       const webDesignerOn = useSkillsStore.getState().webDesigner;
+      // Blender MCP configured & enabled → mandate the live-scene tools for 3D
+      // work (never `blender --background` fallbacks that bypass the user's
+      // open instance).
+      const blenderMcpOn = !!config?.mcp?.blender && config.mcp.blender.enabled !== false;
       const systemParts = [
         activeStyleDirective(),
         buildSkillSystem(skills),
         webDesignerDirective(clean, webDesignerOn),
         previewPolicyNote(clean),
+        blenderPolicyNote(clean, blenderMcpOn),
       ].filter((x): x is string => !!x);
       const system = systemParts.length ? systemParts.join("\n\n---\n\n") : undefined;
       const userText = tagSkills(clean, skills);
@@ -140,6 +146,7 @@ export function ChatShell({ onOpenSettings }: { onOpenSettings?: () => void } = 
       sendPrompt,
       setActiveSession,
       config?.model,
+      config?.mcp,
     ],
   );
 

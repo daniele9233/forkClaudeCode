@@ -16,6 +16,48 @@
 
 ---
 
+## 2026-07-16 · v0.4.20 — Blender MCP live obbligatorio + 5 ricette Blender-first [release]
+**Fase:** MCP/Studio  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
+
+### Cosa è cambiato
+- **`src/skills/blenderPolicy.ts`** (nuovo): direttiva SYSTEM iniettata quando
+  (a) il server MCP `blender` è configurato+enabled in `config.mcp` e (b) il
+  prompt contiene keyword 3D/Blender (blender, 3d, .glb, gltf, mesh,
+  tridimension, low-poly). Obbliga i tool MCP sulla scena APERTA (porta 9876),
+  VIETA `blender --background`/script .py esterni, e definisce la pipeline
+  web-3D (scena live → verifica → export .glb in `public/models/` → useGLTF in
+  R3F). Se i tool non rispondono: fermarsi e dirlo, non ripiegare.
+- **`ChatShell.tsx`**: `blenderPolicyNote(clean, blenderMcpOn)` aggiunto ai
+  systemParts (dopo previewPolicyNote); dep `config?.mcp` in handleSend.
+- **`recipes.ts`**: bullet Blender dello STACK rinforzato (MCP live only);
+  nuovo blocco `BLENDER_PIPELINE` + composer `blenderBrief()`; **5 ricette
+  nuove** con `category: "blender"`: blender-product-hero 🛍️,
+  blender-lowpoly-world 🏝️, blender-crystal-luxury 💎, blender-mascot-brand 🤖,
+  blender-exploded-showroom ⚙️ (quest'ultima con blocco ENTERPRISE). Union
+  category estesa a `"blender"`.
+- **`SettingsModal.tsx`** (Studio): terzo gruppo "Blender 3D · asset modellati
+  live nella tua scena" tra Enterprise e Stili.
+- Test: recipes 6→11 asserito + nuovo test sulle 5 blender (pipeline MCP,
+  divieto --background, .glb, web3d) + `blenderPolicy.test.ts` (3 test).
+  Totale 85→89.
+- Bump 0.4.19 → 0.4.20. Commit `[release]` → build installer Windows.
+
+### Perché / decisione
+Test reale dell'utente: "usa Blender per creare un cubo rosso" con deepseek —
+l'agente ha usato PowerShell (`Get-Command blender` → script .py →
+`blender.exe --background`) creando `cubo_rosso.blend` su disco, SENZA mai
+toccare il Blender aperto (outliner ancora Camera/Cube/Light default). I tool
+MCP sono stati bypassati. La direttiva chiude il fallback; le ricette rendono
+il percorso Blender-MCP un prodotto (siti 3D veri, non un cubo).
+
+### Gotcha / attenzione
+- La direttiva si inietta SOLO se `config.mcp.blender` esiste ed è enabled:
+  senza server collegato vieterebbe l'unico percorso funzionante (script).
+- Keyword "3d" è larga ma innocua: la nota è corta e pertinente in ogni caso
+  in cui il blender MCP è acceso.
+- Le 5 ricette blender NON passano da `brief()`: usano `blenderBrief()` (o il
+  composer manuale per la enterprise) per avere la pipeline PRIMA del core.
+
 ## 2026-07-16 · v0.4.19 — feedback reale sulla connessione MCP (fix "Blender non succede nulla")
 **Fase:** MCP/UX  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
 

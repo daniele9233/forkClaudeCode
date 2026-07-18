@@ -27,10 +27,11 @@ export interface WebsiteRecipe {
   skillIds: string[];
   /**
    * Grouping in the Studio tab. "style" = design-language starters;
-   * "enterprise" = full, sellable, industry-specific websites. Defaults to
-   * "style" when omitted.
+   * "enterprise" = full, sellable, industry-specific websites; "blender" =
+   * Blender-MCP-first briefs (bespoke .glb modeled live in the user's open
+   * Blender). Defaults to "style" when omitted.
    */
-  category?: "style" | "enterprise";
+  category?: "style" | "enterprise" | "blender";
   /** The full brief dropped into the composer on click. */
   prompt: string;
 }
@@ -64,10 +65,29 @@ const STACK = `Crea un PROGETTO FRONT-END COMPLETO E REALE, non una singola pagi
 
 ARSENALE (usa gli strumenti MCP DISPONIBILI — controlla quali sono collegati e sfruttali):
 - FIGMA MCP collegato? Se l'utente indica un file/frame Figma, leggilo e implementa quel design FEDELMENTE (misure, testi, stili esatti) invece di inventare.
-- BLENDER MCP collegato? Per l'hero 3D puoi creare in Blender un asset su misura per il concept (modello + materiali), esportarlo .glb ottimizzato e caricarlo in R3F con drei — un asset UNICO batte qualsiasi primitiva.
+- BLENDER MCP collegato? Per l'hero 3D crea in Blender un asset su misura per il concept (modello + materiali), esportalo .glb ottimizzato e caricalo in R3F con drei — un asset UNICO batte qualsiasi primitiva. Lavora SOLO con i tool MCP nella scena APERTA dell'utente (lui la guarda): MAI lanciare blender --background o script .py esterni.
 - 21st MCP collegato? Genera lì i componenti UI complessi (pricing, testimonial, nav) a qualità 21st.dev e integrali nel design-system del progetto.
 - Playwright MCP collegato? Dopo il build, apri la pagina e verificane il rendering reale.
 Se uno strumento NON è collegato, procedi senza (nessun blocco) — ma se c'è, usarlo è OBBLIGATORIO quando pertinente.`;
+
+/**
+ * Hard Blender pipeline appended to the Blender-first recipes. These briefs
+ * only make sense with the Blender MCP connected to the user's OPEN instance:
+ * the asset is modeled live in their viewport, exported .glb, and loaded in
+ * R3F — the "wow" is a bespoke model no template can have.
+ */
+const BLENDER_PIPELINE = `PIPELINE BLENDER (OBBLIGATORIA — il Blender MCP è collegato alla scena APERTA dell'utente):
+- Usa SOLO gli strumenti MCP di Blender (ispezione scena + esecuzione codice nella scena live): l'utente DEVE vedere il modello nascere nella sua viewport. VIETATO lanciare blender --background o script .py esterni — creano un'istanza separata che l'utente non vede = fallimento.
+- Modella un asset SU MISURA per il concept: forme lavorate (bevel, subdivision, modificatori, curve), MAI una primitiva nuda. Materiali PBR curati (Principled BSDF con metallic/roughness deliberati, emissive dove serve), smooth shading, origini centrate, scala coerente, nomi oggetto puliti.
+- Budget performance web: ~50k triangoli totali max, texture ≤2048px.
+- Esporta .glb (GLB binario, Draco se disponibile) in \`public/models/\` del progetto web; verifica che il file esista e pesi <5MB.
+- Caricalo con useGLTF di drei in React Three Fiber (Suspense + fallback poster); luci/environment nel canvas coerenti col look del sito; controlla che il modello sia visibile e inquadrato (niente canvas nero).
+- Se i tool Blender MCP non rispondono, FERMATI e dillo all'utente (Blender aperto? "Start MCP Server" premuto?) invece di ripiegare su script.`;
+
+/** Compose a Blender-first brief: stack → blender pipeline → core → bar. */
+function blenderBrief(core: string): string {
+  return `${STACK}\n\n${BLENDER_PIPELINE}\n\n${core.trim()}\n\n${BAR}`;
+}
 
 /**
  * Shared quality bar + ANTI-SLOP mandate appended to every brief. This bakes the
@@ -250,5 +270,143 @@ QUALITÀ NON NEGOZIABILE:
 - Smooth scroll con Lenis, reveal a stagger delle sezioni, parallax misurato (solo transform/opacity). Un dettaglio-firma (grana, griglia hairline o mesh) usato UNA volta.
 - Media reali (no placeholder grigi): se manca il set di frame, genera/usa un video reale ed estrai i frame (pipeline ffmpeg), niente URL inventati.
 - Sezioni: hero-sequence pinnato, feature del prodotto, specifiche, galleria, acquista/CTA, footer.`),
+  },
+
+  /* ── Blender-first: asset modellati LIVE nella scena aperta dell'utente ── */
+  {
+    id: "blender-product-hero",
+    name: "Product Hero 3D",
+    emoji: "🛍️",
+    style: "Product cinematic",
+    layout: "Orbit · exploded view",
+    description:
+      "Landing di prodotto con il PRODOTTO modellato in Blender: orbita con lo scroll, si esplode nelle feature.",
+    accent: "#f97316",
+    category: "blender",
+    skillIds: [
+      "taste",
+      "web3d",
+      "creative-3d",
+      "gsap-motion",
+      "smooth-scroll",
+      "hero-page",
+      "type-color",
+      "impeccable",
+    ],
+    prompt:
+      blenderBrief(`Costruisci la LANDING DI UN PRODOTTO FISICO (scegli tu un prodotto credibile: cuffie premium, bottiglia di profumo, orologio, macchina per caffè…) dove il protagonista assoluto è il PRODOTTO MODELLATO IN BLENDER.
+- In Blender: modella il prodotto in 3–6 parti nominate (es. corpo, tappo, dettaglio metallico), forme lavorate con bevel/subdivision, materiali PBR distinti (un metallo satinato, un vetro/plastica, un accento). Illumina mentalmente per uno studio shot: il modello deve reggere il primo piano.
+- Hero: il prodotto in R3F su fondale studio (environment di drei + ombra da contatto), entra con una rotazione cinematica; al mouse un parallax morbido.
+- Con lo SCROLL (ScrollTrigger scrub + Lenis): la camera ORBITA attorno al prodotto tra le sezioni; in una sezione pinnata il prodotto si ESPLODE (le parti si separano lungo assi puliti, ognuna con la sua etichetta-feature che appare in stagger) e si riassembla proseguendo.
+- Sezioni: nav minimale, hero prodotto, exploded-view pinnata delle feature, materiali/dettagli (macro close-up con camera più stretta), specifiche, CTA acquisto, footer.
+- Copy da brand di fascia alta: poche parole, precise, niente marketing gonfio.`),
+  },
+  {
+    id: "blender-lowpoly-world",
+    name: "Mondo Low-Poly",
+    emoji: "🏝️",
+    style: "Low-poly diorama",
+    layout: "Fly-through · story",
+    description:
+      "Un diorama low-poly modellato in Blender; la camera ci vola dentro mentre scrolli, ogni tappa un capitolo.",
+    accent: "#22c55e",
+    category: "blender",
+    skillIds: [
+      "taste",
+      "web3d",
+      "creative-3d",
+      "gsap-motion",
+      "smooth-scroll",
+      "scroll-media",
+      "type-color",
+    ],
+    prompt:
+      blenderBrief(`Costruisci un SITO-VIAGGIO IMMERSIVO (per una destinazione, un festival, un'app di viaggi o un mondo di gioco) il cui cuore è un DIORAMA LOW-POLY modellato in Blender.
+- In Blender: un'isola/scena low-poly flat-shaded (terreno sfaccettato, 4–8 elementi iconici: alberi stilizzati, montagna, faro/tenda/edificio, acqua come piano con leggera emissione) su una palette di 5–6 colori DELIBERATA (materiali flat, niente texture). Raggruppa per zone nominate: zona-1, zona-2, zona-3.
+- Hero: il diorama fluttua su fondale a gradiente; rotazione idle lentissima, nuvole/particelle minime attorno.
+- Con lo SCROLL (una timeline ScrollTrigger scrub + Lenis): la CAMERA VOLA da zona a zona del diorama (waypoint con posizione+target interpolati con easing); a ogni tappa il pannello di testo del capitolo entra in stagger mentre la zona attiva si accende (emissive/scale leggero) e le altre si spengono.
+- Sezioni = tappe del viaggio (3–4 capitoli) + intro e finale con CTA; il diorama resta fisso (canvas pinnato) e il racconto gli scorre sopra/accanto.
+- Il resto della pagina eredita la palette del diorama: il sito e il mondo 3D devono sembrare UN unico oggetto.`),
+  },
+  {
+    id: "blender-crystal-luxury",
+    name: "Gemma Iridescente",
+    emoji: "💎",
+    style: "Luxury · transmission",
+    layout: "Centered · scroll morph",
+    description:
+      "Brand di lusso attorno a una gemma sfaccettata modellata in Blender, vetro iridescente che muta con lo scroll.",
+    accent: "#a855f7",
+    category: "blender",
+    skillIds: [
+      "taste",
+      "web3d",
+      "creative-3d",
+      "glass-aurora",
+      "hero-page",
+      "motion-react",
+      "type-color",
+    ],
+    prompt:
+      blenderBrief(`Costruisci il sito di un BRAND DI LUSSO (gioielleria, profumo d'autore, label di design) costruito attorno a UNA GEMMA/SCULTURA ASTRATTA modellata in Blender.
+- In Blender: una forma sfaccettata unica — parti da un solido, taglia sfaccettature irregolari (bevel + decimate/planar o edit manuale), NON un'icosfera di default. Una sola mesh pulita, origine centrata: il materiale "wow" lo farà R3F.
+- In R3F: MeshTransmissionMaterial di drei (transmission, roughness bassa, thickness, chromaticAberration, ior) su environment scuro elegante — la gemma rifrange la luce come vetro vivo. Rotazione idle lenta + parallax mouse via lerp.
+- Con lo SCROLL: la gemma MUTA tra le sezioni (rotazione mirata, scale, colore/ior animati via ScrollTrigger) e la palette della pagina cambia con lei (transizioni di sfondo sincronizzate: il sito "respira" con la gemma).
+- Tipografia da maison: display serif/didone raffinato in grande, sans quieto per il body, MAIUSCOLETTO spaziato per le label; tanto nero-non-nero e whitespace.
+- Sezioni: hero con la gemma centrale e titolo che la attraversa (testo davanti/dietro con depth), storia del brand, collezione (3 varianti della gemma con materiali diversi), craft/dettagli, contatti su invito, footer minimale.`),
+  },
+  {
+    id: "blender-mascot-brand",
+    name: "Mascotte 3D",
+    emoji: "🤖",
+    style: "Playful · character",
+    layout: "Hero mascotte · Z-flow",
+    description:
+      "Un personaggio-mascotte modellato in Blender che segue il cursore e reagisce: il brand prende vita.",
+    accent: "#06b6d4",
+    category: "blender",
+    skillIds: [
+      "taste",
+      "web3d",
+      "creative-3d",
+      "micro-interactions",
+      "emil-motion",
+      "hero-page",
+      "type-color",
+    ],
+    prompt:
+      blenderBrief(`Costruisci il sito di un prodotto dev-tool o app consumer con una MASCOTTE 3D modellata in Blender come volto del brand.
+- In Blender: un personaggio SEMPLICE e iconico (robot tondo, blob con occhi, animaletto geometrico) da 3–6 mesh nominate: corpo, testa, occhi separati (serviranno per il tracking), 1–2 dettagli (antenna, badge). Forme morbide (subdivision + smooth), palette di 3–4 colori del brand, proporzioni carine (testa grande).
+- In R3F: la TESTA/GLI OCCHI SEGUONO IL CURSORE (lookAt ammorbidito con lerp — mai scattoso), idle bob sinusoidale sul corpo, blink periodico degli occhi (scale Y). Al click/hover della CTA la mascotte reagisce (salto+squash-and-stretch, particelle brevi).
+- La mascotte RICOMPARE lungo la pagina in momenti chiave (accanto a una feature, che "regge" una card, che saluta nel footer) — stesso canvas riposizionato o istanze coerenti, mai sparita dopo l'hero.
+- Micro-interazioni ovunque (bottoni magnetici, hover con spring fisico via Motion) in sintonia col carattere giocoso; però layout e tipografia RESTANO disciplinati e ariosi — giocoso NON significa caotico.
+- Sezioni: hero con mascotte interattiva + headline, feature a percorso Z con la mascotte che accompagna, social proof, pricing semplice, CTA finale con la reazione più divertente, footer con saluto.`),
+  },
+  {
+    id: "blender-exploded-showroom",
+    name: "Showroom Esploso",
+    emoji: "⚙️",
+    style: "Tech industrial",
+    layout: "Pinned · assembly story",
+    description:
+      "Sito enterprise per hardware: l'assieme modellato in Blender si smonta pezzo per pezzo raccontando l'ingegneria.",
+    accent: "#ef4444",
+    category: "blender",
+    skillIds: [
+      "taste",
+      "web3d",
+      "creative-3d",
+      "gsap-motion",
+      "smooth-scroll",
+      "scroll-media",
+      "web-architect",
+      "impeccable",
+    ],
+    prompt: `${STACK}\n\n${BLENDER_PIPELINE}\n\n${`Costruisci il sito ENTERPRISE di un'azienda hardware/ingegneria (drone industriale, e-bike, dispositivo IoT, macchina utensile) il cui momento-firma è l'ASSIEME TECNICO modellato in Blender che si SMONTA raccontando l'ingegneria.
+- In Blender: il prodotto come ASSIEME di 5–8 parti nominate e sensate (telaio, motore, batteria, scheda, scocca…), ognuna con il suo materiale PBR (alluminio, policarbonato, PCB scuro, gomma); l'insieme deve leggersi come un oggetto ingegnerizzato, non un giocattolo.
+- Hero: l'assieme completo che ruota lento su fondale tecnico scuro (griglia hairline appena visibile), headline dura e precisa.
+- La sezione-firma PINNATA (ScrollTrigger scrub + Lenis): scrollando l'assieme si ESPLODE progressivamente lungo assi puliti — ogni parte che si separa attiva la sua scheda tecnica (nome, spec, materiale) con linea-callout che la connette al pezzo; a fine sezione si RIASSEMBLA con uno snap soddisfacente.
+- Ambiente da configuratore: piccola UI in overlay per variante colore (2–3 finiture che cambiano i materiali del modello live).
+- Copy ingegneristico credibile: numeri, tolleranze, certificazioni — niente frasi vuote.`.trim()}\n\n${ENTERPRISE}\n\n${BAR}`,
   },
 ];

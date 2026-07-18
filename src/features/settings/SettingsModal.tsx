@@ -873,10 +873,12 @@ function StudioTab({ query, onClose }: { query: string; onClose: () => void }) {
         </p>
       )}
 
-      {/* Enterprise verticals first (the sellable, full sites), then style starters */}
+      {/* Enterprise first (sellable full sites), then Blender-first 3D briefs,
+          then the style starters */}
       {(
         [
           ["enterprise", "Enterprise · siti completi vendibili"],
+          ["blender", "Blender 3D · asset modellati live nella tua scena"],
           ["style", "Stili · starter di linguaggio visivo"],
         ] as const
       ).map(([cat, label]) => {
