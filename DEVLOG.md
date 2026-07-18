@@ -16,6 +16,38 @@
 
 ---
 
+## 2026-07-16 · v0.4.21 — fix installer one-liner: scarica davvero l'ultima build [release]
+**Fase:** release-infra  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
+
+### Cosa è cambiato
+- **`.github/workflows/release.yml`**: `tagName`/`releaseName` — fallback su
+  push di branch da `'v0.4.17'` hardcoded a **`'v__VERSION__'`** (tauri-action
+  lo risolve con la versione dell'app). Prima ogni build `[release]` scaricava
+  gli asset nella STESSA vecchia release v0.4.17.
+- **`scripts/install.ps1`**: non prende più `Select-Object -First 1` (poteva
+  pescare l'installer più vecchio quando una release ha asset di build diverse)
+  → nuova `Get-AssetVersion` (parse `x.y.z` dal nome file) + `Select-Newest`
+  (ordina per versione poi created_at, prende il massimo). Messaggio finale usa
+  la versione reale dell'asset, non il tag.
+- Bump 0.4.20 → 0.4.21. Commit `[release]` → nuova release **v0.4.21** pulita.
+
+### Perché / decisione
+L'utente ha chiesto se `irm .../install.ps1 | iex` scarica l'ultima. Verificato
+via GitHub API: `/releases/latest` = v0.4.17 ma con DENTRO sia gli asset 0.4.17
+sia i nuovi 0.4.20 (per il bug del tagName). install.ps1 con `-First 1`
+prendeva il `0.4.17-setup.exe` → l'utente NON avrebbe avuto il lavoro di oggi.
+
+### Gotcha / attenzione
+- La fix di install.ps1 ha effetto SUBITO (raw.githubusercontent serve l'HEAD
+  del branch): già prima che la build v0.4.21 finisca, lo script sceglie il
+  `0.4.20-setup.exe` dalla release attuale → l'utente ottiene comunque il
+  lavoro Blender di oggi.
+- Nessun updater Tauri wired (nessun latest.json/endpoint/signing nel repo):
+  i tag sbagliati non rompevano l'auto-update perché non esiste — solo lo
+  script era colpito.
+- La vecchia release v0.4.17 resta "sporca" (ha anche asset 0.4.20): innocuo
+  una volta che v0.4.21 diventa la latest.
+
 ## 2026-07-16 · v0.4.20 — Blender MCP live obbligatorio + 5 ricette Blender-first [release]
 **Fase:** MCP/Studio  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
 

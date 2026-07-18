@@ -86,11 +86,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           # On a tag push, github.ref_name is the tag (v*). On a manual
-          # dispatch or a "[release]" branch push, use the input (or default
-          # v0.1.0) so tauri-action creates a clean v* tag instead of the
-          # branch name.
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.4.17' }}
-          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v0.4.17' }}"
+          # dispatch or a "[release]" branch push, fall back to `v__VERSION__` —
+          # tauri-action replaces __VERSION__ with the app version from
+          # tauri.conf.json, so each release gets a correct, unique tag (e.g.
+          # v0.4.20) instead of dumping assets into a stale hardcoded tag.
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v__VERSION__' }}
+          releaseName: "kikkoCode ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || 'v__VERSION__' }}"
           # Give the GitHub Release page a description instead of an empty body.
           releaseBody: |
             Windows installer for kikkoCode. Download the `*_x64-setup.exe`

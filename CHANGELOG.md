@@ -4,6 +4,21 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.21] — 2026-07-16
+
+### Fixed
+
+- **The one-line web installer now really fetches the newest build.** Two bugs
+  made `install.ps1` hand back an old version:
+  - The release workflow tagged every `[release]` branch build with a
+    hardcoded `v0.4.17` fallback, so new installers piled into the stale
+    v0.4.17 release instead of a fresh, correctly-versioned one. It now uses
+    `v__VERSION__` (resolved from the app version, e.g. v0.4.21).
+  - `install.ps1` picked the *first* matching `.exe`; when a release carried
+    assets from more than one build it could grab the older one. It now parses
+    the version out of each asset filename and installs the **highest**, and
+    reports the version actually installed.
+
 ## [0.4.20] — 2026-07-16
 
 ### Added

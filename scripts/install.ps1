@@ -63,13 +63,32 @@ draft, and click 'Publish release'. Then re-run this installer.
 $version = $release.tag_name
 Write-Ok "Found $version"
 
-# Prefer the NSIS .exe setup; fall back to the .msi.
-$asset = $release.assets | Where-Object { $_.name -match '\.exe$' -and $_.name -match '(?i)setup|kikko' } | Select-Object -First 1
-if (-not $asset) { $asset = $release.assets | Where-Object { $_.name -match '\.msi$' } | Select-Object -First 1 }
-if (-not $asset) { $asset = $release.assets | Where-Object { $_.name -match '\.exe$' } | Select-Object -First 1 }
+# Pick the installer with the HIGHEST version, not just the first in the list.
+# A single GitHub release can carry assets from more than one build (the app
+# version is in the filename, e.g. kikkoCode_0.4.20_x64-setup.exe), so choosing
+# the first match could hand back an older installer. Parse the version out of
+# each filename and take the newest; fall back to upload time.
+function Get-AssetVersion($name) {
+    if ($name -match '(\d+)\.(\d+)\.(\d+)') {
+        return [version]("{0}.{1}.{2}" -f $matches[1], $matches[2], $matches[3])
+    }
+    return [version]"0.0.0"
+}
+function Select-Newest($candidates) {
+    $candidates |
+        Sort-Object @{ Expression = { Get-AssetVersion $_.name } },
+                    @{ Expression = { $_.created_at } } -Descending |
+        Select-Object -First 1
+}
+
+# Prefer the NSIS .exe setup; fall back to the .msi, then any .exe.
+$asset = Select-Newest ($release.assets | Where-Object { $_.name -match '\.exe$' -and $_.name -match '(?i)setup|kikko' })
+if (-not $asset) { $asset = Select-Newest ($release.assets | Where-Object { $_.name -match '\.msi$' }) }
+if (-not $asset) { $asset = Select-Newest ($release.assets | Where-Object { $_.name -match '\.exe$' }) }
 if (-not $asset) {
     throw "The $version release has no Windows installer asset (.exe/.msi) attached."
 }
+Write-Ok "Selected installer: $($asset.name)"
 
 # --- Download -------------------------------------------------------------
 $dest = Join-Path $env:TEMP $asset.name
@@ -86,7 +105,11 @@ if ($dest -match '\.msi$') {
 }
 
 Write-Host ""
-Write-Ok "kikkoCode $version installed."
+# Report the version actually installed (from the asset filename), which is
+# more reliable than the release tag when a release carries mixed assets.
+$installed = Get-AssetVersion $asset.name
+$installedLabel = if ("$installed" -ne "0.0.0") { "v$installed" } else { $version }
+Write-Ok "kikkoCode $installedLabel installed."
 Write-Host "    Launch it from the Start menu. On first run a short wizard helps you" -ForegroundColor DarkGray
 Write-Host "    connect an AI provider — your API keys stay on this machine." -ForegroundColor DarkGray
 Write-Host ""
