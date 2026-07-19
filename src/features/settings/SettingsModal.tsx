@@ -27,11 +27,12 @@ import {
   useMcpStatus,
   useConfig,
   useUpdateConfig,
+  useMcpAdd,
+  useMcpConnect,
+  useMcpDisconnect,
   configKeys,
 } from "@/opencode/config";
 import type { McpLocalConfig, McpRemoteConfig } from "@/opencode/config";
-import { restartSidecar } from "@/opencode/sidecar";
-import { useSessionStore } from "@/stores/session.store";
 import { SKILLS } from "@/skills/catalog";
 import { activeCatalog } from "@/skills/match";
 import { RECIPES } from "@/skills/recipes";
@@ -207,47 +208,81 @@ const RECOMMENDED_MCP: {
   },
 ];
 
+/** Turn an unknown thrown value into a human-readable message. */
+function errText(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  try {
+    const o = e as { data?: { message?: string }; message?: string };
+    return o?.data?.message ?? o?.message ?? JSON.stringify(e);
+  } catch {
+    return String(e);
+  }
+}
+
+/** Reject after `ms` so a hung engine call can never spin forever in the UI. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) =>
+      setTimeout(
+        () =>
+          rej(
+            new Error(
+              `${label} non ha risposto entro ${Math.round(ms / 1000)}s — il primo avvio può dover scaricare il pacchetto (uvx/npx). Attendi qualche istante e premi "ricontrolla".`,
+            ),
+          ),
+        ms,
+      ),
+    ),
+  ]);
+}
+
 function McpTab({ query }: { query: string }) {
   const { data: config } = useConfig();
   const { data: mcpStatus = {}, isFetching: statusFetching } = useMcpStatus();
   const updateConfig = useUpdateConfig();
+  const mcpAdd = useMcpAdd();
+  const mcpConnect = useMcpConnect();
+  const mcpDisconnect = useMcpDisconnect();
   const qc = useQueryClient();
 
   const [addMode, setAddMode] = useState<AddMode>(null);
   const [newName, setNewName] = useState("");
   const [newCommand, setNewCommand] = useState("");
   const [newUrl, setNewUrl] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [restarting, setRestarting] = useState(false);
-  const sidecarStatus = useSessionStore((s) => s.sidecarStatus);
+  // Which server is currently being (hot-)connected, and any per-server error
+  // from the LAST action — so "nothing happens" is impossible: every click ends
+  // in either a green "connected" or a red reason.
+  const [busy, setBusy] = useState<string | null>(null);
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
 
-  // Re-check the engine's live MCP connection state. Local servers (uvx/npx)
-  // connect lazily on first use, and failures (missing `uvx`, Blender server
-  // not running) only surface here — so after any change, and on demand, we
-  // pull fresh status instead of waiting out the 10s stale window.
+  // Re-check the engine's live MCP connection state on demand.
   const refreshMcp = () => qc.invalidateQueries({ queryKey: configKeys.mcp() });
 
-  // opencode loads MCP servers at STARTUP, so writing the config isn't enough —
-  // a newly added Blender/Figma server stays invisible to the agent ("non ho
-  // strumenti MCP") until the engine restarts. So every MCP config change is
-  // followed by a sidecar restart; when it comes back ready we re-pull status.
-  const pendingRestart = useRef(false);
-  useEffect(() => {
-    if (pendingRestart.current && sidecarStatus === "ready") {
-      pendingRestart.current = false;
-      qc.invalidateQueries({ queryKey: configKeys.mcp() });
-    }
-  }, [sidecarStatus, qc]);
-
-  /** Persist an MCP config change, then restart the engine so it loads it. */
-  const applyMcp = async (mcp: Record<string, McpLocalConfig | McpRemoteConfig>) => {
-    await updateConfig.mutateAsync({ mcp });
-    pendingRestart.current = true;
-    setRestarting(true);
+  /**
+   * Persist the server in config (survives restarts) AND hot-add it into the
+   * RUNNING engine via `mcp.add` — its tools are available immediately, no
+   * engine restart. The old restart-the-engine approach could wedge the whole
+   * app on a slow/failed boot ("Connecting to engine…" forever); this path
+   * keeps the engine alive no matter what happens with the MCP server.
+   */
+  const hotAdd = async (name: string, entry: McpLocalConfig | McpRemoteConfig) => {
+    if (busy) return;
+    setBusy(name);
+    setActionErrors((errs) => ({ ...errs, [name]: "" }));
     try {
-      await restartSidecar(); // opencode re-reads MCP servers only on boot
+      await updateConfig.mutateAsync({ mcp: { ...config?.mcp, [name]: entry } });
+      await withTimeout(
+        mcpAdd.mutateAsync({ name, config: entry }),
+        90_000,
+        `Il server "${name}"`,
+      );
+    } catch (e) {
+      setActionErrors((errs) => ({ ...errs, [name]: errText(e) }));
     } finally {
-      setRestarting(false);
+      setBusy(null);
+      refreshMcp();
     }
   };
 
@@ -257,32 +292,24 @@ function McpTab({ query }: { query: string }) {
 
   /** One-click connect a recommended server (local command or remote URL). */
   const addRecommended = async (r: (typeof RECOMMENDED_MCP)[number]) => {
-    if (saving) return;
-    setSaving(true);
-    try {
-      let entry: McpLocalConfig | McpRemoteConfig;
-      if (r.command) {
-        const key = (mcpKeys[r.name] ?? "").trim();
-        const command = r.keyArg && key ? [...r.command, r.keyArg + key] : r.command;
-        entry = { type: "local", command, enabled: true };
-      } else if (r.remote) {
-        const key = (mcpKeys[r.name] ?? "").trim();
-        entry = {
-          type: "remote",
-          url: r.remote.url,
-          enabled: true,
-          ...(r.remote.keyHeader && key
-            ? { headers: { [r.remote.keyHeader]: key } }
-            : {}),
-        };
-      } else {
-        return;
-      }
-      setMcpKeys((k) => ({ ...k, [r.name]: "" }));
-      await applyMcp({ ...config?.mcp, [r.name]: entry });
-    } finally {
-      setSaving(false);
+    let entry: McpLocalConfig | McpRemoteConfig;
+    if (r.command) {
+      const key = (mcpKeys[r.name] ?? "").trim();
+      const command = r.keyArg && key ? [...r.command, r.keyArg + key] : r.command;
+      entry = { type: "local", command, enabled: true };
+    } else if (r.remote) {
+      const key = (mcpKeys[r.name] ?? "").trim();
+      entry = {
+        type: "remote",
+        url: r.remote.url,
+        enabled: true,
+        ...(r.remote.keyHeader && key ? { headers: { [r.remote.keyHeader]: key } } : {}),
+      };
+    } else {
+      return;
     }
+    setMcpKeys((k) => ({ ...k, [r.name]: "" }));
+    await hotAdd(r.name, entry);
   };
 
   const q = query.trim().toLowerCase();
@@ -297,61 +324,90 @@ function McpTab({ query }: { query: string }) {
   });
 
   const handleToggle = (name: string, entry: McpLocalConfig | McpRemoteConfig) => {
-    if (saving || restarting) return;
-    void applyMcp({ ...config?.mcp, [name]: { ...entry, enabled: !entry.enabled } });
+    if (busy) return;
+    const enabling = entry.enabled === false;
+    const updated = { ...entry, enabled: enabling };
+    if (enabling) {
+      // Re-enable = persist + hot-add (covers "registered but never loaded").
+      void hotAdd(name, updated);
+    } else {
+      // Disable = persist + live disconnect (tools disappear right away).
+      setBusy(name);
+      void Promise.allSettled([
+        updateConfig.mutateAsync({ mcp: { ...config?.mcp, [name]: updated } }),
+        mcpDisconnect.mutateAsync(name),
+      ]).finally(() => {
+        setBusy(null);
+        refreshMcp();
+      });
+    }
   };
 
   const handleRemove = (name: string) => {
-    if (saving || restarting) return;
+    if (busy) return;
+    setBusy(name);
     const updated = { ...config?.mcp };
     delete updated[name];
-    void applyMcp(updated);
+    // Best-effort live disconnect; the config removal is what matters.
+    void Promise.allSettled([
+      mcpDisconnect.mutateAsync(name),
+      updateConfig.mutateAsync({ mcp: updated }),
+    ]).finally(() => {
+      setBusy(null);
+      setActionErrors((errs) => ({ ...errs, [name]: "" }));
+      refreshMcp();
+    });
   };
 
   const handleAdd = async () => {
     const trimName = newName.trim();
-    if (!trimName) return;
-    setSaving(true);
+    if (!trimName || busy) return;
+    let entry: McpLocalConfig | McpRemoteConfig;
+    if (addMode === "local") {
+      const parts = newCommand.trim().split(/\s+/);
+      if (!parts[0]) return;
+      entry = { type: "local", command: parts, enabled: true };
+    } else {
+      const url = newUrl.trim();
+      if (!url) return;
+      entry = { type: "remote", url, enabled: true };
+    }
+    setNewName("");
+    setNewCommand("");
+    setNewUrl("");
+    setAddMode(null);
+    await hotAdd(trimName, entry);
+  };
+
+  /** Re-connect a configured server that isn't live: connect, else full add. */
+  const reconnect = async (name: string, entry: McpLocalConfig | McpRemoteConfig) => {
+    if (busy) return;
+    setBusy(name);
+    setActionErrors((errs) => ({ ...errs, [name]: "" }));
     try {
-      let entry: McpLocalConfig | McpRemoteConfig;
-      if (addMode === "local") {
-        const parts = newCommand.trim().split(/\s+/);
-        if (!parts[0]) return;
-        entry = { type: "local", command: parts, enabled: true };
-      } else {
-        const url = newUrl.trim();
-        if (!url) return;
-        entry = { type: "remote", url, enabled: true };
+      await withTimeout(mcpConnect.mutateAsync(name), 90_000, `Il server "${name}"`);
+    } catch {
+      // Not registered in this engine run yet → full hot-add instead.
+      try {
+        await withTimeout(
+          mcpAdd.mutateAsync({ name, config: entry }),
+          90_000,
+          `Il server "${name}"`,
+        );
+      } catch (e2) {
+        setActionErrors((errs) => ({ ...errs, [name]: errText(e2) }));
       }
-      setNewName("");
-      setNewCommand("");
-      setNewUrl("");
-      setAddMode(null);
-      await applyMcp({ ...config?.mcp, [trimName]: entry });
     } finally {
-      setSaving(false);
+      setBusy(null);
+      refreshMcp();
     }
   };
 
   const missingRecommended = RECOMMENDED_MCP.filter((r) => !config?.mcp?.[r.name]);
-
-  const engineRestarting =
-    restarting || (pendingRestart.current && sidecarStatus !== "ready");
+  const saving = busy !== null;
 
   return (
     <div className="space-y-2">
-      {/* Engine-restart notice: MCP servers only load on boot, so any change
-          bounces the engine. Tell the user why the app briefly reconnects. */}
-      {engineRestarting && (
-        <div className="flex items-center gap-2 rounded-lg border border-[var(--primary)]/30 bg-[var(--primary)]/10 px-3 py-2 text-[11px] text-[var(--foreground)]">
-          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--primary)]" />
-          <span>
-            Riavvio il motore per caricare gli MCP… gli strumenti saranno pronti tra pochi
-            secondi.
-          </span>
-        </div>
-      )}
-
       {/* One-click connect: curated MCP servers not yet configured */}
       {missingRecommended.length > 0 && (
         <div className="rounded-lg border border-[var(--primary)]/25 bg-[var(--primary)]/5 p-3">
@@ -371,7 +427,7 @@ function McpTab({ query }: { query: string }) {
                     disabled={saving || (needsKey && !(mcpKeys[r.name] ?? "").trim())}
                     className="flex w-full items-start gap-2 text-left transition-colors hover:opacity-90 disabled:opacity-50"
                   >
-                    {saving ? (
+                    {busy === r.name ? (
                       <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-[var(--primary)]" />
                     ) : (
                       <Plus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
@@ -388,6 +444,18 @@ function McpTab({ query }: { query: string }) {
                       </code>
                     </span>
                   </button>
+                  {busy === r.name && (
+                    <p className="mt-1 text-[9px] text-[var(--primary)]/80">
+                      Connessione in corso… il primo avvio può scaricare il pacchetto
+                      (fino a ~1 min).
+                    </p>
+                  )}
+                  {!!actionErrors[r.name] && busy !== r.name && (
+                    <div className="mt-1 flex items-start gap-1 rounded border border-red-800/40 bg-red-950/20 px-1.5 py-1 text-[9px] leading-relaxed text-red-300">
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span className="min-w-0 break-words">{actionErrors[r.name]}</span>
+                    </div>
+                  )}
                   {needsKey && (
                     <input
                       type="password"
@@ -438,6 +506,8 @@ function McpTab({ query }: { query: string }) {
       {mcpEntries.map(([name, entry]) => {
         const status = mcpStatus[name];
         const isEnabled = entry.enabled !== false;
+        const isBusy = busy === name;
+        const cardError = actionErrors[name] || status?.error;
         return (
           <div
             key={name}
@@ -465,41 +535,53 @@ function McpTab({ query }: { query: string }) {
                   >
                     {entry.type}
                   </span>
-                  {status !== undefined &&
-                    (status.connected ? (
-                      <span className="rounded bg-green-500/15 px-1 text-[9px] text-green-400">
-                        connected
-                      </span>
-                    ) : status.error ? (
-                      <span className="rounded bg-red-500/15 px-1 text-[9px] text-red-400">
-                        errore
-                      </span>
-                    ) : (
-                      // No error and not connected: local servers connect lazily
-                      // on first use, so this is normal — not a failure.
-                      <span
-                        className="rounded bg-[var(--muted)] px-1 text-[9px] text-[var(--muted-foreground)]"
-                        title={
-                          entry.type === "local"
-                            ? "Si connette quando l'agente lo usa la prima volta"
-                            : "Non ancora connesso"
-                        }
-                      >
-                        {entry.type === "local" ? "avvio all'uso" : "non connesso"}
-                      </span>
-                    ))}
+                  {isBusy ? (
+                    <span className="flex items-center gap-1 rounded bg-[var(--primary)]/15 px-1 text-[9px] text-[var(--primary)]">
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      connessione…
+                    </span>
+                  ) : status?.connected ? (
+                    <span className="rounded bg-green-500/15 px-1 text-[9px] text-green-400">
+                      connected
+                    </span>
+                  ) : cardError ? (
+                    <span className="rounded bg-red-500/15 px-1 text-[9px] text-red-400">
+                      errore
+                    </span>
+                  ) : (
+                    <span className="rounded bg-[var(--muted)] px-1 text-[9px] text-[var(--muted-foreground)]">
+                      non connesso
+                    </span>
+                  )}
+                  {/* Hot-connect: register+connect in the RUNNING engine (no
+                      restart). The remedy for "il server c'è ma i tool no". */}
+                  {!isBusy && !status?.connected && isEnabled && (
+                    <button
+                      onClick={() => void reconnect(name, entry)}
+                      disabled={saving}
+                      className="rounded bg-[var(--primary)]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--primary)] transition-colors hover:bg-[var(--primary)]/25 disabled:opacity-50"
+                    >
+                      connetti
+                    </button>
+                  )}
                 </div>
                 <p className="mt-0.5 truncate text-[10px] text-[var(--muted-foreground)]">
                   {entry.type === "local" ? entry.command.join(" ") : entry.url}
                 </p>
-                {status?.error && (
+                {isBusy && (
+                  <p className="mt-1 text-[9px] text-[var(--primary)]/80">
+                    Connessione in corso… il primo avvio può scaricare il pacchetto (fino
+                    a ~1 min).
+                  </p>
+                )}
+                {!!cardError && !isBusy && (
                   <div className="mt-1 flex items-start gap-1 rounded border border-red-800/40 bg-red-950/20 px-1.5 py-1 text-[9px] leading-relaxed text-red-300">
                     <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                     <span className="min-w-0 break-words">
-                      {status.error}
+                      {cardError}
                       {entry.type === "local" &&
                         /uvx|uv\b|not found|no such file|enoent|command/i.test(
-                          status.error,
+                          cardError,
                         ) && (
                           <span className="mt-0.5 block text-red-300/80">
                             Suggerimento: chiudi e riapri kikkoCode del tutto (dopo aver

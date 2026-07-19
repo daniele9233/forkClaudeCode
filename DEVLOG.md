@@ -16,6 +16,39 @@
 
 ---
 
+## 2026-07-17 · v0.4.23 — MCP dinamico via mcp.add: niente più riavvio motore (fix "Connecting to engine…" infinito) [release]
+**Fase:** MCP  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
+
+### Cosa è cambiato
+- **`config.ts`**: nuovi hook `useMcpAdd` (POST /mcp — registra E connette un
+  server nel motore IN ESECUZIONE, ritorna lo status o un 400 col motivo),
+  `useMcpConnect` / `useMcpDisconnect` (POST /mcp/{name}/connect|disconnect).
+  Scoperti nel SDK 1.17.13: l'engine supporta la gestione MCP dinamica.
+- **`SettingsModal` McpTab riscritto**: `hotAdd()` = persisti config +
+  `mcp.add` a caldo (con `withTimeout` 90s → mai spinner infiniti);
+  toggle ON → hotAdd, toggle OFF → `mcp.disconnect` live; remove →
+  disconnect best-effort + rimozione config; **bottone "connetti"** sulle card
+  configurate ma non connesse (`mcp.connect`, fallback `mcp.add`);
+  `actionErrors` per-server → ogni click finisce SEMPRE in "connected" verde o
+  errore rosso col motivo; stato busy per-server con nota "il primo avvio può
+  scaricare il pacchetto". RIMOSSO tutto il meccanismo restart di v0.4.22
+  (applyMcp/restartSidecar/pendingRestart/banner riavvio).
+
+### Perché / decisione
+Utente (v0.4.22): click su Blender → "Connecting to engine…" per sempre. Il
+riavvio del motore è fragile (boot con MCP lento/PATH, monitor concorrente) e
+se non torna "ready" l'app resta appesa. Con `mcp.add` il motore NON viene mai
+toccato: il server MCP parte dentro l'engine vivo, i tool compaiono subito, e
+un fallimento è un messaggio d'errore, non un'app bloccata. Soluzione
+definitiva per design: la classe di guasti "restart che non torna" sparisce.
+
+### Gotcha / attenzione
+- `mcp.add` è bloccante mentre spawna il processo (uvx può scaricare al primo
+  avvio) → timeout UI 90s con messaggio onesto + "ricontrolla".
+- Il config resta la fonte persistente: al prossimo boot l'engine carica i
+  server da `config.mcp` come sempre; `mcp.add` serve per la sessione viva.
+- `restartSidecar` resta usato SOLO dal banner di crash (SidecarStatusBanner).
+
 ## 2026-07-16 · v0.4.22 — fix ROOT: cambio MCP riavvia il motore (i tool diventano davvero disponibili) [release]
 **Fase:** MCP  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
 

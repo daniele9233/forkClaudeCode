@@ -4,6 +4,27 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.23] — 2026-07-17
+
+### Fixed
+
+- **MCP connect is now instant and can never hang the app.** v0.4.22 restarted
+  the whole engine to load a new MCP server — on some machines that restart
+  never came back and the app sat on "Connecting to engine…" forever. Gone:
+  kikkoCode now uses the engine's **dynamic MCP API** (`mcp.add` /
+  `mcp.connect` / `mcp.disconnect`): clicking **Blender** registers and starts
+  the server **inside the running engine** — no restart, tools available
+  immediately, and the engine stays alive no matter what the MCP server does.
+  - Every click now ends in a visible outcome: green **connected**, or a red
+    error with the real reason (uvx missing, Blender socket down, …).
+  - While connecting you see **"connessione…"** with a note that the first
+    launch may download the package (uvx/npx) — with a 90s timeout so the UI
+    can never spin forever.
+  - New **"connetti"** button on any configured-but-offline server — the
+    one-click remedy for "il server c'è ma i tool no" (it re-registers it live
+    if needed).
+  - Disabling/removing a server disconnects it live (tools disappear at once).
+
 ## [0.4.22] — 2026-07-16
 
 ### Fixed

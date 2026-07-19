@@ -292,6 +292,67 @@ export interface McpStatusView {
   error?: string;
 }
 
+/**
+ * Hot-add (or re-add) an MCP server into the RUNNING engine — no restart.
+ * The engine spawns/connects it immediately; a failure comes back as a real
+ * error message instead of a silent nothing. This is THE way to make a newly
+ * configured server's tools available to the live session (the engine only
+ * reads `config.mcp` at boot, so config writes alone are invisible until the
+ * next restart — the historical cause of "non ho strumenti MCP").
+ */
+export function useMcpAdd() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      name: string;
+      config: McpLocalConfig | McpRemoteConfig;
+    }) => {
+      const res = await getClient().mcp.add({
+        body: { name: input.name, config: input.config },
+        throwOnError: true,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: configKeys.mcp() });
+    },
+  });
+}
+
+/** Connect an already-registered MCP server in the running engine. */
+export function useMcpConnect() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const res = await getClient().mcp.connect({
+        path: { name },
+        throwOnError: true,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: configKeys.mcp() });
+    },
+  });
+}
+
+/** Disconnect an MCP server in the running engine (its tools disappear). */
+export function useMcpDisconnect() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const res = await getClient().mcp.disconnect({
+        path: { name },
+        throwOnError: true,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: configKeys.mcp() });
+    },
+  });
+}
+
 export function useMcpStatus() {
   return useQuery({
     queryKey: configKeys.mcp(),
