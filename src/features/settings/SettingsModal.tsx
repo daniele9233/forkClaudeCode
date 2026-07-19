@@ -474,8 +474,10 @@ function McpTab({ query }: { query: string }) {
           </div>
           <p className="mt-1.5 text-[9px] leading-relaxed text-[var(--muted-foreground)]/70">
             Richiedono Node/npx (Kubernetes: `kubeconfig`; Playwright: browser; Blender:
-            `uv` + addon blender-mcp attivo in Blender; 21st: API key dal tuo account). Si
-            avviano quando l'agente li usa.
+            `uv` + addon blender-mcp attivo in Blender; 21st: API key dal tuo account).
+            Dopo aver collegato un server (badge <b>connected</b>),{" "}
+            <b>apri una NUOVA chat</b>: l'agente carica gli strumenti MCP all'inizio della
+            sessione.
           </p>
         </div>
       )}

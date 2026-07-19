@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getClient } from "./client";
 import { rowInfo } from "./messageShape";
 import { runHiddenPlan } from "./hiddenSession";
+import { stripToolStateLines } from "./memoryFilter";
 import { useMemoryStore } from "@/stores/memory.store";
 
 /**
@@ -54,6 +55,7 @@ ${digest}
 Rewrite the memory, merging in anything durable from the conversation. Rules:
 - Keep ONLY durable knowledge: project conventions (package manager, formatting, naming), architecture decisions and their reasons, user preferences (language, style, what they rejected), known gotchas/pitfalls, key commands.
 - NO session narration, no one-off task details, no code, no file diffs.
+- CRITICAL — NEVER record runtime/environment or tool-availability state. Do NOT write whether any MCP server, tool or integration (e.g. Blender, Figma, Playwright, 21st) is configured / connected / available / missing / "needs a restart". This is volatile: it changes between sessions and a stale note makes the agent WRONGLY refuse to use a tool that is actually available. If the current memory contains any such line, DELETE it.
 - Merge and dedupe with the current memory; drop entries that the conversation made obsolete.
 - Format: markdown, these exact sections (omit empty ones): "### Conventions", "### Decisions", "### Preferences", "### Gotchas", "### Commands". Bullet points, each ≤ 140 chars.
 - HARD LIMIT: ${MAX_MEMORY_CHARS} characters total. Fewer, denser bullets beat many vague ones.
@@ -103,6 +105,8 @@ function sanitize(reply: string): string {
     .filter((l) => !l.includes("kikko:memory:"))
     .join("\n")
     .trim();
+  // Drop any tool/MCP-availability lines that slipped past the prompt rule.
+  out = stripToolStateLines(out).trim();
   return out.slice(0, MAX_MEMORY_CHARS + 500);
 }
 
@@ -156,6 +160,16 @@ async function distill(sessionId: string): Promise<boolean> {
 /** Manual "Memorize now" — no throttle. */
 export async function memorizeNow(sessionId: string): Promise<boolean> {
   return distill(sessionId);
+}
+
+/**
+ * Wipe the auto-maintained memory block (leaves human-written rules intact).
+ * The immediate remedy when a bad entry has poisoned the memory — e.g. a stale
+ * "MCP tool not available" note that makes the agent refuse a connected tool.
+ */
+export async function clearMemory(): Promise<void> {
+  distilledUpTo.clear();
+  await invoke("update_agents_memory", { memory: "" });
 }
 
 /**

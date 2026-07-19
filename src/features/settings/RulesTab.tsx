@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Brain, Save, Loader2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Brain, Save, Loader2, ToggleLeft, ToggleRight, Eraser } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemoryStore } from "@/stores/memory.store";
 import { useSessionStore } from "@/stores/session.store";
-import { memorizeNow } from "@/opencode/memory";
+import { memorizeNow, clearMemory } from "@/opencode/memory";
 
 const DEFAULT_TEMPLATE = `# Project instructions
 
@@ -31,6 +31,7 @@ export function RulesTab() {
   const lastAt = useMemoryStore((s) => s.lastAt);
   const lastError = useMemoryStore((s) => s.lastError);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,29 +107,49 @@ export function RulesTab() {
             )}
           </button>
         </div>
-        <button
-          onClick={() => {
-            if (activeSessionId) {
-              void memorizeNow(activeSessionId).then((ok) => {
-                if (ok) reloadFile();
-              });
+        <div className="mt-2 flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              if (activeSessionId) {
+                void memorizeNow(activeSessionId).then((ok) => {
+                  if (ok) reloadFile();
+                });
+              }
+            }}
+            disabled={!activeSessionId || distilling || clearing}
+            className="flex items-center gap-1.5 rounded border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-[var(--foreground)] hover:bg-[var(--primary)]/20 disabled:opacity-50"
+            title={
+              activeSessionId
+                ? "Distill the current session into the project memory now"
+                : "Open a session first"
             }
-          }}
-          disabled={!activeSessionId || distilling}
-          className="mt-2 flex items-center gap-1.5 rounded border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-[var(--foreground)] hover:bg-[var(--primary)]/20 disabled:opacity-50"
-          title={
-            activeSessionId
-              ? "Distill the current session into the project memory now"
-              : "Open a session first"
-          }
-        >
-          {distilling ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <Brain className="h-3 w-3" />
-          )}
-          Memorize now
-        </button>
+          >
+            {distilling ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Brain className="h-3 w-3" />
+            )}
+            Memorize now
+          </button>
+          <button
+            onClick={() => {
+              setClearing(true);
+              void clearMemory()
+                .then(() => reloadFile())
+                .finally(() => setClearing(false));
+            }}
+            disabled={distilling || clearing}
+            className="flex items-center gap-1.5 rounded border border-[var(--border)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+            title="Svuota la memoria auto-mantenuta (le regole scritte a mano restano). Utile se una nota vecchia — es. 'MCP non disponibile' — fa rifiutare all'agente uno strumento in realtà collegato."
+          >
+            {clearing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Eraser className="h-3 w-3" />
+            )}
+            Pulisci memoria
+          </button>
+        </div>
       </div>
 
       {/* AGENTS.md editor */}

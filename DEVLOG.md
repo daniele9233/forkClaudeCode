@@ -16,6 +16,40 @@
 
 ---
 
+## 2026-07-19 · v0.4.24 — fix POISONING della memoria: l'agente "ricordava" che Blender MCP non c'era e si rifiutava [release]
+**Fase:** MCP/memoria  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
+
+### Cosa è cambiato
+- **`memoryFilter.ts`** (nuovo, puro): `isToolStateLine`/`stripToolStateLines`
+  — riconoscono ed eliminano righe che asseriscono disponibilità/config di
+  MCP/tool (mcp|blender|figma|playwright|21st|tools × config/connect/available/
+  install/restart…). +`memoryFilter.test.ts` (2 test).
+- **`memory.ts`**: `distillPrompt` con regola CRITICA "MAI registrare stato
+  runtime/tool-availability, ed elimina righe simili già presenti";
+  `sanitize()` applica `stripToolStateLines` (belt-and-braces); nuovo export
+  **`clearMemory()`** = `update_agents_memory("")` + reset throttle.
+- **`RulesTab.tsx`**: pulsante **"Pulisci memoria"** (Eraser) accanto a
+  "Memorize now" → svuota il blocco auto-gestito, ricarica il file.
+- **`SettingsModal.tsx`** MCP: nota "dopo connected apri una NUOVA chat" (i
+  tool MCP si legano all'inizio sessione).
+- Bump 0.4.23 → 0.4.24. Commit `[release]`.
+
+### Perché / decisione
+Screenshot utente (v0.4.23): l'agente risponde "non ho strumenti MCP di
+Blender... come indicato in **AGENTS.md**, il server non è configurato". Il
+distillatore di memoria aveva salvato il fallimento passato come "gotcha
+durevole" → iniettato in ogni sessione → l'agente si arrende senza controllare
+(profezia autoavverante). Anche col tubo MCP a posto, la memoria lo sabotava.
+Ora lo stato dei tool non entra MAI in memoria + purge in un click.
+
+### Gotcha / attenzione
+- `memoryFilter` è puro (no import Tauri) apposta per testarlo in vitest senza
+  mockare `@tauri-apps/api/core`.
+- Il filtro è volutamente conservativo (richiede tool-layer AND availability):
+  non tocca righe legittime tipo "Usa React 19 + Vite".
+- Resta il possibile secondo anello: i tool MCP si caricano all'inizio
+  sessione → serve una NUOVA chat dopo il connect (nota aggiunta in UI).
+
 ## 2026-07-17 · v0.4.23 — MCP dinamico via mcp.add: niente più riavvio motore (fix "Connecting to engine…" infinito) [release]
 **Fase:** MCP  |  **Branch:** claude/opencode-project-setup-1i59cg  |  **Commit:** (in arrivo)
 

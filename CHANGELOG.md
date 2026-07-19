@@ -4,6 +4,25 @@ All notable changes to kikkoCode are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.24] — 2026-07-19
+
+### Fixed
+
+- **The agent no longer "remembers" that a tool is unavailable and refuses to
+  use it.** The project-memory distiller had captured a transient failure as
+  durable knowledge — a line like *"Blender MCP not configured; unavailable
+  until added and session restarted"* — and written it into `AGENTS.md`, which
+  is injected into every session. The agent then parroted it and refused to
+  even look for the Blender tools, **even once they were connected**. Now:
+  - The distiller is explicitly forbidden from recording any tool/MCP/runtime
+    availability state, and a filter strips such lines even if the model emits
+    them anyway.
+  - New **"Pulisci memoria"** button (Settings → Rules & Memory) wipes the
+    auto-maintained block in one click — the immediate remedy for an already
+    poisoned memory. Hand-written rules are preserved.
+- **Clearer MCP guidance:** after a server shows **connected**, open a **new
+  chat** so the agent picks up its tools at session start.
+
 ## [0.4.23] — 2026-07-17
 
 ### Fixed
